@@ -9,14 +9,15 @@ from target_postgres.sinks import (
 
 
 class TargetPostgres(Target):
-    """Sample target for Postgres."""
+    """Target for Postgres."""
 
     name = "target-postgres"
     config_jsonschema = th.PropertiesList(
         th.Property(
             "sqlalchemy_url",
             th.StringType,
-            description="SQLAlchemy connection string",
+            required=True,
+            description="SQLAlchemy connection string, example `postgresql://postgres:postgres@localhost:5432/postgres`",
         ),
     ).to_dict()
     default_sink_class = PostgresSink
