@@ -1,5 +1,7 @@
 # target-postgres
 
+This tap is in **development**, it probably doesn't work yet, stick with https://hub.meltano.com/loaders/target-postgres for now 
+
 `target-postgres` is a Singer target for Postgres.
 
 Built with the [Meltano Target SDK](https://sdk.meltano.com).
