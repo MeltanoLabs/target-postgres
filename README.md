@@ -1,3 +1,27 @@
+# `target-postgres`
+
+Target for Postgres.
+
+Built with the [Meltano SDK](https://sdk.meltano.com) for Singer Taps and Targets.
+
+## Capabilities
+
+* `about`
+* `stream-maps`
+* `schema-flattening`
+
+## Settings
+
+| Setting             | Required | Default | Description |
+|:--------------------|:--------:|:-------:|:------------|
+| sqlalchemy_url      | True     | None    | SQLAlchemy connection string, example `postgresql://postgres:postgres@localhost:5432/postgres` |
+| stream_maps         | False    | None    | Config object for stream maps capability. |
+| stream_map_config   | False    | None    | User-defined config values to be used within map expressions. |
+| flattening_enabled  | False    | None    | 'True' to enable schema flattening and automatically expand nested properties. |
+| flattening_max_depth| False    | None    | The max depth to flatten schemas. |
+
+A full list of supported settings and capabilities is available by running: `target-postgres --about`
+
 # target-postgres
 
 This tap is in **development**, it probably doesn't work yet, stick with https://hub.meltano.com/loaders/target-postgres for now 
@@ -8,24 +32,13 @@ Built with the [Meltano Target SDK](https://sdk.meltano.com).
 
 ## Installation
 
-- [ ] `Developer TODO:` Update the below as needed to correctly describe the install procedure. For instance, if you do not have a PyPi repo, or if you want users to directly install from your git repo, you can modify this step as appropriate.
+- [ ] `Developer TODO:` Come back to this re [#5](https://github.com/MeltanoLabs/target-postgres/issues/5)
 
 ```bash
-pipx install target-postgres
+pipx install -e .
 ```
 
 ## Configuration
-
-### Accepted Config Options
-
-- [ ] `Developer TODO:` Provide a list of config options accepted by the target.
-
-A full list of supported settings and capabilities for this
-target is available by running:
-
-```bash
-target-postgres --about
-```
 
 ### Configure using environment variables
 
@@ -35,7 +48,10 @@ environment variable is set either in the terminal context or in the `.env` file
 
 ### Source Authentication and Authorization
 
-- [ ] `Developer TODO:` If your target requires special access on the source system, or any special authentication requirements, provide those here.
+The database account provided must have access to:
+1. Create schemas 
+1. Create tables (DDL)
+1. Push Data to tables (DML)
 
 ## Usage
 
@@ -47,12 +63,11 @@ You can easily run `target-postgres` by itself or in a pipeline using [Meltano](
 target-postgres --version
 target-postgres --help
 # Test using the "Carbon Intensity" sample:
+pipx install git+https://gitlab.com/meltano/tap-carbon-intensity
 tap-carbon-intensity | target-postgres --config /path/to/target-postgres-config.json
 ```
 
 ## Developer Resources
-
-- [ ] `Developer TODO:` As a first step, scan the entire project for the text "`TODO:`" and complete any recommended steps, deleting the "TODO" references once completed.
 
 ### Initialize your Development Environment
 
@@ -81,8 +96,7 @@ poetry run target-postgres --help
 _**Note:** This target will work in any Singer environment and does not require Meltano.
 Examples here are for convenience and to streamline end-to-end orchestration scenarios._
 
-Your project comes with a custom `meltano.yml` project file already created. Open the `meltano.yml` and follow any _"TODO"_ items listed in
-the file.
+Your project comes with a custom `meltano.yml` project file already created. 
 
 Next, install Meltano (if you haven't already) and any needed plugins:
 
@@ -90,7 +104,6 @@ Next, install Meltano (if you haven't already) and any needed plugins:
 # Install meltano
 pipx install meltano
 # Initialize meltano within this directory
-cd target-postgres
 meltano install
 ```
 
@@ -99,8 +112,6 @@ Now you can test and orchestrate using Meltano:
 ```bash
 # Test invocation:
 meltano invoke target-postgres --version
-# OR run a test `elt` pipeline with the Carbon Intensity sample tap:
-meltano elt tap-carbon-intensity target-postgres
 ```
 
 ### SDK Dev Guide
