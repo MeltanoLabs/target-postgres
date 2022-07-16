@@ -73,7 +73,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install meltano==2.0.1
+        pip install meltano
         meltano install 
     - name: smoke-test-tap
       run: meltano run tap-smoke-test target-postgres

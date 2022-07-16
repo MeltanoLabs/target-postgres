@@ -1,8 +1,5 @@
 """Tests standard target features using the built-in SDK tests library."""
-
-import datetime
-
-from typing import Dict, Any
+from typing import Any, Dict
 
 from singer_sdk.testing import get_standard_target_tests
 
