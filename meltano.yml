@@ -2,17 +2,23 @@ version: 1
 send_anonymous_usage_stats: true
 project_id: "target-postgres"
 plugins:
-  extractors: []
+  extractors:
+  - name: "tap-smoke-test"
+    namespace: "tap_smoke_test"
+    executable: "tap-smoke-test"
+    pip_url: "git+https://gitlab.com/meltano/tap-smoke-test.git"
+    config:
+      streams:
+      - stream_name: animals
+        "input_filename": "https://gitlab.com/meltano/tap-smoke-test/-/raw/main/demo-data/animals-data.jsonl"
+      - stream_name: page_views
+        "input_filename": "https://gitlab.com/meltano/tap-smoke-test/-/raw/main/demo-data/pageviews-data.jsonl"
   loaders:
   - name: "target-postgres"
     namespace: "target_postgres"
     pip_url: -e .
-    capabilities:
-    - state
-    - catalog
-    - discover
     config:
-      start_date: '2010-01-01T00:00:00Z'
+      sqlalchemy_url: "postgresql://postgres:postgres@localhost:5432/postgres"
     settings:
     # TODO: To configure using Meltano, declare settings and their types here:
     - name: username

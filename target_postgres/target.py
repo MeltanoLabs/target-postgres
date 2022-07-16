@@ -14,14 +14,9 @@ class TargetPostgres(Target):
     name = "target-postgres"
     config_jsonschema = th.PropertiesList(
         th.Property(
-            "filepath",
+            "sqlalchemy_url",
             th.StringType,
-            description="The path to the target output file"
-        ),
-        th.Property(
-            "file_naming_scheme",
-            th.StringType,
-            description="The scheme with which output files will be named"
+            description="SQLAlchemy connection string",
         ),
     ).to_dict()
     default_sink_class = PostgresSink

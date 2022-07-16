@@ -1,14 +1,10 @@
 """Postgres target sink class, which handles writing streams."""
+from singer_sdk.sinks import SQLSink
+from target_postgres.connector import PostgresConnector
 
-
-from singer_sdk.sinks import RecordSink
-
-
-class PostgresSink(RecordSink):
+class PostgresSink(SQLSink):
+    connector_class = PostgresConnector
     """Postgres target sink class."""
+    
 
-    def process_record(self, record: dict, context: dict) -> None:
-        """Process the record."""
-        # Sample:
-        # ------
-        # client.write(record)
+
