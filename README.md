@@ -26,10 +26,6 @@ A full list of supported settings and capabilities is available by running: `tar
 
 This tap is in **development**, it probably doesn't work yet, stick with https://hub.meltano.com/loaders/target-postgres for now 
 
-`target-postgres` is a Singer target for Postgres.
-
-Built with the [Meltano Target SDK](https://sdk.meltano.com).
-
 ## Installation
 
 - [ ] `Developer TODO:` Come back to this re [#5](https://github.com/MeltanoLabs/target-postgres/issues/5)
