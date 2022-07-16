@@ -1,11 +1,9 @@
 """Postgres target class."""
 
-from singer_sdk.target_base import Target
 from singer_sdk import typing as th
+from singer_sdk.target_base import Target
 
-from target_postgres.sinks import (
-    PostgresSink,
-)
+from target_postgres.sinks import PostgresSink
 
 
 class TargetPostgres(Target):
@@ -17,7 +15,8 @@ class TargetPostgres(Target):
             "sqlalchemy_url",
             th.StringType,
             required=True,
-            description="SQLAlchemy connection string, example `postgresql://postgres:postgres@localhost:5432/postgres`",
+            description="SQLAlchemy connection string, example."
+            + "`postgresql://postgres:postgres@localhost:5432/postgres`",
         ),
     ).to_dict()
     default_sink_class = PostgresSink
