@@ -37,3 +37,8 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry.scripts]
 # CLI declaration
 target-postgres = 'target_postgres.target:TargetPostgres.cli'
+
+[pytest]
+pythonpath = [
+  "."
+]
