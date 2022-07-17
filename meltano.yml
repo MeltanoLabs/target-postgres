@@ -20,9 +20,5 @@ plugins:
     config:
       sqlalchemy_url: "postgresql://postgres:postgres@localhost:5432/postgres"
     settings:
-    # TODO: To configure using Meltano, declare settings and their types here:
-    - name: username
-    - name: password
+    - name: sqlalchemy_url
       kind: password
-    - name: start_date
-      value: '2010-01-01T00:00:00Z'
