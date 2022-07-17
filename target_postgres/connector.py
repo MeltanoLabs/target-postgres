@@ -1,5 +1,4 @@
 """Connector class for target."""
-
 import sqlalchemy
 from singer_sdk import SQLConnector
 
