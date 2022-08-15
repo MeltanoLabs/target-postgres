@@ -24,6 +24,7 @@ black = "22.6.0"
 mypy = "^0.910"
 types-requests = "^2.26.1"
 isort = "^5.10.1"
+remote-pdb="2.1.0"
 
 [tool.isort]
 profile = "black"
