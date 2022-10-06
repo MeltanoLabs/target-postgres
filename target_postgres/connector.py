@@ -1,4 +1,6 @@
 """Connector class for target."""
+from typing import cast
+
 import sqlalchemy
 from singer_sdk import SQLConnector
 
@@ -24,3 +26,29 @@ class PostgresConnector(SQLConnector):
             A newly created SQLAlchemy engine object.
         """
         return self.create_sqlalchemy_engine().connect()
+    
+    def create_sqlalchemy_engine(self) -> sqlalchemy.engine.Engine:
+        """Return a new SQLAlchemy engine using the provided config.
+        
+        Returns:
+            A newly created SQLAlchemy engine object.
+        """
+        return sqlalchemy.create_engine(
+            self.sqlalchemy_url
+            , future=True
+            , echo=False
+            , executemany_mode = 'values_plus_batch'
+        )
+
+    @staticmethod
+    def to_sql_type(jsonschema_type: dict) -> sqlalchemy.types.TypeEngine:
+        """Returns a JSON Schema equivalent for the given SQL type.
+        
+        Developers may optionally add custom logic before calling the default implementation
+        inherited from the base class.
+        """
+        # Convert date-time to timestamp
+        if jsonschema_type.get('format') == 'date-time':
+            return cast(sqlalchemy.types.TypeEngine, sqlalchemy.types.TIMESTAMP())
+
+        return SQLConnector.to_sql_type(jsonschema_type)
