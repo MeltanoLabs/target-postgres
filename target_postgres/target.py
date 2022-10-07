@@ -12,11 +12,39 @@ class TargetPostgres(Target):
     name = "target-postgres"
     config_jsonschema = th.PropertiesList(
         th.Property(
-            "sqlalchemy_url",
+            "dialect",
             th.StringType,
-            required=True,
-            description="SQLAlchemy connection string, example."
-            + "`postgresql://postgres:postgres@localhost:5432/postgres`",
+            description="The Dialect of SQLAlchamey"
+        ),
+        th.Property(
+            "driver_type",
+            th.StringType,
+            description="The Python Driver you will be using to connect to the SQL server"
+        ),
+        th.Property(
+            "host",
+            th.StringType,
+            description="The FQDN of the Host serving out the SQL Instance"
+        ),
+        th.Property(
+            "port",
+            th.IntegerType,
+            description="The port on which SQL awaiting connection"
+        ),
+        th.Property(
+            "user",
+            th.StringType,
+            description="The User Account who has been granted access to the SQL Server"
+        ),
+        th.Property(
+            "password",
+            th.StringType,
+            description="The Password for the User account"
+        ),
+        th.Property(
+            "database",
+            th.StringType,
+            description="The Default database for this connection"
         ),
     ).to_dict()
     default_sink_class = PostgresSink
