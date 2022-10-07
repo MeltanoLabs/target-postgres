@@ -18,7 +18,19 @@ plugins:
     namespace: "target_postgres"
     pip_url: -e .
     config:
-      sqlalchemy_url: "postgresql://postgres:postgres@localhost:5432/postgres"
+      dialect: postgresql
+      driver_type: psycopg2
+      host: localhost
+      user: postgres
+      password: postgres
+      database: postgres
     settings:
-    - name: sqlalchemy_url
+    - name: dialect
+    - name: driver_type
+    - name: host
+    - name: port
+      kind: integer
+    - name: user
+    - name: password
       kind: password
+    - name: database
