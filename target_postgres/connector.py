@@ -5,6 +5,7 @@ import sqlalchemy
 from singer_sdk import SQLConnector
 from singer_sdk import typing as th
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
+from sqlalchemy.types import TIMESTAMP
 
 
 class PostgresConnector(SQLConnector):
@@ -63,6 +64,8 @@ class PostgresConnector(SQLConnector):
             return JSONB()
         if "array" in jsonschema_type["type"]:
             return ARRAY(JSONB())
+        if jsonschema_type.get('format') == 'date-time':
+            return TIMESTAMP()
         return th.to_sql_type(jsonschema_type)
 
     def create_empty_table(
