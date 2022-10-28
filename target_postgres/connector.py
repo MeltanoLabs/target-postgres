@@ -64,7 +64,7 @@ class PostgresConnector(SQLConnector):
             return JSONB()
         if "array" in jsonschema_type["type"]:
             return ARRAY(JSONB())
-        if jsonschema_type.get('format') == 'date-time':
+        if jsonschema_type.get("format") == "date-time":
             return TIMESTAMP()
         return th.to_sql_type(jsonschema_type)
 

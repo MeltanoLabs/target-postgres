@@ -30,5 +30,5 @@ class TargetPostgres(Target):
         Returns:
             Max number of sinks that can be drained in parallel.
         """
-        #https://github.com/MeltanoLabs/target-postgres/issues/3
+        # https://github.com/MeltanoLabs/target-postgres/issues/3
         return 1
