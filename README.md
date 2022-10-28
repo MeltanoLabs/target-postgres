@@ -2,7 +2,7 @@
 
 Target for Postgres.
 
-Built with the [Meltano SDK](https://sdk.meltano.com) for Singer Taps and Targets.
+Built with the [Meltano SDK](https://sdk.meltano.com) for Singer Taps and Targets. This target is in **development**, it probably doesn't work yet, stick with https://hub.meltano.com/loaders/target-postgres . Generally the goal here is to create a generalized target enough so that the SDK can automate >80% of testing for new targets, and potentially so taps can test very easily with a real local target. 
 
 ## Capabilities
 
@@ -20,11 +20,7 @@ Built with the [Meltano SDK](https://sdk.meltano.com) for Singer Taps and Target
 | flattening_enabled  | False    | None    | 'True' to enable schema flattening and automatically expand nested properties. |
 | flattening_max_depth| False    | None    | The max depth to flatten schemas. |
 
-A full list of supported settings and capabilities is available by running: `target-postgres --about`
-
-# target-postgres
-
-This tap is in **development**, it probably doesn't work yet, stick with https://hub.meltano.com/loaders/target-postgres for now 
+A full list of supported settings and capabilities is available by running: `target-postgres --about
 
 ## Installation
 

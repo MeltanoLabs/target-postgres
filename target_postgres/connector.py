@@ -1,5 +1,6 @@
 """Connector class for target."""
 from __future__ import annotations
+
 import sqlalchemy
 from singer_sdk import SQLConnector
 from typing import List, Optional, Any, cast
