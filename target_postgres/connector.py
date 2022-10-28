@@ -1,8 +1,12 @@
 """Connector class for target."""
+from __future__ import annotations
 import sqlalchemy
 from singer_sdk import SQLConnector
-from typing import List, Optional
+from typing import List, Optional, Any, cast
+from singer_sdk import typing as th
+from sqlalchemy.dialects.postgresql import JSONB, ARRAY
 import sqlalchemy
+from sqlalchemy import ARRAY, MetaData, Table, Column, insert
 
 
 class PostgresConnector(SQLConnector):
@@ -26,58 +30,6 @@ class PostgresConnector(SQLConnector):
             A newly created SQLAlchemy engine object.
         """
         return self.create_sqlalchemy_engine().connect()
-    
-    def merge_sql_types(
-        self, sql_types: List[sqlalchemy.types.TypeEngine]
-    ) -> sqlalchemy.types.TypeEngine:
-        """Return a compatible SQL type for the selected type list.
-
-        Args:
-            sql_types: List of SQL types.
-
-        Returns:
-            A SQL type that is compatible with the input types.
-
-        Raises:
-            ValueError: If sql_types argument has zero members.
-        """
-        if not sql_types:
-            raise ValueError("Expected at least one member in `sql_types` argument.")
-
-        if len(sql_types) == 1:
-            return sql_types[0]
-
-        sql_types = self._sort_types(sql_types)
-
-        if len(sql_types) > 2:
-            return self.merge_sql_types(
-                [self.merge_sql_types([sql_types[0], sql_types[1]])] + sql_types[2:]
-            )
-
-        assert len(sql_types) == 2
-       
-        # SQL Alchemy overrides column type comparisons (only difference
-        # between super is these 2 lines)
-        if str(sql_types[0]) == str(sql_types[1]):
-            return sql_types[0]
-
-        generic_type = type(sql_types[0].as_generic())
-        if isinstance(generic_type, type):
-            if issubclass(
-                generic_type,
-                (sqlalchemy.types.String, sqlalchemy.types.Unicode),
-            ):
-                return sql_types[0]
-
-        elif isinstance(
-            generic_type,
-            (sqlalchemy.types.String, sqlalchemy.types.Unicode),
-        ):
-            return sql_types[0]
-
-        raise ValueError(
-            f"Unable to merge sql types: {', '.join([str(t) for t in sql_types])}"
-        )
     
     
     def create_empty_table(
@@ -129,13 +81,84 @@ class PostgresConnector(SQLConnector):
         meta.create_all(self._engine)
     
     def truncate_table(self, name):
-        self.connection.execute("TRUNCATE TABLE :name", name=name)
+        self.connection.execute(f"TRUNCATE TABLE {name}")
 
     def create_temp_table_from_table(self, from_table_name, temp_table_name):
-        self.connection.execute("""
-        CREATE TEMP TABLE :temp_table_name AS 
-        SELECT * FROM :from_table_name LIMIT 0 
-        """,
-        temp_table_name=temp_table_name,
-        from_table_name=from_table_name)
+        create_temp_table_sql = f"""
+        CREATE TEMP TABLE {temp_table_name} AS 
+        SELECT * FROM {from_table_name} LIMIT 0 
+        """
+        self.connection.execute(create_temp_table_sql)
+    
+    @staticmethod
+    def to_sql_type(jsonschema_type: dict) -> sqlalchemy.types.TypeEngine:
+        """Return a JSON Schema representation of the provided type.
 
+        By default will call `typing.to_sql_type()`.
+
+        Developers may override this method to accept additional input argument types,
+        to support non-standard types, or to provide custom typing logic.
+        If overriding this method, developers should call the default implementation
+        from the base class for all unhandled cases.
+
+        Args:
+            jsonschema_type: The JSON Schema representation of the source type.
+
+        Returns:
+            The SQLAlchemy type representation of the data type.
+        """
+        if "object" in jsonschema_type["type"]:
+            return JSONB()
+        if "array" in jsonschema_type["type"]:
+            return ARRAY(JSONB())
+        return th.to_sql_type(jsonschema_type)
+
+    def create_empty_table(
+        self,
+        full_table_name: str,
+        schema: dict,
+        primary_keys: list[str] | None = None,
+        partition_keys: list[str] | None = None,
+        as_temp_table: bool = False,
+    ) -> None:
+        """Create an empty target table.
+
+        Args:
+            full_table_name: the target table name.
+            schema: the JSON schema for the new table.
+            primary_keys: list of key properties.
+            partition_keys: list of partition keys.
+            as_temp_table: True to create a temp table.
+
+        Raises:
+            NotImplementedError: if temp tables are unsupported and as_temp_table=True.
+            RuntimeError: if a variant schema is passed with no properties defined.
+        """
+        if as_temp_table:
+            raise NotImplementedError("Temporary tables are not supported.")
+
+        _ = partition_keys  # Not supported in generic implementation.
+
+        _, schema_name, table_name = self.parse_full_table_name(full_table_name)
+        meta = sqlalchemy.MetaData(schema=schema_name)
+        columns: list[sqlalchemy.Column] = []
+        primary_keys = primary_keys or []
+        try:
+            properties: dict = schema["properties"]
+        except KeyError:
+            raise RuntimeError(
+                f"Schema for '{full_table_name}' does not define properties: {schema}"
+            )
+        for property_name, property_jsonschema in properties.items():
+            is_primary_key = property_name in primary_keys
+            columns.append(
+                sqlalchemy.Column(
+                    property_name,
+                    self.to_sql_type(property_jsonschema),
+                    primary_key=is_primary_key,
+                )
+            )
+
+        _ = sqlalchemy.Table(table_name, meta, *columns)
+        meta.create_all(self._engine)
+    
