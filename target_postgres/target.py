@@ -20,7 +20,7 @@ class TargetPostgres(Target):
         ),
     ).to_dict()
     default_sink_class = PostgresSink
-    
+
     @property
     def max_parallelism(self) -> int:
         """Get max parallel sinks.

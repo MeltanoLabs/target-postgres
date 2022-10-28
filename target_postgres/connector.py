@@ -3,11 +3,8 @@ from __future__ import annotations
 
 import sqlalchemy
 from singer_sdk import SQLConnector
-from typing import List, Optional, Any, cast
 from singer_sdk import typing as th
-from sqlalchemy.dialects.postgresql import JSONB, ARRAY
-import sqlalchemy
-from sqlalchemy import ARRAY, MetaData, Table, Column, insert
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 
 
 class PostgresConnector(SQLConnector):
@@ -16,7 +13,7 @@ class PostgresConnector(SQLConnector):
     allow_column_add: bool = True  # Whether ADD COLUMN is supported.
     allow_column_rename: bool = True  # Whether RENAME COLUMN is supported.
     allow_column_alter: bool = False  # Whether altering column types is supported.
-    allow_merge_upsert: bool = True # Whether MERGE UPSERT is supported.
+    allow_merge_upsert: bool = True  # Whether MERGE UPSERT is supported.
     allow_temp_tables: bool = True  # Whether temp tables are supported.
 
     def create_sqlalchemy_connection(self) -> sqlalchemy.engine.Connection:
@@ -31,66 +28,20 @@ class PostgresConnector(SQLConnector):
             A newly created SQLAlchemy engine object.
         """
         return self.create_sqlalchemy_engine().connect()
-    
-    
-    def create_empty_table(
-        self,
-        full_table_name: str,
-        schema: dict,
-        primary_keys: Optional[List[str]] = None,
-        partition_keys: Optional[List[str]] = None,
-        as_temp_table: bool = False,
-    ) -> None:
-        """Create an empty target table.
 
-        Args:
-            full_table_name: the target table name.
-            schema: the JSON schema for the new table.
-            primary_keys: list of key properties.
-            partition_keys: list of partition keys.
-            as_temp_table: True to create a temp table.
-
-        Raises:
-            NotImplementedError: if temp tables are unsupported and as_temp_table=True.
-            RuntimeError: if a variant schema is passed with no properties defined.
-        """
-        if as_temp_table:
-            raise NotImplementedError("Temporary tables are not supported.")
-
-        _ = partition_keys  # Not supported in generic implementation.
-
-        meta = sqlalchemy.MetaData()
-        columns: List[sqlalchemy.Column] = []
-        primary_keys = primary_keys or []
-        try:
-            properties: dict = schema["properties"]
-        except KeyError:
-            raise RuntimeError(
-                f"Schema for '{full_table_name}' does not define properties: {schema}"
-            )
-        for property_name, property_jsonschema in properties.items():
-            is_primary_key = property_name in primary_keys
-            columns.append(
-                sqlalchemy.Column(
-                    property_name,
-                    self.to_sql_type(property_jsonschema),
-                    primary_key=is_primary_key,
-                )
-            )
-
-        _ = sqlalchemy.Table(full_table_name, meta, *columns)
-        meta.create_all(self._engine)
-    
     def truncate_table(self, name):
+        """Clear table data."""
         self.connection.execute(f"TRUNCATE TABLE {name}")
 
     def create_temp_table_from_table(self, from_table_name, temp_table_name):
-        create_temp_table_sql = f"""
-        CREATE TEMP TABLE {temp_table_name} AS 
-        SELECT * FROM {from_table_name} LIMIT 0 
-        """
-        self.connection.execute(create_temp_table_sql)
-    
+        """Temp table from another table."""
+        ddl = sqlalchemy.DDL(
+            "CREATE TEMP TABLE %(temp_table_name)s AS "
+            "SELECT * FROM %(from_table_name)s LIMIT 0",
+            {"temp_table_name": temp_table_name, "from_table_name": from_table_name},
+        )
+        self.connection.execute(ddl)
+
     @staticmethod
     def to_sql_type(jsonschema_type: dict) -> sqlalchemy.types.TypeEngine:
         """Return a JSON Schema representation of the provided type.
@@ -162,4 +113,3 @@ class PostgresConnector(SQLConnector):
 
         _ = sqlalchemy.Table(table_name, meta, *columns)
         meta.create_all(self._engine)
-    
