@@ -87,7 +87,7 @@ class PostgresSink(SQLSink):
             NotImplementedError: if the merge upsert capability does not exist or is
                 undefined.
         """
-        #TODO think about sql injeciton
+        #TODO think about sql injeciton, issue here https://github.com/MeltanoLabs/target-postgres/issues/22
 
 
         #INSERT
