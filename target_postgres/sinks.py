@@ -52,7 +52,8 @@ class PostgresSink(SQLSink):
             schema=self.schema,
             join_keys=self.key_properties,
         )
-        self.connector.truncate_table(self.temp_table_name)
+        #Drop temp table
+        self.connector.drop_table(self.temp_table_name)
 
     # Copied purely to help with type hints
     @property

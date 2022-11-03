@@ -126,7 +126,7 @@ def test_relational_data(postgres_target):
     file_name = "user_location_data.singer"
     singer_file_to_target(file_name, postgres_target)
 
-    file_name = "user_location_data_upsert_data.singer"
+    file_name = "user_location_upsert_data.singer"
     singer_file_to_target(file_name, postgres_target)
 
 
