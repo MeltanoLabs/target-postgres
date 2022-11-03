@@ -1,0 +1,6 @@
+{"type": "SCHEMA", "stream": "test_missing_value", "key_properties": ["id"], "schema": {"type": "object", "properties": {"id": {"type": "integer"}, "name": {"type": "string"}}}}
+{"type": "RECORD", "stream": "test_missing_value", "record": {"id": 1, "name": "Yannis"}}
+{"type": "RECORD", "stream": "test_missing_value", "record": {"id": 2, "name": "Micael"}}
+{"type": "RECORD", "stream": "test_missing_value", "record": {"id": 3, "name": "Jacob"}}
+{"type": "RECORD", "stream": "test_missing_value", "record": {"id": 4, "name": "Josh"}}
+{"type": "RECORD", "stream": "test_missing_value", "record": {"id": 5}}
