@@ -148,8 +148,14 @@ class PostgresSink(SQLSink):
             columns,
         )
         self.logger.info("Inserting with SQL: %s", insert)
+        insert_records = []
+        for record in records:
+            insert_record = {}
+            for column in columns:
+                insert_record[column.name] = record.get(column.name)
+            insert_records.append(insert_record)
 
-        self.connector.connection.execute(insert, records)
+        self.connector.connection.execute(insert, insert_records)
         return True
 
     def column_representation(
