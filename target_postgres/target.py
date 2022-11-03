@@ -20,3 +20,15 @@ class TargetPostgres(Target):
         ),
     ).to_dict()
     default_sink_class = PostgresSink
+
+    @property
+    def max_parallelism(self) -> int:
+        """Get max parallel sinks.
+
+        The default is 8 if not overridden.
+
+        Returns:
+            Max number of sinks that can be drained in parallel.
+        """
+        # https://github.com/MeltanoLabs/target-postgres/issues/3
+        return 1
