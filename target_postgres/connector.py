@@ -33,7 +33,7 @@ class PostgresConnector(SQLConnector):
     def truncate_table(self, name):
         """Clear table data."""
         self.connection.execute(f"TRUNCATE TABLE {name}")
-    
+
     def drop_table(self, name):
         """Drop table data."""
         self.connection.execute(f"DROP TABLE {name}")
