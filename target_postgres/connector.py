@@ -4,7 +4,7 @@ from __future__ import annotations
 import sqlalchemy
 from singer_sdk import SQLConnector
 from singer_sdk import typing as th
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, BIGINT
 from sqlalchemy.types import TIMESTAMP
 
 
@@ -64,6 +64,8 @@ class PostgresConnector(SQLConnector):
         Returns:
             The SQLAlchemy type representation of the data type.
         """
+        if "integer" in jsonschema_type["type"]:
+            return BIGINT()
         if "object" in jsonschema_type["type"]:
             return JSONB()
         if "array" in jsonschema_type["type"]:

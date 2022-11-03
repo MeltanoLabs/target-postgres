@@ -1,0 +1,3 @@
+{"type": "SCHEMA", "stream": "test_large_int", "key_properties": ["id"], "schema": {"type": "object", "properties": {"id": {"type": "integer"}, "name": {"type": "string"}}}}
+{"type": "RECORD", "stream": "test_large_int", "record": {"id": 99999999999999999, "name": "Yannis"}}
+{"type": "RECORD", "stream": "test_large_int", "record": {"id": 2, "name": "Micael"}}

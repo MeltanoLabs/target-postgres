@@ -170,3 +170,8 @@ def test_tap_countries(postgres_target):
 def test_missing_value(postgres_target):
     file_name = "missing_value.singer"
     singer_file_to_target(file_name, postgres_target)
+
+
+def test_large_int(postgres_target):
+    file_name = "large_int.singer"
+    singer_file_to_target(file_name, postgres_target)
