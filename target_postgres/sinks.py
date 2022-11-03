@@ -150,7 +150,7 @@ class PostgresSink(SQLSink):
         self.logger.info("Inserting with SQL: %s", insert)
         insert_records = []
         for record in records:
-            insert_record={}
+            insert_record = {}
             for column in columns:
                 insert_record[column.name] = record.get(column.name)
             insert_records.append(insert_record)
