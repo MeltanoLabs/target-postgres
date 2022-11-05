@@ -43,6 +43,7 @@ class PostgresSink(SQLSink):
         self.bulk_insert_records(
             full_table_name=self.temp_table_name,
             schema=self.schema,
+            primary_keys=self.key_properties,
             records=context["records"],
         )
         # Merge data from Temp table to main table
@@ -125,7 +126,11 @@ class PostgresSink(SQLSink):
         self.connection.execute(update_sql)
 
     def bulk_insert_records(
-        self, full_table_name: str, schema: dict, records: Iterable[Dict[str, Any]]
+        self,
+        full_table_name: str,
+        schema: dict,
+        records: Iterable[Dict[str, Any]],
+        primary_keys: List[str],
     ) -> Optional[int]:
         """Bulk insert records to an existing destination table.
 
@@ -148,14 +153,16 @@ class PostgresSink(SQLSink):
             columns,
         )
         self.logger.info("Inserting with SQL: %s", insert)
-        insert_records = []
+        # Only one record per PK, we want to take the last one
+        insert_records: Dict[str, Dict] = {}  # pk : record
         for record in records:
             insert_record = {}
             for column in columns:
                 insert_record[column.name] = record.get(column.name)
-            insert_records.append(insert_record)
+            primary_key_value = "".join([str(record[key]) for key in primary_keys])
+            insert_records[primary_key_value] = insert_record
 
-        self.connector.connection.execute(insert, insert_records)
+        self.connector.connection.execute(insert, list(insert_records.values()))
         return True
 
     def column_representation(
