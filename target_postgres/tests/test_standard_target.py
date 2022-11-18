@@ -16,7 +16,14 @@ from target_postgres.tests.samples.sample_tap_countries.countries_tap import (
 
 @pytest.fixture()
 def postgres_config():
-    return {"sqlalchemy_url": "postgresql://postgres:postgres@localhost:5432/postgres"}
+       return {
+       "dialect": "postgresql",
+       "driver_type": "psycopg2",
+       "host": "localhost",
+       "user": "postgres",
+       "password": "postgres",
+       "database": "postgres"  
+   }
 
 
 @pytest.fixture
