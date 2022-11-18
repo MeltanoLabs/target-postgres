@@ -45,7 +45,7 @@ class TargetPostgres(Target):
             "database",
             th.StringType,
             description="The Default database for this connection"
-        )
+        ),
     ).to_dict()
     default_sink_class = PostgresSink
 
