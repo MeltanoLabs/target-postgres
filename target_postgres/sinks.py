@@ -220,4 +220,4 @@ class PostgresSink(SQLSink):
     @property
     def schema_name(self) -> str:
         """Schema to write to."""
-        return self.config["schema"]
+        return self.config["target_schema"]
