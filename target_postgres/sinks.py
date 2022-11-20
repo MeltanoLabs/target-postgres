@@ -110,9 +110,9 @@ class PostgresSink(SQLSink):
 
         # INSERT
         join_condition = " and ".join(
-            [f"temp.{key} = target.{key}" for key in join_keys]
+            [f"temp.\"{key}\" = target.\"{key}\"" for key in join_keys]
         )
-        where_condition = " and ".join([f"target.{key} is null" for key in join_keys])
+        where_condition = " and ".join([f"target.\"{key}\" is null" for key in join_keys])
 
         insert_sql = f"""
         INSERT INTO {to_table_name}
@@ -186,7 +186,6 @@ class PostgresSink(SQLSink):
     ) -> List[Column]:
         """Returns a sql alchemy table representation for the current schema."""
         columns: list[Column] = []
-        breakpoint()
         for property_name, property_jsonschema in schema["properties"].items():
             columns.append(
                 Column(
@@ -217,12 +216,3 @@ class PostgresSink(SQLSink):
     def conform_name(self, name: str, object_type: Optional[str] = None) -> str:
         """Conforming names of tables, schemas, column names"""
         return name
-    
-    @property
-    def key_properties(self) -> List[str]:
-        """Return key properties, conformed to target system naming requirements.
-
-        Returns:
-            A list of key properties, conformed with `self.conform_name()`
-        """
-        return [self.conform_name(key, "column") for key in super().key_properties]
