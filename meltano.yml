@@ -19,6 +19,7 @@ plugins:
     pip_url: -e .
     config:
       sqlalchemy_url: "postgresql://postgres:postgres@localhost:5432/postgres"
+      target_schema: test
     settings:
     - name: sqlalchemy_url
       kind: password
