@@ -214,5 +214,5 @@ class PostgresSink(SQLSink):
         return insert(table)
 
     def conform_name(self, name: str, object_type: Optional[str] = None) -> str:
-        """Conforming names of tables, schemas, column names"""
+        """Conforming names of tables, schemas, column names."""
         return name

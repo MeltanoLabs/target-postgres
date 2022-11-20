@@ -4,7 +4,7 @@ from __future__ import annotations
 import sqlalchemy
 from singer_sdk import SQLConnector
 from singer_sdk import typing as th
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB, BIGINT
+from sqlalchemy.dialects.postgresql import ARRAY, BIGINT, JSONB
 from sqlalchemy.types import TIMESTAMP
 
 
