@@ -1,6 +1,7 @@
 """ Attempt at making some standard Target Tests. """
 # flake8: noqa
 import io
+import uuid
 from contextlib import redirect_stdout
 from pathlib import Path
 
@@ -14,9 +15,12 @@ from target_postgres.tests.samples.sample_tap_countries.countries_tap import (
 )
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def postgres_config():
-    return {"sqlalchemy_url": "postgresql://postgres:postgres@localhost:5432/postgres"}
+    return {
+        "sqlalchemy_url": "postgresql://postgres:postgres@localhost:5432/postgres",
+        "schema": f"pytest_{str(uuid.uuid4()).replace('-','_')}",
+    }
 
 
 @pytest.fixture

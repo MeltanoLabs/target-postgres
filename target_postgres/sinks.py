@@ -216,3 +216,8 @@ class PostgresSink(SQLSink):
     def conform_name(self, name: str, object_type: Optional[str] = None) -> str:
         """Conforming names of tables, schemas, column names."""
         return name
+
+    @property
+    def schema_name(self) -> str:
+        """Schema to write to."""
+        return self.config["schema"]

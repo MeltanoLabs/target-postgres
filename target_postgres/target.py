@@ -18,6 +18,13 @@ class TargetPostgres(Target):
             description="SQLAlchemy connection string, example."
             + "`postgresql://postgres:postgres@localhost:5432/postgres`",
         ),
+        th.Property(
+            "schema",
+            th.StringType,
+            required=True,
+            description="Postgres schema to send data to, example: tap-clickup",
+            default="public",
+        ),
     ).to_dict()
     default_sink_class = PostgresSink
 
