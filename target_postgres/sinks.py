@@ -218,6 +218,31 @@ class PostgresSink(SQLSink):
         return name
 
     @property
-    def schema_name(self) -> str:
-        """Schema to write to."""
-        return self.config["target_schema"]
+    def schema_name(self) -> Optional[str]:
+        """Return the schema name or `None` if using names with no schema part.
+
+                Note that after the next SDK release (after 0.14.0) we can remove this
+                as it's already upstreamed.
+
+        Returns:
+            The target schema name.
+        """
+        # Look for a default_target_scheme in the configuraion fle
+        default_target_schema: str = self.config.get("default_target_schema", None)
+        parts = self.stream_name.split("-")
+
+        # 1) When default_target_scheme is in the configuration use it
+        # 2) if the streams are in <schema>-<table> format use the
+        #    stream <schema>
+        # 3) Return None if you don't find anything
+        if default_target_schema:
+            return default_target_schema
+
+        if len(parts) in {2, 3}:
+            # Stream name is a two-part or three-part identifier.
+            # Use the second-to-last part as the schema name.
+            stream_schema = self.conform_name(parts[-2], "schema")
+            return stream_schema
+
+        # Schema name not detected.
+        return None

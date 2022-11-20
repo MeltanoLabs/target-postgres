@@ -19,7 +19,7 @@ from target_postgres.tests.samples.sample_tap_countries.countries_tap import (
 def postgres_config():
     return {
         "sqlalchemy_url": "postgresql://postgres:postgres@localhost:5432/postgres",
-        "target_schema": f"pytest_{str(uuid.uuid4()).replace('-','_')}",
+        "default_target_schema": f"pytest_{str(uuid.uuid4()).replace('-','_')}",
     }
 
 
