@@ -14,13 +14,13 @@ Built with the [Meltano SDK](https://sdk.meltano.com) for Singer Taps and Target
 
 | Setting             | Required | Default | Description |
 |:--------------------|:--------:|:-------:|:------------|
-| sqlalchemy_url      | True     | None    | SQLAlchemy connection string, example `postgresql://postgres:postgres@localhost:5432/postgres` |
-| stream_maps         | False    | None    | Config object for stream maps capability. |
-| stream_map_config   | False    | None    | User-defined config values to be used within map expressions. |
-| flattening_enabled  | False    | None    | 'True' to enable schema flattening and automatically expand nested properties. |
+| sqlalchemy_url      | True     | None    | SQLAlchemy connection string, example.`postgresql://postgres:postgres@localhost:5432/postgres` |
+| target_schema       | True     | public  | Postgres schema to send data to, example: tap-clickup |
+| stream_maps         | False    | None    | Config object for stream maps capability. For more information check out [Stream Maps](https://sdk.meltano.com/en/latest/stream_maps.html). |
+| stream_map_config   | False    | None    | User-defined config values to be used within map expressions. |                                                                                                                                 | flattening_enabled  | False    | None    | 'True' to enable schema flattening and automatically expand nested properties. |
 | flattening_max_depth| False    | None    | The max depth to flatten schemas. |
 
-A full list of supported settings and capabilities is available by running: `target-postgres --about
+A full list of supported settings and capabilities is available by running: `target-postgres --about`
 
 ## Installation
 
