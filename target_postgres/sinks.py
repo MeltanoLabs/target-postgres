@@ -18,7 +18,7 @@ class PostgresSink(SQLSink):
         """Constructor."""
         self.temp_table_name = self.generate_temp_table_name()
         super().__init__(*args, **kwargs)
-    
+
     def setup(self) -> None:
         """Set up Sink.
 
@@ -29,7 +29,7 @@ class PostgresSink(SQLSink):
             self.connector.prepare_schema(self.schema_name)
         self.connector.prepare_table(
             full_table_name=self.full_table_name,
-            schema=self.schema, 
+            schema=self.schema,
             primary_keys=self.key_properties,
             as_temp_table=False,
         )
@@ -110,9 +110,9 @@ class PostgresSink(SQLSink):
 
         # INSERT
         join_condition = " and ".join(
-            [f"temp.\"{key}\" = target.\"{key}\"" for key in join_keys]
+            [f'temp."{key}" = target."{key}"' for key in join_keys]
         )
-        where_condition = " and ".join([f"target.\"{key}\" is null" for key in join_keys])
+        where_condition = " and ".join([f'target."{key}" is null' for key in join_keys])
 
         insert_sql = f"""
         INSERT INTO {to_table_name}
@@ -127,7 +127,7 @@ class PostgresSink(SQLSink):
         # UPDATE
         columns = ", ".join(
             [
-                f"\"{column_name}\"=temp.\"{column_name}\""
+                f'"{column_name}"=temp."{column_name}"'
                 for column_name in self.schema["properties"].keys()
             ]
         )
@@ -212,7 +212,7 @@ class PostgresSink(SQLSink):
         metadata = MetaData()
         table = Table(full_table_name, metadata, *columns)
         return insert(table)
-    
+
     def conform_name(self, name: str, object_type: Optional[str] = None) -> str:
         """Conforming names of tables, schemas, column names"""
         return name

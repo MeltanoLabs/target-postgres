@@ -171,9 +171,11 @@ def test_missing_value(postgres_target):
     file_name = "missing_value.singer"
     singer_file_to_target(file_name, postgres_target)
 
+
 def test_large_int(postgres_target):
     file_name = "large_int.singer"
     singer_file_to_target(file_name, postgres_target)
+
 
 def test_reserved_keywords(postgres_target):
     """Postgres has a number of resereved keywords listed here https://www.postgresql.org/docs/current/sql-keywords-appendix.html.
