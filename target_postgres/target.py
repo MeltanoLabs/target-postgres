@@ -19,7 +19,7 @@ class TargetPostgres(Target):
             + "`postgresql://postgres:postgres@localhost:5432/postgres`",
         ),
         th.Property(
-            "schema",
+            "target_schema",
             th.StringType,
             required=True,
             description="Postgres schema to send data to, example: tap-clickup",
