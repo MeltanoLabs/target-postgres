@@ -36,31 +36,23 @@ class PostgresConnector(SQLConnector):
         Args:
             config: The configuration for the connector.
         """
-        if config['dialect'] == "postgresql" :
-            url_drivername:str = config['dialect']
-        else:
-            self.logger.error("Invalid dialect given")
-            exit(1)
+        if config.get('sqlalchemy_url'):
+           return super().get_sqlalchemy_url(config)
+        else: 
+            url_drivername:str = "postgresql+psycopg2"
 
-        if config['driver_type'] in ["psycopg2","pg8000","asyncpg","psycopg2cffi","pypostgresql","pygresql"]:
-            url_drivername += f"+{config['driver_type']}"
-        else:
-            self.logger.error("Invalid driver_type given")
-            exit(1)
+            config_url = URL.create(
+                url_drivername,
+                config['user'],
+                config['password'],
+                host = config['host'],
+                database = config['database']
+            )
 
-        self.logger.info(url_drivername)
-        config_url = URL.create(
-            url_drivername,
-            config['user'],
-            config['password'],
-            host = config['host'],
-            database = config['database']
-        )
+            if 'port' in config:
+                config_url.set(port=config['port'])
 
-        if 'port' in config:
-            config_url.set(port={config['port']})
-
-        return (config_url)
+            return (config_url)
 
     def truncate_table(self, name):
         """Clear table data."""

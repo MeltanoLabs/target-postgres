@@ -24,6 +24,7 @@ class TargetPostgres(Target):
         th.Property(
             "host",
             th.StringType,
+            required=True,
             description="The FQDN of the Host serving out the SQL Instance"
         ),
         th.Property(
@@ -34,17 +35,26 @@ class TargetPostgres(Target):
         th.Property(
             "user",
             th.StringType,
+            required=True,
             description="The User Account who has been granted access to the SQL Server"
         ),
         th.Property(
             "password",
             th.StringType,
+            required=True,
             description="The Password for the User account"
         ),
         th.Property(
             "database",
             th.StringType,
+            required=True,
             description="The Default database for this connection"
+        ),
+        th.Property(
+            "sqlalchemy_url",
+            th.StringType,
+            secret=True,  # Flag config as protected.
+            description="SQLAlchemy connection string",
         ),
     ).to_dict()
     default_sink_class = PostgresSink
