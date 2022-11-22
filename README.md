@@ -14,8 +14,14 @@ Built with the [Meltano SDK](https://sdk.meltano.com) for Singer Taps and Target
 
 | Setting             | Required | Default | Description |
 |:--------------------|:--------:|:-------:|:------------|
-| sqlalchemy_url      | True     | None    | SQLAlchemy connection string, example `postgresql://postgres:postgres@localhost:5432/postgres` |
-| stream_maps         | False    | None    | Config object for stream maps capability. |
+| host                | False    | None    | Hostname for postgres instance. Note if sqlalchemy_url is set this will be ignored. |
+| port                | False    | 5432 | The port on which postgres is awaiting connection. Note if sqlalchemy_url is set this will be ignored. |
+| user                | False    | None    | User name used to authenticate. Note if sqlalchemy_url is set this will be ignored. |
+| password            | False    | None    | Password used to authenticate. Note if sqlalchemy_url is set this will be ignored. |
+| database            | False    | None    | Database name. Note if sqlalchemy_url is set this will be ignored. |
+| sqlalchemy_url      | False    | None    | SQLAlchemy connection string. This will override using host, user, password, port, dialect. Note that you must esacpe password special characters properly see https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords |
+| dialect_+_driver    | False    | postgresql+psycopg2 | Dialect+driver see https://docs.sqlalchemy.org/en/20/core/engines.html. Generally just leave this alone. Note if sqlalchemy_url is set this will be ignored. |
+| stream_maps         | False    | None    | Config object for stream maps capability. For more information check out [Stream Maps](https://sdk.meltano.com/en/latest/stream_maps.html). |
 | stream_map_config   | False    | None    | User-defined config values to be used within map expressions. |
 | flattening_enabled  | False    | None    | 'True' to enable schema flattening and automatically expand nested properties. |
 | flattening_max_depth| False    | None    | The max depth to flatten schemas. |

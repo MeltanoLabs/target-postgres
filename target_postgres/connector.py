@@ -7,6 +7,7 @@ from singer_sdk import SQLConnector
 from singer_sdk import typing as th
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, BIGINT
 from sqlalchemy.types import TIMESTAMP
+from typing import cast
 
 
 class PostgresConnector(SQLConnector):
@@ -37,22 +38,16 @@ class PostgresConnector(SQLConnector):
             config: The configuration for the connector.
         """
         if config.get('sqlalchemy_url'):
-           return super().get_sqlalchemy_url(config)
-        else: 
-            url_drivername:str = "postgresql+psycopg2"
+            return cast(str, config["sqlalchemy_url"])
 
-            config_url = URL.create(
-                url_drivername,
-                config['user'],
-                config['password'],
+        else:
+            sqlalchemy_url = URL.create(
+                drivername = config["dialect+driver"],
+                username = config['user'],
+                password = config['password'],
                 host = config['host'],
-                database = config['database']
-            )
-
-            if 'port' in config:
-                config_url.set(port=config['port'])
-
-            return (config_url)
+                database = config['database'])
+            return cast(str, sqlalchemy_url)
 
     def truncate_table(self, name):
         """Clear table data."""
