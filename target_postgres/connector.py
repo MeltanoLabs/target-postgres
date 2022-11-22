@@ -1,10 +1,13 @@
 """Connector class for target."""
 from __future__ import annotations
 
+from typing import cast
+
 import sqlalchemy
 from singer_sdk import SQLConnector
 from singer_sdk import typing as th
 from sqlalchemy.dialects.postgresql import ARRAY, BIGINT, JSONB
+from sqlalchemy.engine import URL
 from sqlalchemy.types import TIMESTAMP
 
 
@@ -29,6 +32,25 @@ class PostgresConnector(SQLConnector):
             A newly created SQLAlchemy engine object.
         """
         return self.create_sqlalchemy_engine().connect()
+
+    def get_sqlalchemy_url(self, config: dict) -> str:
+        """Generates a SQLAlchemy URL for sqlbuzz.
+
+        Args:
+            config: The configuration for the connector.
+        """
+        if config.get("sqlalchemy_url"):
+            return cast(str, config["sqlalchemy_url"])
+
+        else:
+            sqlalchemy_url = URL.create(
+                drivername=config["dialect+driver"],
+                username=config["user"],
+                password=config["password"],
+                host=config["host"],
+                database=config["database"],
+            )
+            return cast(str, sqlalchemy_url)
 
     def truncate_table(self, name):
         """Clear table data."""

@@ -18,8 +18,11 @@ from target_postgres.tests.samples.sample_tap_countries.countries_tap import (
 @pytest.fixture(scope="session")
 def postgres_config():
     return {
-        "sqlalchemy_url": "postgresql://postgres:postgres@localhost:5432/postgres",
-        "default_target_schema": f"pytest_{str(uuid.uuid4()).replace('-','_')}",
+        "dialect+driver": "postgresql+psycopg2",
+        "host": "localhost",
+        "user": "postgres",
+        "password": "postgres",
+        "database": "postgres",
     }
 
 
@@ -51,6 +54,18 @@ def singer_file_to_target(file_name, target) -> None:
 
 
 # TODO should set schemas for each tap individually so we don't collide
+
+
+def test_sqlalchemy_url_config():
+    """Be sure that passing a sqlalchemy_url works"""
+    config = {
+        "sqlalchemy_url": "postgresql://postgres:postgres@localhost:5432/postgres"
+    }
+    tap = SampleTapCountries(config={}, state=None)
+    target = TargetPostgres(config=config)
+    sync_end_to_end(tap, target)
+
+
 # Test name would work well
 def test_countries_to_postgres(postgres_config):
     tap = SampleTapCountries(config={}, state=None)
