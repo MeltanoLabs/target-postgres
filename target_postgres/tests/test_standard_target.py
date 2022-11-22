@@ -1,6 +1,7 @@
 """ Attempt at making some standard Target Tests. """
 # flake8: noqa
 import io
+import uuid
 from contextlib import redirect_stdout
 from pathlib import Path
 
@@ -14,15 +15,14 @@ from target_postgres.tests.samples.sample_tap_countries.countries_tap import (
 )
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def postgres_config():
        return {
        "dialect+driver": "postgresql+psycopg2",
        "host": "localhost",
        "user": "postgres",
        "password": "postgres",
-       "database": "postgres"
-   }
+       "database": "postgres"}
 
 
 @pytest.fixture
@@ -188,4 +188,12 @@ def test_missing_value(postgres_target):
 
 def test_large_int(postgres_target):
     file_name = "large_int.singer"
+    singer_file_to_target(file_name, postgres_target)
+
+
+def test_reserved_keywords(postgres_target):
+    """Postgres has a number of resereved keywords listed here https://www.postgresql.org/docs/current/sql-keywords-appendix.html.
+
+    The target should work regradless of the column names"""
+    file_name = "reserved_keywords.singer"
     singer_file_to_target(file_name, postgres_target)

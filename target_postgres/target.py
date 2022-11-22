@@ -81,6 +81,11 @@ class TargetPostgres(Target):
             default="postgresql+psycopg2",
             description="Dialect+driver see https://docs.sqlalchemy.org/en/20/core/engines.html. Generally just leave this alone. Note if sqlalchemy_url is set this will be ignored."
         ),
+        th.Property(
+            "default_target_schema",
+            th.StringType,
+            description="Postgres schema to send data to, example: tap-clickup",
+        ),
     ).to_dict()
     default_sink_class = PostgresSink
 
