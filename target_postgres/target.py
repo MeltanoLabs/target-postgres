@@ -1,12 +1,12 @@
 """Postgres target class."""
 from __future__ import annotations
 
+from pathlib import PurePath
+
 from singer_sdk import typing as th
 from singer_sdk.target_base import Target
-from pathlib import Path, PurePath
 
 from target_postgres.sinks import PostgresSink
-import urllib.parse
 
 
 class TargetPostgres(Target):
@@ -33,53 +33,83 @@ class TargetPostgres(Target):
             parse_env_config=parse_env_config,
             validate_config=validate_config,
         )
-        #There's a few ways to do this in JSON Schema but it is pretty schema draft dependent.
-        #See https://stackoverflow.com/questions/38717933/jsonschema-attribute-conditionally-required
+        # There's a few ways to do this in JSON Schema but it is schema draft dependent.
+        # https://stackoverflow.com/questions/38717933/jsonschema-attribute-conditionally-required
         assert (self.config.get("sqlalchemy_url") is not None) or (
-                self.config.get("host") is not None and 
-                self.config.get("port") is not None and 
-                self.config.get("user") is not None and 
-                self.config.get("password") is not None and
-                self.config.get("dialect+driver") is not None), "Need either the sqlalchemy_url to be set or host, port, user, password, and dialect+driver to be set"
+            self.config.get("host") is not None
+            and self.config.get("port") is not None
+            and self.config.get("user") is not None
+            and self.config.get("password") is not None
+            and self.config.get("dialect+driver") is not None
+        ), (
+            "Need either the sqlalchemy_url to be set or host, port, user,"
+            + "password, and dialect+driver to be set"
+        )
 
     name = "target-postgres"
     config_jsonschema = th.PropertiesList(
         th.Property(
             "host",
             th.StringType,
-            description="Hostname for postgres instance. Note if sqlalchemy_url is set this will be ignored."
+            description=(
+                "Hostname for postgres instance. "
+                + "Note if sqlalchemy_url is set this will be ignored."
+            ),
         ),
         th.Property(
             "port",
             th.IntegerType,
             default=5432,
-            description="The port on which postgres is awaiting connection. Note if sqlalchemy_url is set this will be ignored."
+            description=(
+                "The port on which postgres is awaiting connection. "
+                + "Note if sqlalchemy_url is set this will be ignored."
+            ),
         ),
         th.Property(
             "user",
             th.StringType,
-            description="User name used to authenticate. Note if sqlalchemy_url is set this will be ignored."
+            description=(
+                "User name used to authenticate. "
+                + "Note if sqlalchemy_url is set this will be ignored.",
+            ),
         ),
         th.Property(
             "password",
             th.StringType,
-            description="Password used to authenticate. Note if sqlalchemy_url is set this will be ignored."
+            description=(
+                "Password used to authenticate. "
+                "Note if sqlalchemy_url is set this will be ignored."
+            ),
         ),
         th.Property(
             "database",
             th.StringType,
-            description="Database name. Note if sqlalchemy_url is set this will be ignored."
+            description=(
+                "Database name. "
+                + "Note if sqlalchemy_url is set this will be ignored."
+            ),
         ),
         th.Property(
             "sqlalchemy_url",
             th.StringType,
-            description="SQLAlchemy connection string. This will override using host, user, password, port, dialect. Note that you must esacpe password special characters properly see https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords",
+            description=(
+                "SQLAlchemy connection string. "
+                + "This will override using host, user, password, port,"
+                + "dialect. Note that you must esacpe password special"
+                + "characters properly see"
+                + "https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords"  # noqa: E501
+            ),
         ),
         th.Property(
             "dialect_+_driver",
             th.StringType,
             default="postgresql+psycopg2",
-            description="Dialect+driver see https://docs.sqlalchemy.org/en/20/core/engines.html. Generally just leave this alone. Note if sqlalchemy_url is set this will be ignored."
+            description=(
+                "Dialect+driver see "
+                + "https://docs.sqlalchemy.org/en/20/core/engines.html. "
+                + "Generally just leave this alone. "
+                + "Note if sqlalchemy_url is set this will be ignored."
+            ),
         ),
         th.Property(
             "default_target_schema",
