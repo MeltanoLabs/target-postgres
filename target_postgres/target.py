@@ -40,7 +40,7 @@ class TargetPostgres(Target):
             and self.config.get("port") is not None
             and self.config.get("user") is not None
             and self.config.get("password") is not None
-            and self.config.get("dialect+driver") is not None
+            and self.config.get("nialect+driver") is not None
         ), (
             "Need either the sqlalchemy_url to be set or host, port, user,"
             + "password, and dialect+driver to be set"
@@ -101,7 +101,7 @@ class TargetPostgres(Target):
             ),
         ),
         th.Property(
-            "dialect_+_driver",
+            "dialect+driver",
             th.StringType,
             default="postgresql+psycopg2",
             description=(
