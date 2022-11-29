@@ -5,21 +5,7 @@
 
 version: 2
 updates:
-  - package-ecosystem: pip
+  - package-ecosystem: "pip"
     directory: "/"
     schedule:
       interval: "daily"
-      time: "7:23"
-      timezone: "America/New_York"
-    reviewers:
-      - "visch"
-    labels:
-      - "pip dependencies"
-  - package-ecosystem: github-actions
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      timezone: "America/New_York"
-      time: "7:23"
-    reviewers:
-      - "visch"
