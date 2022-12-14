@@ -16,8 +16,8 @@ class PostgresSink(SQLSink):
 
     def __init__(self, *args, **kwargs):
         """Constructor."""
-        self.temp_table_name = self.generate_temp_table_name()
         super().__init__(*args, **kwargs)
+        self.temp_table_name = self.generate_temp_table_name()
 
     def setup(self) -> None:
         """Set up Sink.
@@ -83,7 +83,8 @@ class PostgresSink(SQLSink):
 
     def generate_temp_table_name(self):
         """Uuid temp table name."""
-        return f"temp_{str(uuid.uuid4()).replace('-','_')}"
+        #Table name makes debugging easier when data cannot be written to the temp table for some reason
+        return f"temp_{self.table_name}_{str(uuid.uuid4()).replace('-','_')}"
 
     def merge_upsert_from_table(
         self,
