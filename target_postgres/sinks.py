@@ -83,7 +83,8 @@ class PostgresSink(SQLSink):
 
     def generate_temp_table_name(self):
         """Uuid temp table name."""
-        #Table name makes debugging easier when data cannot be written to the temp table for some reason
+        # Table name makes debugging easier when data cannot be written to the
+        # temp table for some reason
         return f"temp_{self.table_name}_{str(uuid.uuid4()).replace('-','_')}"
 
     def merge_upsert_from_table(

@@ -144,9 +144,12 @@ class PostgresConnector(SQLConnector):
 
         _ = sqlalchemy.Table(table_name, meta, *columns)
         meta.create_all(self._engine)
-    
+
     def get_column_add_ddl(
-        self, table_name: str, column_name: str, column_type: sqlalchemy.types.TypeEngine
+        self,
+        table_name: str,
+        column_name: str,
+        column_type: sqlalchemy.types.TypeEngine,
     ) -> sqlalchemy.DDL:
         """Get the create column DDL statement.
 
@@ -161,7 +164,7 @@ class PostgresConnector(SQLConnector):
             A sqlalchemy DDL instance.
         """
         column = sqlalchemy.Column(column_name, column_type)
-        
+
         return sqlalchemy.DDL(
             "ALTER TABLE %(table_name)s ADD COLUMN %(column_name)s %(column_type)s",
             {
