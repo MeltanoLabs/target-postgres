@@ -25,6 +25,12 @@ class PostgresSink(SQLSink):
         This method is called on Sink creation, and creates the required Schema and
         Table entities in the target database.
         """
+        if self.key_properties is None or self.key_properties == []:
+            raise ValueError(
+                "key_properties must be set. See"
+                "https://github.com/MeltanoLabs/target-postgres/issues/54"
+                "for more information."
+            )
         if self.schema_name:
             self.connector.prepare_schema(self.schema_name)
         self.connector.prepare_table(

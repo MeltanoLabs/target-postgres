@@ -74,9 +74,11 @@ def test_countries_to_postgres(postgres_config):
 
 
 def test_aapl_to_postgres(postgres_config):
-    tap = Fundamentals(config={}, state=None)
-    target = TargetPostgres(config=postgres_config)
-    sync_end_to_end(tap, target)
+    """Expect to fail with ValueError"""
+    with pytest.raises(ValueError):
+        tap = Fundamentals(config={}, state=None)
+        target = TargetPostgres(config=postgres_config)
+        sync_end_to_end(tap, target)
 
 
 # TODO this test should throw an exception
