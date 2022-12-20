@@ -74,7 +74,7 @@ def test_countries_to_postgres(postgres_config):
 
 
 def test_aapl_to_postgres(postgres_config):
-    """Expect to fail with ValueError"""
+    """Expect to fail with ValueError due to primary key https://github.com/MeltanoLabs/target-postgres/issues/54"""
     with pytest.raises(ValueError):
         tap = Fundamentals(config={}, state=None)
         target = TargetPostgres(config=postgres_config)
@@ -124,10 +124,11 @@ def test_optional_attributes(postgres_target):
     singer_file_to_target(file_name, postgres_target)
 
 
-# TODO test that data is correctly set
 def test_schema_no_properties(postgres_target):
-    file_name = "schema_no_properties.singer"
-    singer_file_to_target(file_name, postgres_target)
+    """Expect to fail with ValueError due to primary key https://github.com/MeltanoLabs/target-postgres/issues/54"""
+    with pytest.raises(ValueError):
+        file_name = "schema_no_properties.singer"
+        singer_file_to_target(file_name, postgres_target)
 
 
 # TODO test that data is correct
@@ -151,13 +152,14 @@ def test_relational_data(postgres_target):
     singer_file_to_target(file_name, postgres_target)
 
 
-# TODO test that data is correct
 def test_no_primary_keys(postgres_target):
-    file_name = "no_primary_keys.singer"
-    singer_file_to_target(file_name, postgres_target)
+    """Expect to fail with ValueError due to primary key https://github.com/MeltanoLabs/target-postgres/issues/54"""
+    with pytest.raises(ValueError):
+        file_name = "no_primary_keys.singer"
+        singer_file_to_target(file_name, postgres_target)
 
-    file_name = "no_primary_keys_append.singer"
-    singer_file_to_target(file_name, postgres_target)
+        file_name = "no_primary_keys_append.singer"
+        singer_file_to_target(file_name, postgres_target)
 
 
 # TODO test that data is correct
@@ -179,8 +181,10 @@ def test_encoded_string_data(postgres_target):
 
 
 def test_tap_appl(postgres_target):
-    file_name = "tap_aapl.singer"
-    singer_file_to_target(file_name, postgres_target)
+    """Expect to fail with ValueError due to primary key https://github.com/MeltanoLabs/target-postgres/issues/54"""
+    with pytest.raises(ValueError):
+        file_name = "tap_aapl.singer"
+        singer_file_to_target(file_name, postgres_target)
 
 
 def test_tap_countries(postgres_target):
