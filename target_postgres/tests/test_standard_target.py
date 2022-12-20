@@ -91,10 +91,13 @@ def test_record_before_schema(postgres_target):
     )
 
 
-# TODO this test should throw an exception
 def test_invalid_schema(postgres_target):
-    file_name = "invalid_schema.singer"
-    singer_file_to_target(file_name, postgres_target)
+    with pytest.raises(Exception) as e:
+        file_name = "invalid_schema.singer"
+        singer_file_to_target(file_name, postgres_target)
+    assert (
+        str(e.value) == "Line is missing required properties key(s): {'type': 'object'}"
+    )
 
 
 # TODO this test should throw an exception

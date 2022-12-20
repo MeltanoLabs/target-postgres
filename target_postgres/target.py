@@ -141,3 +141,13 @@ class TargetPostgres(Target):
         if self.mapper.stream_maps.get(stream_name) is None:
             raise Exception(f"Schema message has not been sent for {stream_name}")
         super()._process_record_message(message_dict)
+
+    def _process_schema_message(self, message_dict: dict) -> None:
+        """Process a SCHEMA messages.
+
+        Args:
+            message_dict: The newly received schema message.
+        """
+        self._assert_line_requires(message_dict, requires={"stream", "schema"})
+        self._assert_line_requires(message_dict["schema"], requires={"properties"})
+        super()._process_schema_message(message_dict)
