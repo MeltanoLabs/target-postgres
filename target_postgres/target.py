@@ -130,3 +130,14 @@ class TargetPostgres(Target):
         """
         # https://github.com/MeltanoLabs/target-postgres/issues/3
         return 1
+
+    def _process_record_message(self, message_dict: dict) -> None:
+        """Process a RECORD message.
+
+        Args:
+            message_dict: TODO
+        """
+        stream_name = message_dict["stream"]
+        if self.mapper.stream_maps.get(stream_name) is None:
+            raise Exception(f"Schema message has not been sent for {stream_name}")
+        super()._process_record_message(message_dict)
