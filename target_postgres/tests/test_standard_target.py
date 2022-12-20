@@ -81,10 +81,14 @@ def test_aapl_to_postgres(postgres_config):
         sync_end_to_end(tap, target)
 
 
-# TODO this test should throw an exception
 def test_record_before_schema(postgres_target):
-    file_name = "record_before_schema.singer"
-    singer_file_to_target(file_name, postgres_target)
+    with pytest.raises(Exception) as e:
+        file_name = "record_before_schema.singer"
+        singer_file_to_target(file_name, postgres_target)
+
+    assert (
+        str(e.value) == "Schema message has not been sent for test_record_before_schema"
+    )
 
 
 # TODO this test should throw an exception
@@ -107,7 +111,7 @@ def test_record_missing_required_property(postgres_target):
 
 # TODO test that data is correctly set
 # see target-sqllit/tests/test_target_sqllite.py
-def test_record_missing_required_property(postgres_target):
+def test_camelcase(postgres_target):
     file_name = "camelcase.singer"
     singer_file_to_target(file_name, postgres_target)
 
