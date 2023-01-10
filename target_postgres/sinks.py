@@ -245,7 +245,7 @@ class PostgresSink(SQLSink):
         # 3) Return None if you don't find anything
         if default_target_schema:
             return default_target_schema
-        
+
         if self.config["stream_name_splits"] is True and len(parts) in {2, 3}:
             # Stream name is a two-part or three-part identifier.
             # Use the second-to-last part as the schema name.

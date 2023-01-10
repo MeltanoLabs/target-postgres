@@ -54,17 +54,17 @@ class PostgresConnector(SQLConnector):
 
     def truncate_table(self, name):
         """Clear table data."""
-        self.connection.execute(f"TRUNCATE TABLE \"{name}\"")
+        self.connection.execute(f'TRUNCATE TABLE "{name}"')
 
     def drop_table(self, name):
         """Drop table data."""
-        self.connection.execute(f"DROP TABLE \"{name}\"")
+        self.connection.execute(f'DROP TABLE "{name}"')
 
     def create_temp_table_from_table(self, from_table_name, temp_table_name):
         """Temp table from another table."""
         ddl = sqlalchemy.DDL(
-            "CREATE TEMP TABLE \"%(temp_table_name)s\" AS "
-            "SELECT * FROM \"%(from_table_name)s\" LIMIT 0",
+            'CREATE TEMP TABLE "%(temp_table_name)s" AS '
+            'SELECT * FROM "%(from_table_name)s" LIMIT 0',
             {"temp_table_name": temp_table_name, "from_table_name": from_table_name},
         )
         self.connection.execute(ddl)
@@ -166,7 +166,7 @@ class PostgresConnector(SQLConnector):
         column = sqlalchemy.Column(column_name, column_type)
 
         return sqlalchemy.DDL(
-            "ALTER TABLE \"%(table_name)s\" ADD COLUMN \"%(column_name)s\" %(column_type)s",
+            'ALTER TABLE "%(table_name)s" ADD COLUMN "%(column_name)s" %(column_type)s',
             {
                 "table_name": table_name,
                 "column_name": column.compile(dialect=self._engine.dialect),

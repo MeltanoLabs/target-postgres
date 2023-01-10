@@ -120,9 +120,14 @@ class TargetPostgres(Target):
             "stream_name_splits",
             th.BooleanType,
             default=True,
-            description="When stream names have dashes in them then use the format of [schema]-[table]. If you do not want schemas to be determined from the stream name then Disable this feature. ",
+            description=(
+                "When stream names have dashes in them then use "
+                + "the format of [schema]-[table]. If you do not want schemas "
+                + "to be determined from the stream name then Disable this feature."
+            ),
         ),
     ).to_dict()
+
     default_sink_class = PostgresSink
 
     @property
