@@ -4,6 +4,7 @@ import io
 import uuid
 from contextlib import redirect_stdout
 from pathlib import Path
+import jsonschema
 
 import pytest
 from singer_sdk.testing import sync_end_to_end
@@ -109,8 +110,9 @@ def test_record_missing_key_property(postgres_target):
 
 # TODO this test should throw an exception
 def test_record_missing_required_property(postgres_target):
-    file_name = "record_missing_required_property.singer"
-    singer_file_to_target(file_name, postgres_target)
+    with pytest.raises(jsonschema.exceptions.ValidationError):
+        file_name = "record_missing_required_property.singer"
+        singer_file_to_target(file_name, postgres_target)
 
 
 # TODO test that data is correctly set
