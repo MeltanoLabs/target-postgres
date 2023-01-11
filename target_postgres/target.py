@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 from pathlib import PurePath
-import jsonschema
 
+import jsonschema
 from singer_sdk import typing as th
 from singer_sdk.target_base import Target
 

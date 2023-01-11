@@ -4,8 +4,8 @@ import io
 import uuid
 from contextlib import redirect_stdout
 from pathlib import Path
-import jsonschema
 
+import jsonschema
 import pytest
 from singer_sdk.testing import sync_end_to_end
 
