@@ -24,7 +24,7 @@ Built with the [Meltano SDK](https://sdk.meltano.com) for Singer Taps and Target
 | database            | False    | None    | Database name. Note if sqlalchemy_url is set this will be ignored. |
 | sqlalchemy_url      | False    | None    | SQLAlchemy connection string. This will override using host, user, password, port, dialect. Note that you must esacpe password special characters properly see https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords |
 | dialect+driver    | False    | postgresql+psycopg2 | Dialect+driver see https://docs.sqlalchemy.org/en/20/core/engines.html. Generally just leave this alone. Note if sqlalchemy_url is set this will be ignored. |
-| stream_name_splits  | True    | False    | When stream names have dashes in them then use the format of [schema]-[table]. If you do not want schemas to be determined from the stream name then Disable this feature. 
+| stream_name_splits  | True    | True    | When stream names have dashes in them then use the format of [schema]-[table]. If you do not want schemas to be determined from the stream name then Disable this feature. 
 | stream_maps         | False    | None    | Config object for stream maps capability. For more information check out [Stream Maps](https://sdk.meltano.com/en/latest/stream_maps.html). |
 | stream_map_config   | False    | None    | User-defined config values to be used within map expressions. |
 | flattening_enabled  | False    | None    | 'True' to enable schema flattening and automatically expand nested properties. |
