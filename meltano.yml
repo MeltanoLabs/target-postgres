@@ -14,6 +14,11 @@ plugins:
         "input_filename": "https://gitlab.com/meltano/tap-smoke-test/-/raw/main/demo-data/animals-data.jsonl"
       - stream_name: page_views
         "input_filename": "https://gitlab.com/meltano/tap-smoke-test/-/raw/main/demo-data/pageviews-data.jsonl"
+      stream_maps:
+        "animals":
+          "__key_properties__": ["id"]
+        "page_views":
+          "__key_properties__": ["vistor_id"]
   loaders:
   - name: "target-postgres"
     namespace: "target_postgres"
@@ -21,11 +26,6 @@ plugins:
     config:
       sqlalchemy_url: "postgresql://postgres:postgres@localhost:5432/postgres"
       target_schema: test
-      stream_maps:
-        "animals":
-          "__key_properties__": ["id"]
-        "page_views":
-          "__key_properties__": ["vistor_id"]
     settings:
     - name: sqlalchemy_url
       kind: password
