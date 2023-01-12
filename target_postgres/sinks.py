@@ -123,11 +123,11 @@ class PostgresSink(SQLSink):
         where_condition = " and ".join([f'target."{key}" is null' for key in join_keys])
 
         insert_sql = f"""
-        INSERT INTO \"{to_table_name}\"
+        INSERT INTO {to_table_name}
         SELECT
         temp.*
-        FROM \"{from_table_name}\" AS temp
-        LEFT JOIN \"{to_table_name}\" AS target ON {join_condition}
+        FROM {from_table_name} AS temp
+        LEFT JOIN {to_table_name} AS target ON {join_condition}
         WHERE {where_condition}
         """
         self.connection.execute(insert_sql)
@@ -141,9 +141,9 @@ class PostgresSink(SQLSink):
         )
         where_condition = join_condition
         update_sql = f"""
-        UPDATE \"{to_table_name}\" AS target
+        UPDATE {to_table_name} AS target
         SET {columns}
-        FROM \"{from_table_name}\" AS temp
+        FROM {from_table_name} AS temp
         WHERE {where_condition}
         """
         self.connection.execute(update_sql)
@@ -229,7 +229,7 @@ class PostgresSink(SQLSink):
 
     def conform_name(self, name: str, object_type: Optional[str] = None) -> str:
         """Conforming names of tables, schemas, column names."""
-        return name.replace("-", "_")
+        return name
 
     @property
     def schema_name(self) -> Optional[str]:
@@ -252,7 +252,7 @@ class PostgresSink(SQLSink):
         if default_target_schema:
             return default_target_schema
 
-        if self.config["stream_name_splits"] is True and len(parts) in {2, 3}:
+        if len(parts) in {2, 3}:
             # Stream name is a two-part or three-part identifier.
             # Use the second-to-last part as the schema name.
             stream_schema = self.conform_name(parts[-2], "schema")
@@ -260,17 +260,3 @@ class PostgresSink(SQLSink):
 
         # Schema name not detected.
         return None
-
-    @property
-    def table_name(self) -> str:
-        """Return the table name, with no schema or database part.
-
-        Returns:
-            The target table name.
-        """
-        parts = self.stream_name.split("-")
-        if self.config["stream_name_splits"] is True:
-            table = self.stream_name if len(parts) == 1 else parts[-1]
-        else:
-            table = self.stream_name
-        return self.conform_name(table, "table")
