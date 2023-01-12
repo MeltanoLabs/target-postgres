@@ -187,7 +187,9 @@ class PostgresSink(SQLSink):
             except KeyError:
                 raise RuntimeError(
                     "Primary key not found in record. "
-                    f"full_table_name: {full_table_name}. schema: {schema}.  primary_keys: {primary_keys}."
+                    f"full_table_name: {full_table_name}. "
+                    f"schema: {schema}.  "
+                    f"primary_keys: {primary_keys}."
                 )
             insert_records[primary_key_value] = insert_record
 
