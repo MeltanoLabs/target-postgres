@@ -21,6 +21,11 @@ plugins:
     config:
       sqlalchemy_url: "postgresql://postgres:postgres@localhost:5432/postgres"
       target_schema: test
+      stream_maps:
+        "animals":
+          "__key_properties__": ["id"]
+        "page_views":
+          "__key_properties__": ["vistor_id"]
     settings:
     - name: sqlalchemy_url
       kind: password
