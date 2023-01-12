@@ -1,0 +1,3 @@
+{"type": "SCHEMA", "stream": "test_new_array_column", "key_properties": ["id"], "schema": {"type": "object", "properties": {"id": {"type": "integer"}}}}
+{"type": "RECORD", "stream": "test_new_array_column", "record": {"id": 1}}
+{"type": "SCHEMA", "stream": "test_new_array_column", "key_properties": ["id"], "schema": {"type": "object", "properties": {"id": {"type": "integer"}, "arr": {"type": "array"}}}}

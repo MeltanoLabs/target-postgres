@@ -5,6 +5,7 @@ import uuid
 from contextlib import redirect_stdout
 from pathlib import Path
 
+import jsonschema
 import pytest
 from singer_sdk.testing import sync_end_to_end
 
@@ -74,43 +75,53 @@ def test_countries_to_postgres(postgres_config):
 
 
 def test_aapl_to_postgres(postgres_config):
-    tap = Fundamentals(config={}, state=None)
-    target = TargetPostgres(config=postgres_config)
-    sync_end_to_end(tap, target)
+    """Expect to fail with ValueError due to primary key https://github.com/MeltanoLabs/target-postgres/issues/54"""
+    with pytest.raises(ValueError):
+        tap = Fundamentals(config={}, state=None)
+        target = TargetPostgres(config=postgres_config)
+        sync_end_to_end(tap, target)
 
 
-# TODO this test should throw an exception
 def test_record_before_schema(postgres_target):
-    file_name = "record_before_schema.singer"
-    singer_file_to_target(file_name, postgres_target)
+    with pytest.raises(Exception) as e:
+        file_name = "record_before_schema.singer"
+        singer_file_to_target(file_name, postgres_target)
+
+    assert (
+        str(e.value) == "Schema message has not been sent for test_record_before_schema"
+    )
 
 
-# TODO this test should throw an exception
 def test_invalid_schema(postgres_target):
-    file_name = "invalid_schema.singer"
-    singer_file_to_target(file_name, postgres_target)
+    with pytest.raises(Exception) as e:
+        file_name = "invalid_schema.singer"
+        singer_file_to_target(file_name, postgres_target)
+    assert (
+        str(e.value) == "Line is missing required properties key(s): {'type': 'object'}"
+    )
 
 
-# TODO this test should throw an exception
 def test_record_missing_key_property(postgres_target):
-    file_name = "record_missing_key_property.singer"
-    singer_file_to_target(file_name, postgres_target)
+    with pytest.raises(Exception) as e:
+        file_name = "record_missing_key_property.singer"
+        singer_file_to_target(file_name, postgres_target)
+    assert "Primary key not found in record." in str(e.value)
 
 
-# TODO this test should throw an exception
 def test_record_missing_required_property(postgres_target):
-    file_name = "record_missing_required_property.singer"
-    singer_file_to_target(file_name, postgres_target)
+    with pytest.raises(jsonschema.exceptions.ValidationError):
+        file_name = "record_missing_required_property.singer"
+        singer_file_to_target(file_name, postgres_target)
 
 
-# TODO test that data is correctly set
-# see target-sqllit/tests/test_target_sqllite.py
-def test_record_missing_required_property(postgres_target):
+@pytest.mark.xfail
+def test_camelcase(postgres_target):
+    """https://github.com/MeltanoLabs/target-postgres/issues/64 will address fixing this"""
     file_name = "camelcase.singer"
     singer_file_to_target(file_name, postgres_target)
 
 
-# TODO test that data is correctly set
+@pytest.mark.xfail
 def test_special_chars_in_attributes(postgres_target):
     file_name = "special_chars_in_attributes.singer"
     singer_file_to_target(file_name, postgres_target)
@@ -122,10 +133,11 @@ def test_optional_attributes(postgres_target):
     singer_file_to_target(file_name, postgres_target)
 
 
-# TODO test that data is correctly set
 def test_schema_no_properties(postgres_target):
-    file_name = "schema_no_properties.singer"
-    singer_file_to_target(file_name, postgres_target)
+    """Expect to fail with ValueError due to primary key https://github.com/MeltanoLabs/target-postgres/issues/54"""
+    with pytest.raises(ValueError):
+        file_name = "schema_no_properties.singer"
+        singer_file_to_target(file_name, postgres_target)
 
 
 # TODO test that data is correct
@@ -149,13 +161,14 @@ def test_relational_data(postgres_target):
     singer_file_to_target(file_name, postgres_target)
 
 
-# TODO test that data is correct
 def test_no_primary_keys(postgres_target):
-    file_name = "no_primary_keys.singer"
-    singer_file_to_target(file_name, postgres_target)
+    """Expect to fail with ValueError due to primary key https://github.com/MeltanoLabs/target-postgres/issues/54"""
+    with pytest.raises(ValueError):
+        file_name = "no_primary_keys.singer"
+        singer_file_to_target(file_name, postgres_target)
 
-    file_name = "no_primary_keys_append.singer"
-    singer_file_to_target(file_name, postgres_target)
+        file_name = "no_primary_keys_append.singer"
+        singer_file_to_target(file_name, postgres_target)
 
 
 # TODO test that data is correct
@@ -172,13 +185,24 @@ def test_array_data(postgres_target):
 
 # TODO test that data is correct
 def test_encoded_string_data(postgres_target):
+    """
+    We removed NUL characters from the original encoded_strings.singer as postgres doesn't allow them.
+    https://www.postgresql.org/docs/current/functions-string.html#:~:text=chr(0)%20is%20disallowed%20because%20text%20data%20types%20cannot%20store%20that%20character.
+    chr(0) is disallowed because text data types cannot store that character.
+
+    Note you will recieve a  ValueError: A string literal cannot contain NUL (0x00) characters. Which seems like a reasonable error.
+    See issue https://github.com/MeltanoLabs/target-postgres/issues/60 for more details.
+    """
+
     file_name = "encoded_strings.singer"
     singer_file_to_target(file_name, postgres_target)
 
 
 def test_tap_appl(postgres_target):
-    file_name = "tap_aapl.singer"
-    singer_file_to_target(file_name, postgres_target)
+    """Expect to fail with ValueError due to primary key https://github.com/MeltanoLabs/target-postgres/issues/54"""
+    with pytest.raises(ValueError):
+        file_name = "tap_aapl.singer"
+        singer_file_to_target(file_name, postgres_target)
 
 
 def test_tap_countries(postgres_target):
@@ -201,4 +225,10 @@ def test_reserved_keywords(postgres_target):
 
     The target should work regradless of the column names"""
     file_name = "reserved_keywords.singer"
+    singer_file_to_target(file_name, postgres_target)
+
+
+def test_new_array_column(postgres_target):
+    """Create a new Array column with an existing table"""
+    file_name = "new_array_column.singer"
     singer_file_to_target(file_name, postgres_target)
