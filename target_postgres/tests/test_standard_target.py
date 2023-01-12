@@ -5,6 +5,7 @@ import uuid
 from contextlib import redirect_stdout
 from pathlib import Path
 
+import jsonschema
 import pytest
 from singer_sdk.testing import sync_end_to_end
 
@@ -100,26 +101,27 @@ def test_invalid_schema(postgres_target):
     )
 
 
-# TODO this test should throw an exception
 def test_record_missing_key_property(postgres_target):
-    file_name = "record_missing_key_property.singer"
-    singer_file_to_target(file_name, postgres_target)
+    with pytest.raises(Exception) as e:
+        file_name = "record_missing_key_property.singer"
+        singer_file_to_target(file_name, postgres_target)
+    assert "Primary key not found in record." in str(e.value)
 
 
-# TODO this test should throw an exception
 def test_record_missing_required_property(postgres_target):
-    file_name = "record_missing_required_property.singer"
-    singer_file_to_target(file_name, postgres_target)
+    with pytest.raises(jsonschema.exceptions.ValidationError):
+        file_name = "record_missing_required_property.singer"
+        singer_file_to_target(file_name, postgres_target)
 
 
-# TODO test that data is correctly set
-# see target-sqllit/tests/test_target_sqllite.py
+@pytest.mark.xfail
 def test_camelcase(postgres_target):
+    """https://github.com/MeltanoLabs/target-postgres/issues/64 will address fixing this"""
     file_name = "camelcase.singer"
     singer_file_to_target(file_name, postgres_target)
 
 
-# TODO test that data is correctly set
+@pytest.mark.xfail
 def test_special_chars_in_attributes(postgres_target):
     file_name = "special_chars_in_attributes.singer"
     singer_file_to_target(file_name, postgres_target)
@@ -183,6 +185,15 @@ def test_array_data(postgres_target):
 
 # TODO test that data is correct
 def test_encoded_string_data(postgres_target):
+    """
+    We removed NUL characters from the original encoded_strings.singer as postgres doesn't allow them.
+    https://www.postgresql.org/docs/current/functions-string.html#:~:text=chr(0)%20is%20disallowed%20because%20text%20data%20types%20cannot%20store%20that%20character.
+    chr(0) is disallowed because text data types cannot store that character.
+
+    Note you will recieve a  ValueError: A string literal cannot contain NUL (0x00) characters. Which seems like a reasonable error.
+    See issue https://github.com/MeltanoLabs/target-postgres/issues/60 for more details.
+    """
+
     file_name = "encoded_strings.singer"
     singer_file_to_target(file_name, postgres_target)
 

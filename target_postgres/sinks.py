@@ -182,7 +182,15 @@ class PostgresSink(SQLSink):
             insert_record = {}
             for column in columns:
                 insert_record[column.name] = record.get(column.name)
-            primary_key_value = "".join([str(record[key]) for key in primary_keys])
+            try:
+                primary_key_value = "".join([str(record[key]) for key in primary_keys])
+            except KeyError:
+                raise RuntimeError(
+                    "Primary key not found in record. "
+                    f"full_table_name: {full_table_name}. "
+                    f"schema: {schema}.  "
+                    f"primary_keys: {primary_keys}."
+                )
             insert_records[primary_key_value] = insert_record
 
         self.connector.connection.execute(insert, list(insert_records.values()))
