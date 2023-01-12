@@ -16,8 +16,8 @@ class PostgresSink(SQLSink):
 
     def __init__(self, *args, **kwargs):
         """Constructor."""
-        self.temp_table_name = self.generate_temp_table_name()
         super().__init__(*args, **kwargs)
+        self.temp_table_name = self.generate_temp_table_name()
 
     def setup(self) -> None:
         """Set up Sink.
@@ -25,6 +25,12 @@ class PostgresSink(SQLSink):
         This method is called on Sink creation, and creates the required Schema and
         Table entities in the target database.
         """
+        if self.key_properties is None or self.key_properties == []:
+            raise ValueError(
+                "key_properties must be set. See"
+                "https://github.com/MeltanoLabs/target-postgres/issues/54"
+                "for more information."
+            )
         if self.schema_name:
             self.connector.prepare_schema(self.schema_name)
         self.connector.prepare_table(
@@ -83,7 +89,9 @@ class PostgresSink(SQLSink):
 
     def generate_temp_table_name(self):
         """Uuid temp table name."""
-        return f"temp_{str(uuid.uuid4()).replace('-','_')}"
+        # Table name makes debugging easier when data cannot be written to the
+        # temp table for some reason
+        return f"temp_{self.table_name}_{str(uuid.uuid4()).replace('-','_')}"
 
     def merge_upsert_from_table(
         self,
@@ -174,7 +182,15 @@ class PostgresSink(SQLSink):
             insert_record = {}
             for column in columns:
                 insert_record[column.name] = record.get(column.name)
-            primary_key_value = "".join([str(record[key]) for key in primary_keys])
+            try:
+                primary_key_value = "".join([str(record[key]) for key in primary_keys])
+            except KeyError:
+                raise RuntimeError(
+                    "Primary key not found in record. "
+                    f"full_table_name: {full_table_name}. "
+                    f"schema: {schema}.  "
+                    f"primary_keys: {primary_keys}."
+                )
             insert_records[primary_key_value] = insert_record
 
         self.connector.connection.execute(insert, list(insert_records.values()))
