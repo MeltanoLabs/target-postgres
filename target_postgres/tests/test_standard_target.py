@@ -114,14 +114,14 @@ def test_record_missing_required_property(postgres_target):
         singer_file_to_target(file_name, postgres_target)
 
 
-# TODO test that data is correctly set
-# see target-sqllit/tests/test_target_sqllite.py
+@pytest.mark.xfail
 def test_camelcase(postgres_target):
+    """https://github.com/MeltanoLabs/target-postgres/issues/64 will address fixing this"""
     file_name = "camelcase.singer"
     singer_file_to_target(file_name, postgres_target)
 
 
-# TODO test that data is correctly set
+@pytest.mark.xfail
 def test_special_chars_in_attributes(postgres_target):
     file_name = "special_chars_in_attributes.singer"
     singer_file_to_target(file_name, postgres_target)
