@@ -1,5 +1,6 @@
 version: 1
 send_anonymous_usage_stats: true
+default_environment: dev
 project_id: "target-postgres"
 plugins:
   extractors:
@@ -23,3 +24,5 @@ plugins:
     settings:
     - name: sqlalchemy_url
       kind: password
+environments:
+- name: dev
