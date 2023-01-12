@@ -6,7 +6,7 @@ plugins:
   - name: "tap-smoke-test"
     namespace: "tap_smoke_test"
     executable: "tap-smoke-test"
-    pip_url: "git+https://gitlab.com/meltano/tap-smoke-test.git"
+    pip_url: "git+https://github.com/meltano/tap-smoke-test.git"
     config:
       streams:
       - stream_name: animals
