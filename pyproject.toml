@@ -13,7 +13,7 @@ license = "Apache 2.0"
 python = "<3.11,>=3.7.1"
 requests = "^2.25.1"
 singer-sdk = "^0.14.0"
-psycopg2-binary = "2.9.3"
+psycopg2-binary = "2.9.5"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.2.0"
