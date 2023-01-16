@@ -2,3 +2,4 @@ smoke-test
 .meltano/**
 .tox/**
 .vscode/**
+output/**
