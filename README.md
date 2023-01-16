@@ -2,10 +2,10 @@
 
 Target for Postgres.
 
-Built with the [Meltano SDK](https://sdk.meltano.com) for Singer Taps and Targets. This target is in **development**, it probably doesn't work yet, stick with https://hub.meltano.com/loaders/target-postgres . Generally the goal here is to create a generalized target enough so that the SDK can automate >80% of testing for new targets, and potentially so taps can test very easily with a real local target. 
+Built with the [Meltano SDK](https://sdk.meltano.com) for Singer Taps and Targets. This target is in **development**, it probably doesn't work yet, stick with https://hub.meltano.com/loaders/target-postgres . Generally the goal here is to create a generalized target enough so that the SDK can automate >80% of testing for new targets, and potentially so taps can test very easily with a real local target.
 
 # Limitations
-1. Target is not working with Empty key properties. See https://github.com/MeltanoLabs/target-postgres/issues/54 
+1. Target is not working with Empty key properties. See https://github.com/MeltanoLabs/target-postgres/issues/54
 
 ## Capabilities
 
@@ -15,19 +15,19 @@ Built with the [Meltano SDK](https://sdk.meltano.com) for Singer Taps and Target
 
 ## Settings
 
-| Setting             | Required | Default | Description |
-|:--------------------|:--------:|:-------:|:------------|
-| host                | False    | None    | Hostname for postgres instance. Note if sqlalchemy_url is set this will be ignored. |
-| port                | False    | 5432 | The port on which postgres is awaiting connection. Note if sqlalchemy_url is set this will be ignored. |
-| user                | False    | None    | User name used to authenticate. Note if sqlalchemy_url is set this will be ignored. |
-| password            | False    | None    | Password used to authenticate. Note if sqlalchemy_url is set this will be ignored. |
-| database            | False    | None    | Database name. Note if sqlalchemy_url is set this will be ignored. |
-| sqlalchemy_url      | False    | None    | SQLAlchemy connection string. This will override using host, user, password, port, dialect. Note that you must esacpe password special characters properly see https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords |
-| dialect+driver    | False    | postgresql+psycopg2 | Dialect+driver see https://docs.sqlalchemy.org/en/20/core/engines.html. Generally just leave this alone. Note if sqlalchemy_url is set this will be ignored. |
-| stream_maps         | False    | None    | Config object for stream maps capability. For more information check out [Stream Maps](https://sdk.meltano.com/en/latest/stream_maps.html). |
-| stream_map_config   | False    | None    | User-defined config values to be used within map expressions. |
-| flattening_enabled  | False    | None    | 'True' to enable schema flattening and automatically expand nested properties. |
-| flattening_max_depth| False    | None    | The max depth to flatten schemas. |
+| Setting              | Required |       Default       | Description                                                                                                                                                                                                                                                               |
+| :------------------- | :------: | :-----------------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| host                 |  False   |        None         | Hostname for postgres instance. Note if sqlalchemy_url is set this will be ignored.                                                                                                                                                                                       |
+| port                 |  False   |        5432         | The port on which postgres is awaiting connection. Note if sqlalchemy_url is set this will be ignored.                                                                                                                                                                    |
+| user                 |  False   |        None         | User name used to authenticate. Note if sqlalchemy_url is set this will be ignored.                                                                                                                                                                                       |
+| password             |  False   |        None         | Password used to authenticate. Note if sqlalchemy_url is set this will be ignored.                                                                                                                                                                                        |
+| database             |  False   |        None         | Database name. Note if sqlalchemy_url is set this will be ignored.                                                                                                                                                                                                        |
+| sqlalchemy_url       |  False   |        None         | SQLAlchemy connection string. This will override using host, user, password, port, dialect. Note that you must esacpe password special characters properly see https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords |
+| dialect+driver       |  False   | postgresql+psycopg2 | Dialect+driver see https://docs.sqlalchemy.org/en/20/core/engines.html. Generally just leave this alone. Note if sqlalchemy_url is set this will be ignored.                                                                                                              |
+| stream_maps          |  False   |        None         | Config object for stream maps capability. For more information check out [Stream Maps](https://sdk.meltano.com/en/latest/stream_maps.html).                                                                                                                               |
+| stream_map_config    |  False   |        None         | User-defined config values to be used within map expressions.                                                                                                                                                                                                             |
+| flattening_enabled   |  False   |        None         | 'True' to enable schema flattening and automatically expand nested properties.                                                                                                                                                                                            |
+| flattening_max_depth |  False   |        None         | The max depth to flatten schemas.                                                                                                                                                                                                                                         |
 
 A full list of supported settings and capabilities is available by running: `target-postgres --about`
 
@@ -50,7 +50,7 @@ environment variable is set either in the terminal context or in the `.env` file
 ### Source Authentication and Authorization
 
 The database account provided must have access to:
-1. Create schemas 
+1. Create schemas
 1. Create tables (DDL)
 1. Push Data to tables (DML)
 
@@ -75,6 +75,8 @@ tap-carbon-intensity | target-postgres --config /path/to/target-postgres-config.
 ```bash
 pipx install poetry
 poetry install
+pipx install pre-commit
+pre-commit install
 ```
 
 ### Create and Run Tests
@@ -97,7 +99,7 @@ poetry run target-postgres --help
 _**Note:** This target will work in any Singer environment and does not require Meltano.
 Examples here are for convenience and to streamline end-to-end orchestration scenarios._
 
-Your project comes with a custom `meltano.yml` project file already created. 
+Your project comes with a custom `meltano.yml` project file already created.
 
 Next, install Meltano (if you haven't already) and any needed plugins:
 
