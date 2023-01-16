@@ -46,7 +46,7 @@ def singer_file_to_target(file_name, target) -> None:
     file_path = Path(__file__).parent / Path("./data_files") / Path(file_name)
     buf = io.StringIO()
     with redirect_stdout(buf):
-        with open(file_path, "r") as f:
+        with open(file_path) as f:
             for line in f:
                 print(line.rstrip("\r\n"))  # File endings are here,
                 # and print adds another line ending so we need to remove one.
