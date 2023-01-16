@@ -38,4 +38,4 @@ jobs:
     - name: Deploy to PyPI
       run: |
         poetry publish -r testpypi -u "__token__" -p "${{ secrets.TEST_PYPI_TOKEN }}"
-        poetry publish -u "__token__" -p "${{ secrets.PYPI_TOKEN }}"
+        poetry publish -u "__token__" -p "${{ secrets.POSTGRES_PYPI_TOKEN }}"
