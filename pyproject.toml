@@ -1,6 +1,6 @@
 [tool.poetry]
-name = "target-postgres"
-version = "0.0.1"
+name = "meltanolabs-target-postgres"
+version = "0.0.2"
 description = "`target-postgres` is a Singer target for Postgres, built with the Meltano SDK for Singer Targets."
 authors = ["Meltano"]
 keywords = [
@@ -8,6 +8,9 @@ keywords = [
     "Postgres",
 ]
 license = "Apache 2.0"
+packages = [
+    { include = "target_postgres" }
+]
 
 [tool.poetry.dependencies]
 python = "<3.12,>=3.7.1"
