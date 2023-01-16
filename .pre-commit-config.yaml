@@ -1,0 +1,49 @@
+ci:
+  autofix_prs: false
+  autoupdate_schedule: weekly
+  autoupdate_commit_msg: 'chore: pre-commit autoupdate'
+
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.4.0
+  hooks:
+  - id: check-json
+  - id: check-toml
+    exclude: |
+        (?x)^(
+            copier_template/.*/pyproject.toml
+        )$
+  - id: end-of-file-fixer
+    exclude: (copier_template/.*|docs/.*|samples/.*\.json)
+  - id: trailing-whitespace
+
+- repo: https://github.com/psf/black
+  rev: 22.10.0
+  hooks:
+  - id: black
+    exclude: |
+        (?x)^(
+            copier_template/.*
+        )$
+
+- repo: https://github.com/pycqa/isort
+  rev: 5.10.1
+  hooks:
+  - id: isort
+    exclude: (copier_template/.*)
+
+- repo: https://github.com/pycqa/flake8
+  rev: 5.0.4
+  hooks:
+  - id: flake8
+    additional_dependencies:
+    - darglint==1.8.1
+    - flake8-annotations==2.9.0
+    - flake8-docstrings==1.6.0
+    files: 'meltano/edk/.*'
+
+- repo: https://github.com/asottile/pyupgrade
+  rev: v3.2.2
+  hooks:
+  - id: pyupgrade
+    args: [--py37-plus]
