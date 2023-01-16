@@ -15,7 +15,7 @@ class PostgresSink(SQLSink):
     connector_class = PostgresConnector
 
     def __init__(self, *args, **kwargs):
-        """Constructor."""
+        """Initialize SQL Sink. See super class for more details."""
         super().__init__(*args, **kwargs)
         self.temp_table_name = self.generate_temp_table_name()
 
@@ -76,16 +76,6 @@ class PostgresSink(SQLSink):
         )
         # Drop temp table
         self.connector.drop_table(self.temp_table_name)
-
-    # Copied purely to help with type hints
-    @property
-    def connector(self) -> PostgresConnector:
-        """The connector object.
-
-        Returns:
-            The connector object.
-        """
-        return self._connector
 
     def generate_temp_table_name(self):
         """Uuid temp table name."""
@@ -200,7 +190,7 @@ class PostgresSink(SQLSink):
         self,
         schema: dict,
     ) -> List[Column]:
-        """Returns a sql alchemy table representation for the current schema."""
+        """Return a sqlalchemy table representation for the current schema."""
         columns: list[Column] = []
         for property_name, property_jsonschema in schema["properties"].items():
             columns.append(

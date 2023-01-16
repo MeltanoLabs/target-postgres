@@ -34,7 +34,7 @@ class PostgresConnector(SQLConnector):
         return self.create_sqlalchemy_engine().connect()
 
     def get_sqlalchemy_url(self, config: dict) -> str:
-        """Generates a SQLAlchemy URL for sqlbuzz.
+        """Generate a SQLAlchemy URL.
 
         Args:
             config: The configuration for the connector.
