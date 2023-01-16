@@ -53,8 +53,8 @@ multi_line_output = 3 # Vertical Hanging Indent
 src_paths = "target_postgres"
 
 [build-system]
-requires = ["poetry-core>=1.0.8"]
-build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.8", "poetry-poetry_dynamic_versioning"]
+build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.poetry.scripts]
 # CLI declaration
@@ -64,3 +64,8 @@ target-postgres = 'target_postgres.target:TargetPostgres.cli'
 pythonpath = [
   "."
 ]
+
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+style = "semver"
