@@ -119,17 +119,7 @@ class TargetPostgres(Target):
         ),
         th.Property(
             "hard_delete",
-            th.StringType,
-            default=False,
-            description=(
-                "When activate version is sent from a tap this specefies "
-                + "if we should delete the records that don't match, or mark "
-                + "them with a date in the `_sdc_deleted_at` column."
-            ),
-        ),
-        th.Property(
-            "hard_delete",
-            th.StringType,
+            th.BooleanType,
             default=False,
             description=(
                 "When activate version is sent from a tap this specefies "
@@ -139,7 +129,7 @@ class TargetPostgres(Target):
         ),
         th.Property(
             "add_record_metadata",
-            th.StringType,
+            th.BooleanType,
             default=True,
             description=(
                 "Note that this must be enabled for activate_version to work!"

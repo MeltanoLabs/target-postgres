@@ -268,12 +268,15 @@ class PostgresSink(SQLSink):
             return
 
         deleted_at = now()
+        # Different from SingerSDK as we need to handle types the
+        # same as SCHEMA messsages
         datetime_type = self.connector.to_sql_type(
             {"type": "string", "format": "date-time"}
-        )  # Different from SingerSDK as we need to handle types the same as SCHEMA messsages
-        integer_type = self.connector.to_sql_type(
-            {"type": "integer"}
-        )  # Different from SingerSDK as we need to handle types the same as SCHEMA messsages
+        )
+
+        # Different from SingerSDK as we need to handle types the
+        # same as SCHEMA messsages
+        integer_type = self.connector.to_sql_type({"type": "integer"})
 
         if not self.connector.column_exists(
             full_table_name=self.full_table_name,
@@ -282,7 +285,7 @@ class PostgresSink(SQLSink):
             self.connector.prepare_column(
                 self.full_table_name,
                 self.version_column_name,
-                sql_type=integer_type,  # Different from SingerSDK as we need to handle types the same as SCHEMA messsages
+                sql_type=integer_type,
             )
 
         self.logger.info("Hard delete: %s", self.config.get("hard_delete"))
@@ -300,13 +303,13 @@ class PostgresSink(SQLSink):
             self.connector.prepare_column(
                 self.full_table_name,
                 self.soft_delete_column_name,
-                sql_type=datetime_type,  # Different from SingerSDK as we need to handle types the same as SCHEMA messsages
+                sql_type=datetime_type,
             )
-
+        # Need to deal with the case where data doesn't exist for the version column
         query = sqlalchemy.text(
             f"UPDATE {self.full_table_name}\n"
             f"SET {self.soft_delete_column_name} = :deletedate \n"
-            f"WHERE {self.version_column_name} < :version OR {self.version_column_name} IS NULL \n"  # Need to deal with the case where data doesn't exist for the version column
+            f"WHERE {self.version_column_name} < :version OR {self.version_column_name} IS NULL \n"
             f"  AND {self.soft_delete_column_name} IS NULL\n"
         )
         query = query.bindparams(
