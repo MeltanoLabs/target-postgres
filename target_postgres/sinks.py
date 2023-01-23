@@ -2,9 +2,12 @@
 import uuid
 from typing import Any, Dict, Iterable, List, Optional, Union
 
+import sqlalchemy
+from pendulum import now
 from singer_sdk.sinks import SQLSink
 from sqlalchemy import Column, MetaData, Table, insert
 from sqlalchemy.sql import Executable
+from sqlalchemy.sql.expression import bindparam
 
 from target_postgres.connector import PostgresConnector
 
@@ -252,3 +255,62 @@ class PostgresSink(SQLSink):
 
         # Schema name not detected.
         return None
+
+    def activate_version(self, new_version: int) -> None:
+        """Bump the active version of the target table.
+
+        Args:
+            new_version: The version number to activate.
+        """
+        # There's nothing to do if the table doesn't exist yet
+        # (which it won't the first time the stream is processed)
+        if not self.connector.table_exists(self.full_table_name):
+            return
+
+        deleted_at = now()
+        datetime_type = self.connector.to_sql_type(
+            {"type": "string", "format": "date-time"}
+        )  # Different from SingerSDK as we need to handle types the same as SCHEMA messsages
+        integer_type = self.connector.to_sql_type(
+            {"type": "integer"}
+        )  # Different from SingerSDK as we need to handle types the same as SCHEMA messsages
+
+        if not self.connector.column_exists(
+            full_table_name=self.full_table_name,
+            column_name=self.version_column_name,
+        ):
+            self.connector.prepare_column(
+                self.full_table_name,
+                self.version_column_name,
+                sql_type=integer_type,  # Different from SingerSDK as we need to handle types the same as SCHEMA messsages
+            )
+
+        self.logger.info("Hard delete: %s", self.config.get("hard_delete"))
+        if self.config["hard_delete"] is True:
+            self.connection.execute(
+                f"DELETE FROM {self.full_table_name} "
+                f"WHERE {self.version_column_name} <= {new_version} OR {self.version_column_name} IS NULL"
+            )
+            return
+
+        if not self.connector.column_exists(
+            full_table_name=self.full_table_name,
+            column_name=self.soft_delete_column_name,
+        ):
+            self.connector.prepare_column(
+                self.full_table_name,
+                self.soft_delete_column_name,
+                sql_type=datetime_type,  # Different from SingerSDK as we need to handle types the same as SCHEMA messsages
+            )
+
+        query = sqlalchemy.text(
+            f"UPDATE {self.full_table_name}\n"
+            f"SET {self.soft_delete_column_name} = :deletedate \n"
+            f"WHERE {self.version_column_name} < :version OR {self.version_column_name} IS NULL \n"  # Need to deal with the case where data doesn't exist for the version column
+            f"  AND {self.soft_delete_column_name} IS NULL\n"
+        )
+        query = query.bindparams(
+            bindparam("deletedate", value=deleted_at, type_=datetime_type),
+            bindparam("version", value=new_version, type_=integer_type),
+        )
+        self.connector.connection.execute(query)
