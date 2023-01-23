@@ -232,3 +232,9 @@ def test_new_array_column(postgres_target):
     """Create a new Array column with an existing table"""
     file_name = "new_array_column.singer"
     singer_file_to_target(file_name, postgres_target)
+
+
+def test_activate_version(postgres_target):
+    """Activate Version Test"""
+    file_name = "activate_version.singer"
+    singer_file_to_target(file_name, postgres_target)
