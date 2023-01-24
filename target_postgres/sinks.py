@@ -292,7 +292,8 @@ class PostgresSink(SQLSink):
         if self.config["hard_delete"] is True:
             self.connection.execute(
                 f"DELETE FROM {self.full_table_name} "
-                f"WHERE {self.version_column_name} <= {new_version} OR {self.version_column_name} IS NULL"
+                f"WHERE {self.version_column_name} <= {new_version} "
+                f"OR {self.version_column_name} IS NULL"
             )
             return
 
@@ -309,7 +310,8 @@ class PostgresSink(SQLSink):
         query = sqlalchemy.text(
             f"UPDATE {self.full_table_name}\n"
             f"SET {self.soft_delete_column_name} = :deletedate \n"
-            f"WHERE {self.version_column_name} < :version OR {self.version_column_name} IS NULL \n"
+            f"WHERE {self.version_column_name} < :version "
+            f"OR {self.version_column_name} IS NULL \n"
             f"  AND {self.soft_delete_column_name} IS NULL\n"
         )
         query = query.bindparams(
