@@ -312,9 +312,9 @@ def test_activate_version_soft_delete(postgres_config):
         assert result.rowcount == 2
 
 
-def test_activate_version_doesnt_delete_before_populating(postgres_config):
-    """Activate Version should never delete records that are valid"""
-    table_name = "test_activate_version_doesnt_delete_before_populating"
+def test_activate_version_deletes_data_properly(postgres_config):
+    """Activate Version should"""
+    table_name = "test_activate_version_deletes_data_properly"
     file_name = f"{table_name}.singer"
     engine = sqlalchemy_engine(postgres_config)
     with engine.connect() as connection:
@@ -326,12 +326,18 @@ def test_activate_version_doesnt_delete_before_populating(postgres_config):
     singer_file_to_target(file_name, pg_hard_delete)
     # Will populate us with 7 records
     with engine.connect() as connection:
+        result = connection.execute(
+            f"INSERT INTO {table_name} (code, \"name\") VALUES('Manual1', 'Meltano')"
+        )
+        result = connection.execute(
+            f"INSERT INTO {table_name} (code, \"name\") VALUES('Manual2', 'Meltano')"
+        )
         result = connection.execute(f"SELECT * FROM {table_name}")
-        assert result.rowcount == 7
+        assert result.rowcount == 9
 
-    # Only has a schema and one activate record message
-    file_name = "test_activate_version_doesnt_delete_before_populating_2.singer"
+    # Only has a schema and one activate_version message, should delete all records as it's a higher version than what's currently in the table
+    file_name = f"{table_name}_2.singer"
     singer_file_to_target(file_name, pg_hard_delete)
     with engine.connect() as connection:
         result = connection.execute(f"SELECT * FROM {table_name}")
-        assert result.rowcount == 7
+        assert result.rowcount == 0
