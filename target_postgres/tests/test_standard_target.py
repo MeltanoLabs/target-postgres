@@ -310,3 +310,28 @@ def test_activate_version_soft_delete(postgres_config):
             "SELECT * FROM test_activate_version_soft where _sdc_deleted_at is NOT NULL"
         )
         assert result.rowcount == 2
+
+
+def test_activate_version_doesnt_delete_before_populating(postgres_config):
+    """Activate Version should never delete records that are valid"""
+    table_name = "test_activate_version_doesnt_delete_before_populating"
+    file_name = f"{table_name}.singer"
+    engine = sqlalchemy_engine(postgres_config)
+    with engine.connect() as connection:
+        result = connection.execute(f"DROP TABLE IF EXISTS {table_name}")
+
+    postgres_config_soft_delete = copy.deepcopy(postgres_config)
+    postgres_config_soft_delete["hard_delete"] = True
+    pg_hard_delete = TargetPostgres(config=postgres_config_soft_delete)
+    singer_file_to_target(file_name, pg_hard_delete)
+    # Will populate us with 7 records
+    with engine.connect() as connection:
+        result = connection.execute(f"SELECT * FROM {table_name}")
+        assert result.rowcount == 7
+
+    # Only has a schema and one activate record message
+    file_name = "test_activate_version_doesnt_delete_before_populating_2.singer"
+    singer_file_to_target(file_name, pg_hard_delete)
+    with engine.connect() as connection:
+        result = connection.execute(f"SELECT * FROM {table_name}")
+        assert result.rowcount == 7
