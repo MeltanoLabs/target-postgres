@@ -90,6 +90,7 @@ jobs:
         python-version: ${{ env.python-version }}
     - name: Install dependencies
       run: |
+        ls -lsa
         python -m pip install --upgrade pip
         pip install meltano
         meltano install
