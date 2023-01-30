@@ -90,7 +90,10 @@ jobs:
         python-version: ${{ env.python-version }}
     - name: Install dependencies
       run: |
+        pwd
         ls -lsa
+        ls .github -lsa
+        ls .github/workflows -lsa
         python -m pip install --upgrade pip
         pip install meltano
         meltano install
