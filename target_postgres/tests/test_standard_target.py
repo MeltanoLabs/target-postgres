@@ -7,8 +7,10 @@ from pathlib import Path
 
 import jsonschema
 import pytest
+import sqlalchemy
 from singer_sdk.testing import sync_end_to_end
 
+from target_postgres.connector import PostgresConnector
 from target_postgres.target import TargetPostgres
 from target_postgres.tests.samples.aapl.aapl import Fundamentals
 from target_postgres.tests.samples.sample_tap_countries.countries_tap import (
@@ -24,6 +26,7 @@ def postgres_config():
         "user": "postgres",
         "password": "postgres",
         "database": "postgres",
+        "port": 5433,
     }
 
 
@@ -57,14 +60,69 @@ def singer_file_to_target(file_name, target) -> None:
 # TODO should set schemas for each tap individually so we don't collide
 
 
-def test_sqlalchemy_url_config():
+def test_sqlalchemy_url_config(postgres_config):
     """Be sure that passing a sqlalchemy_url works"""
+    host = postgres_config["host"]
+    user = postgres_config["user"]
+    password = postgres_config["password"]
+    database = postgres_config["database"]
+    port = postgres_config["port"]
+
     config = {
-        "sqlalchemy_url": "postgresql://postgres:postgres@localhost:5432/postgres"
+        "sqlalchemy_url": f"postgresql://{user}:{password}@{host}:{port}/{database}"
     }
     tap = SampleTapCountries(config={}, state=None)
     target = TargetPostgres(config=config)
     sync_end_to_end(tap, target)
+
+
+def test_port_default_config():
+    """Test that the default config is passed into the engine when the config doesn't provide it"""
+    config = {
+        "dialect+driver": "postgresql+psycopg2",
+        "host": "localhost",
+        "user": "postgres",
+        "password": "postgres",
+        "database": "postgres",
+    }
+    dialect_driver = config["dialect+driver"]
+    host = config["host"]
+    user = config["user"]
+    password = config["password"]
+    database = config["database"]
+    target_config = TargetPostgres(config=config).config
+    connector = PostgresConnector(target_config)
+
+    engine: sqlalchemy.engine.Engine = connector.create_sqlalchemy_engine()
+    assert (
+        str(engine.url)
+        == f"{dialect_driver}://{user}:{password}@{host}:5432/{database}"
+    )
+
+
+def test_port_config():
+    """Test that the port config works"""
+    config = {
+        "dialect+driver": "postgresql+psycopg2",
+        "host": "localhost",
+        "user": "postgres",
+        "password": "postgres",
+        "database": "postgres",
+        "port": 5433,
+    }
+    dialect_driver = config["dialect+driver"]
+    host = config["host"]
+    user = config["user"]
+    password = config["password"]
+    database = config["database"]
+    target_config = TargetPostgres(config=config).config
+    connector = PostgresConnector(target_config)
+
+    engine: sqlalchemy.engine.Engine = connector.create_sqlalchemy_engine()
+    assert (
+        str(engine.url)
+        == f"{dialect_driver}://{user}:{password}@{host}:5433/{database}"
+    )
 
 
 # Test name would work well
