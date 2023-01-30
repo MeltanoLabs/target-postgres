@@ -26,7 +26,7 @@ def postgres_config():
         "user": "postgres",
         "password": "postgres",
         "database": "postgres",
-        "port": 5433,
+        "port": 5432,
     }
 
 
