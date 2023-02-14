@@ -1,5 +1,6 @@
 """ Attempt at making some standard Target Tests. """
 # flake8: noqa
+import copy
 import io
 import uuid
 from contextlib import redirect_stdout
@@ -7,7 +8,9 @@ from pathlib import Path
 
 import jsonschema
 import pytest
+import sqlalchemy
 from singer_sdk.testing import sync_end_to_end
+from sqlalchemy import create_engine, engine_from_config
 
 from target_postgres.target import TargetPostgres
 from target_postgres.tests.samples.aapl.aapl import Fundamentals
@@ -24,12 +27,21 @@ def postgres_config():
         "user": "postgres",
         "password": "postgres",
         "database": "postgres",
+        "port": 5432,
+        "add_record_metadata": True,
+        "hard_delete": False,
     }
 
 
 @pytest.fixture
 def postgres_target(postgres_config) -> TargetPostgres:
     return TargetPostgres(config=postgres_config)
+
+
+def sqlalchemy_engine(config) -> sqlalchemy.engine.Engine:
+    return create_engine(
+        f"{config['dialect+driver']}://{config['user']}:{config['password']}@{config['host']}:{config['port']}/{config['database']}"
+    )
 
 
 def singer_file_to_target(file_name, target) -> None:
@@ -232,3 +244,100 @@ def test_new_array_column(postgres_target):
     """Create a new Array column with an existing table"""
     file_name = "new_array_column.singer"
     singer_file_to_target(file_name, postgres_target)
+
+
+def test_activate_version_hard_delete(postgres_config):
+    """Activate Version Hard Delete Test"""
+    file_name = "activate_version_hard.singer"
+    postgres_config_hard_delete_true = copy.deepcopy(postgres_config)
+    postgres_config_hard_delete_true["hard_delete"] = True
+    pg_hard_delete_true = TargetPostgres(config=postgres_config_hard_delete_true)
+    singer_file_to_target(file_name, pg_hard_delete_true)
+    engine = sqlalchemy_engine(postgres_config)
+    with engine.connect() as connection:
+        result = connection.execute("SELECT * FROM test_activate_version_hard")
+        assert result.rowcount == 7
+        # Add a record like someone would if they weren't using the tap target combo
+        result = connection.execute(
+            "INSERT INTO test_activate_version_hard(code, \"name\") VALUES('Manual1', 'Meltano')"
+        )
+        result = connection.execute(
+            "INSERT INTO test_activate_version_hard(code, \"name\") VALUES('Manual2', 'Meltano')"
+        )
+        result = connection.execute("SELECT * FROM test_activate_version_hard")
+        assert result.rowcount == 9
+
+    singer_file_to_target(file_name, pg_hard_delete_true)
+
+    # Should remove the 2 records we added manually
+    with engine.connect() as connection:
+        result = connection.execute("SELECT * FROM test_activate_version_hard")
+        assert result.rowcount == 7
+
+
+def test_activate_version_soft_delete(postgres_config):
+    """Activate Version Soft Delete Test"""
+    file_name = "activate_version_soft.singer"
+    engine = sqlalchemy_engine(postgres_config)
+    with engine.connect() as connection:
+        result = connection.execute("DROP TABLE IF EXISTS test_activate_version_soft")
+    postgres_config_soft_delete = copy.deepcopy(postgres_config)
+    postgres_config_soft_delete["hard_delete"] = False
+    pg_soft_delete = TargetPostgres(config=postgres_config_soft_delete)
+    singer_file_to_target(file_name, pg_soft_delete)
+
+    with engine.connect() as connection:
+        result = connection.execute("SELECT * FROM test_activate_version_soft")
+        assert result.rowcount == 7
+        # Add a record like someone would if they weren't using the tap target combo
+        result = connection.execute(
+            "INSERT INTO test_activate_version_soft(code, \"name\") VALUES('Manual1', 'Meltano')"
+        )
+        result = connection.execute(
+            "INSERT INTO test_activate_version_soft(code, \"name\") VALUES('Manual2', 'Meltano')"
+        )
+        result = connection.execute("SELECT * FROM test_activate_version_soft")
+        assert result.rowcount == 9
+
+    singer_file_to_target(file_name, pg_soft_delete)
+
+    # Should have all records including the 2 we added manually
+    with engine.connect() as connection:
+        result = connection.execute("SELECT * FROM test_activate_version_soft")
+        assert result.rowcount == 9
+
+        result = connection.execute(
+            "SELECT * FROM test_activate_version_soft where _sdc_deleted_at is NOT NULL"
+        )
+        assert result.rowcount == 2
+
+
+def test_activate_version_deletes_data_properly(postgres_config):
+    """Activate Version should"""
+    table_name = "test_activate_version_deletes_data_properly"
+    file_name = f"{table_name}.singer"
+    engine = sqlalchemy_engine(postgres_config)
+    with engine.connect() as connection:
+        result = connection.execute(f"DROP TABLE IF EXISTS {table_name}")
+
+    postgres_config_soft_delete = copy.deepcopy(postgres_config)
+    postgres_config_soft_delete["hard_delete"] = True
+    pg_hard_delete = TargetPostgres(config=postgres_config_soft_delete)
+    singer_file_to_target(file_name, pg_hard_delete)
+    # Will populate us with 7 records
+    with engine.connect() as connection:
+        result = connection.execute(
+            f"INSERT INTO {table_name} (code, \"name\") VALUES('Manual1', 'Meltano')"
+        )
+        result = connection.execute(
+            f"INSERT INTO {table_name} (code, \"name\") VALUES('Manual2', 'Meltano')"
+        )
+        result = connection.execute(f"SELECT * FROM {table_name}")
+        assert result.rowcount == 9
+
+    # Only has a schema and one activate_version message, should delete all records as it's a higher version than what's currently in the table
+    file_name = f"{table_name}_2.singer"
+    singer_file_to_target(file_name, pg_hard_delete)
+    with engine.connect() as connection:
+        result = connection.execute(f"SELECT * FROM {table_name}")
+        assert result.rowcount == 0
