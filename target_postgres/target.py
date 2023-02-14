@@ -95,9 +95,9 @@ class TargetPostgres(Target):
             th.StringType,
             description=(
                 "SQLAlchemy connection string. "
-                + "This will override using host, user, password, port,"
-                + "dialect. Note that you must esacpe password special"
-                + "characters properly see"
+                + "This will override using host, user, password, port, "
+                + "dialect. Note that you must esacpe password special "
+                + "characters properly see "
                 + "https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords"  # noqa: E501
             ),
         ),
@@ -134,7 +134,7 @@ class TargetPostgres(Target):
             description=(
                 "Note that this must be enabled for activate_version to work!"
                 + "This adds _sdc_extracted_at, _sdc_batched_at, and more to every "
-                + " table. See https://sdk.meltano.com/en/latest/implementation/record_metadata.html "  # noqa: E501
+                + "table. See https://sdk.meltano.com/en/latest/implementation/record_metadata.html "  # noqa: E501
                 + "for more information."
             ),
         ),
