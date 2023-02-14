@@ -48,6 +48,7 @@ class PostgresConnector(SQLConnector):
                 username=config["user"],
                 password=config["password"],
                 host=config["host"],
+                port=config["port"],
                 database=config["database"],
             )
             return cast(str, sqlalchemy_url)
