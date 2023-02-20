@@ -71,7 +71,7 @@ class TargetPostgres(Target):
             th.StringType,
             description=(
                 "User name used to authenticate. "
-                + "Note if sqlalchemy_url is set this will be ignored.",
+                + "Note if sqlalchemy_url is set this will be ignored."
             ),
         ),
         th.Property(
@@ -95,9 +95,9 @@ class TargetPostgres(Target):
             th.StringType,
             description=(
                 "SQLAlchemy connection string. "
-                + "This will override using host, user, password, port,"
-                + "dialect. Note that you must esacpe password special"
-                + "characters properly see"
+                + "This will override using host, user, password, port, "
+                + "dialect. Note that you must esacpe password special "
+                + "characters properly see "
                 + "https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords"  # noqa: E501
             ),
         ),
@@ -116,6 +116,27 @@ class TargetPostgres(Target):
             "default_target_schema",
             th.StringType,
             description="Postgres schema to send data to, example: tap-clickup",
+        ),
+        th.Property(
+            "hard_delete",
+            th.BooleanType,
+            default=False,
+            description=(
+                "When activate version is sent from a tap this specefies "
+                + "if we should delete the records that don't match, or mark "
+                + "them with a date in the `_sdc_deleted_at` column."
+            ),
+        ),
+        th.Property(
+            "add_record_metadata",
+            th.BooleanType,
+            default=True,
+            description=(
+                "Note that this must be enabled for activate_version to work!"
+                + "This adds _sdc_extracted_at, _sdc_batched_at, and more to every "
+                + "table. See https://sdk.meltano.com/en/latest/implementation/record_metadata.html "  # noqa: E501
+                + "for more information."
+            ),
         ),
     ).to_dict()
     default_sink_class = PostgresSink
