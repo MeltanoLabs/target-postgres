@@ -1354,14 +1354,14 @@ files = [
 
 [[package]]
 name = "singer-sdk"
-version = "0.19.0"
+version = "0.20.0"
 description = "A framework for building Singer taps"
 category = "main"
 optional = false
 python-versions = ">=3.7.1,<3.12"
 files = [
-    {file = "singer_sdk-0.19.0-py3-none-any.whl", hash = "sha256:6925687a8510116a54325704cdf981bad37f1be6fd2e038c4a13a1d99a71bb28"},
-    {file = "singer_sdk-0.19.0.tar.gz", hash = "sha256:7730d4012e85e16df884e0a763a211d2791b759ad052b6458ad09c2ab4f4de7c"},
+    {file = "singer_sdk-0.20.0-py3-none-any.whl", hash = "sha256:7c1fe33a2de5aad771a739961c0f8be93c18bd7eba31363eaa70ed8f4000b851"},
+    {file = "singer_sdk-0.20.0.tar.gz", hash = "sha256:5871f5f691136bf00d2e4527f17f9b69b9ea1b9b62bd5984f5d350be8650548d"},
 ]
 
 [package.dependencies]
@@ -1387,7 +1387,7 @@ sqlalchemy = ">=1.4,<2.0"
 typing-extensions = ">=4.2.0,<5.0.0"
 
 [package.extras]
-docs = ["myst-parser (>=0.17.2,<0.19.0)", "sphinx (>=4.5,<6.0)", "sphinx-autobuild (>=2021.3.14,<2022.0.0)", "sphinx-copybutton (>=0.3.1,<0.6.0)", "sphinx-rtd-theme (>=0.5.2,<1.2.0)"]
+docs = ["furo (>=2022.12.7,<2023.0.0)", "myst-parser (>=0.17.2,<0.19.0)", "sphinx (>=4.5,<6.0)", "sphinx-autobuild (>=2021.3.14,<2022.0.0)", "sphinx-copybutton (>=0.3.1,<0.6.0)", "sphinx-reredirects (>=0.1.1,<0.2.0)"]
 s3 = ["fs-s3fs (>=1.1.1,<2.0.0)"]
 testing = ["pytest (>=7.2.1,<8.0.0)", "pytest-durations (>=1.2.0,<2.0.0)"]
 
@@ -1634,4 +1634,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = "<3.12,>=3.7.1"
-content-hash = "a78e52aa228dc520cd5ae2309ead7c0b235e5a5d90d489cf1d475693ce8968f9"
+content-hash = "d159800de0ae4c896d55c5f62edb73f0550b0e79f6b1cbde6df21ca0bea1840d"
