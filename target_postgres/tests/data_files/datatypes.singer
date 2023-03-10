@@ -1,0 +1,2 @@
+{ "type": "SCHEMA", "stream": "commits", "schema": { "properties": {"id": { "type": [ "null", "string" ] }}, "type": "object" }, "key_properties": [ "id" ] }
+{ "type": "RECORD", "stream": "commits", "record": {"id": "123"} }

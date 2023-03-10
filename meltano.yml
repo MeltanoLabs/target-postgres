@@ -22,6 +22,7 @@ plugins:
   loaders:
   - name: "target-postgres"
     namespace: "target_postgres"
+    executable: target-postgres
     pip_url: -e .
     config:
       sqlalchemy_url: "postgresql://postgres:postgres@localhost:5432/postgres"
@@ -29,5 +30,16 @@ plugins:
     settings:
     - name: sqlalchemy_url
       kind: password
+  - name: "pipelinewise-target-postgres"
+    namespace: target_postgres
+    pip_url: "pipelinewise-target-postgres"
+    executable: target-postgres
+    config:
+      host: localhost
+      port: 5432
+      dbname: postgres
+      user: postgres
+      password: postgres
+      default_target_schema: transferwise
 environments:
 - name: dev
