@@ -72,7 +72,7 @@ class PostgresConnector(SQLConnector):
     @staticmethod
     def to_sql_type(jsonschema_type: dict) -> sqlalchemy.types.TypeEngine:
         """Return a SQL Type representation for the given JSONSchema type
-        
+
         Note that jsonSchema types can come in a varietry of formats, including:
         "type": ["string", "integer"]
         "anyOf": [{"type": "string"}, {"type": "integer"}]
@@ -82,16 +82,16 @@ class PostgresConnector(SQLConnector):
         nullable columns should be nullable, non nullable should not be nullabe. TODO: Create an issue for this
 
 
-        
+
         Args:
             jsonschema_type: The JSON Schema representation of the source type.
 
         Returns:
             The SQLAlchemy type representation of the data type.
         """
-        #AnyOf should choose the most "restrictive" datatype from the list of types in the anyOf statement
-        #if "anyOf" in jsonschema_type:
-            #
+        # AnyOf should choose the most "restrictive" datatype from the list of types in the anyOf statement
+        # if "anyOf" in jsonschema_type:
+        #
         if "integer" in jsonschema_type["type"]:
             return BIGINT()
         if "object" in jsonschema_type["type"]:
