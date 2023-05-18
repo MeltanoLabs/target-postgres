@@ -47,6 +47,35 @@ class TargetPostgres(Target):
             + "password, and dialect+driver to be set"
         )
 
+        # If sqlalchemy_url is not being used and ssl_enable is on, ssl_mode must have one of six allowable values. If ssl_mode is verify-ca or verify-full, a certificate authority must be provided to verify against.
+        assert (
+            (self.config.get("sqlalchemy_url") is not None)
+            or (self.config.get("ssl_enable") is False)
+            or (
+                self.config.get("ssl_mode") in {"disable", "allow", "prefer", "require"}
+            )
+            or (
+                self.config.get("ssl_mode") in {"verify-ca", "verify-full"}
+                and self.config.get("ssl_certificate_authority") is not None
+            )
+        ), (
+            "ssl_enable is true but invalid values are provided for ssl_mode and/or"
+            + "ssl_certificate_authority."
+        )
+
+        # If sqlalchemy_url is not being used and ssl_client_certificate_enable is on, the client must provide a certificate and associated private key.
+        assert (
+            (self.config.get("sqlalchemy_url") is not None)
+            or (self.config.get("ssl_client_certificate_enable") is False)
+            or (
+                self.config.get("ssl_certificate") is not None
+                and self.config.get("ssl_private_key") is not None
+            )
+        ), (
+            "ssl_client_certificate_enable is true but one or both of"
+            + " ssl_certificate or ssl_private_key are unset."
+        )
+
     name = "target-postgres"
     config_jsonschema = th.PropertiesList(
         th.Property(
@@ -96,8 +125,8 @@ class TargetPostgres(Target):
             description=(
                 "SQLAlchemy connection string. "
                 + "This will override using host, user, password, port, "
-                + "dialect. Note that you must esacpe password special "
-                + "characters properly see "
+                + "dialect, and all ssl settings. Note that you must escape password "
+                + "special characters properly see "
                 + "https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords"  # noqa: E501
             ),
         ),
@@ -136,6 +165,70 @@ class TargetPostgres(Target):
                 + "This adds _sdc_extracted_at, _sdc_batched_at, and more to every "
                 + "table. See https://sdk.meltano.com/en/latest/implementation/record_metadata.html "  # noqa: E501
                 + "for more information."
+            ),
+        ),
+        th.Property(
+            "ssl_enable",
+            th.BooleanType,
+            default=False,
+            description=(
+                "Whether or not to use ssl to verify the server's identity. Use"
+                + " ssl_certificate_authority and ssl_mode for further customization."
+                + " To use SSL to authenticate yourself to the server, use"
+                + " ssl_client_certificate_enable instead."
+                + " Note if sqlalchemy_url is set this will be ignored."
+            ),
+        ),
+        th.Property(
+            "ssl_client_certificate_enable",
+            th.BooleanType,
+            default=False,
+            description=(
+                "Whether or not to provide client-side certificates as a method of"
+                + " authentication to the server. Use ssl_certificate and"
+                + " ssl_private_key for further customization. To use SSL to verify"
+                + " the server's identity, use ssl_enable instead."
+                + " Note if sqlalchemy_url is set this will be ignored."
+            ),
+        ),
+        th.Property(
+            "ssl_mode",
+            th.StringType,
+            default="require",
+            description=(
+                "The level of strictness with which to utilize ssl. Provide one of:"
+                + " disable, allow, prefer, require, verify-ca, verify-full."
+                + " Note if sqlalchemy_url is set this will be ignored."
+            ),
+        ),
+        th.Property(
+            "ssl_certificate_authority",
+            th.StringType,
+            description=(
+                "The certificate authority that should be used to verify the server's"
+                + " identity. Can be provided either as the certificate itself (in"
+                + " .env) or as a filepath to the certificate."
+                + " Note if sqlalchemy_url is set this will be ignored."
+            ),
+        ),
+        th.Property(
+            "ssl_certificate",
+            th.StringType,
+            description=(
+                "The certificate that should be used to verify your identity to the"
+                + " server. Can be provided either as the certificate itself (in .env)"
+                + " or as a filepath to the certificate."
+                + " Note if sqlalchemy_url is set this will be ignored."
+            ),
+        ),
+        th.Property(
+            "ssl_private_key",
+            th.StringType,
+            description=(
+                "The private key for the certificate you provided. Can be provided"
+                + " either as the certificate itself (in .env) or as a filepath to the"
+                + " certificate."
+                + " Note if sqlalchemy_url is set this will be ignored."
             ),
         ),
     ).to_dict()
