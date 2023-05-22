@@ -18,7 +18,7 @@ repos:
   - id: trailing-whitespace
 
 - repo: https://github.com/psf/black
-  rev: 22.10.0
+  rev: 23.3.0
   hooks:
   - id: black
     exclude: |
@@ -27,13 +27,13 @@ repos:
         )$
 
 - repo: https://github.com/pycqa/isort
-  rev: 5.10.1
+  rev: 5.12.0
   hooks:
   - id: isort
     exclude: (copier_template/.*)
 
 - repo: https://github.com/pycqa/flake8
-  rev: 5.0.4
+  rev: 6.0.0
   hooks:
   - id: flake8
     additional_dependencies:
@@ -43,7 +43,7 @@ repos:
     files: 'meltano/edk/.*'
 
 - repo: https://github.com/asottile/pyupgrade
-  rev: v3.2.2
+  rev: v3.4.0
   hooks:
   - id: pyupgrade
     args: [--py37-plus]
