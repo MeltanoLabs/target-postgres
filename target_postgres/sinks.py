@@ -91,8 +91,11 @@ class PostgresSink(SQLSink):
 
     def generate_temp_table_name(self):
         """Uuid temp table name."""
-        # sqlalchemy.exc.IdentifierError: Identifier 'temp_test_optional_attributes_388470e9_fbd0_47b7_a52f_d32a2ee3f5f6' exceeds maximum length of 63 characters
-        # Is hit if we have a long table name, there is no limit on Temporary tables in postgres, used a guid just in case we are using the same session
+        # sqlalchemy.exc.IdentifierError: Identifier
+        # 'temp_test_optional_attributes_388470e9_fbd0_47b7_a52f_d32a2ee3f5f6'
+        # exceeds maximum length of 63 characters
+        # Is hit if we have a long table name, there is no limit on Temporary tables
+        # in postgres, used a guid just in case we are using the same session
         return f"{str(uuid.uuid4()).replace('-','_')}"
 
     def bulk_insert_records(

@@ -96,7 +96,7 @@ class PostgresConnector(SQLConnector):
     def clone_table(
         self, new_table_name, table, metadata, connection, temp_table
     ) -> sqlalchemy.Table:
-        """Clone a table"""
+        """Clone a table."""
         new_columns = []
         for column in table.columns:
             new_columns.append(
