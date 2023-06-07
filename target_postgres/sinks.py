@@ -95,6 +95,54 @@ class PostgresSink(SQLSink):
         # Is hit if we have a long table name, there is no limit on Temporary tables in postgres, used a guid just in case we are using the same session
         return f"{str(uuid.uuid4()).replace('-','_')}"
 
+    def bulk_insert_records(
+        self,
+        table: sqlalchemy.Table,
+        schema: dict,
+        records: Iterable[Dict[str, Any]],
+        primary_keys: List[str],
+    ) -> Optional[int]:
+        """Bulk insert records to an existing destination table.
+
+        The default implementation uses a generic SQLAlchemy bulk insert operation.
+        This method may optionally be overridden by developers in order to provide
+        faster, native bulk uploads.
+
+        Args:
+            full_table_name: the target table name.
+            schema: the JSON schema for the new table, to be used when inferring column
+                names.
+            records: the input records.
+
+        Returns:
+            True if table exists, False if not, None if unsure or undetectable.
+        """
+        columns = self.column_representation(schema)
+        insert = self.generate_insert_statement(
+            table.name,
+            columns,
+        )
+        self.logger.info("Inserting with SQL: %s", insert)
+        # Only one record per PK, we want to take the last one
+        insert_records: Dict[str, Dict] = {}  # pk : record
+        for record in records:
+            insert_record = {}
+            for column in columns:
+                insert_record[column.name] = record.get(column.name)
+            try:
+                primary_key_value = "".join([str(record[key]) for key in primary_keys])
+            except KeyError:
+                raise RuntimeError(
+                    "Primary key not found in record. "
+                    f"full_table_name: {table.name}. "
+                    f"schema: {table.schema}.  "
+                    f"primary_keys: {primary_keys}."
+                )
+            insert_records[primary_key_value] = insert_record
+
+        self.connector.connection.execute(insert, list(insert_records.values()))
+        return True
+
     def upsert(
         self,
         from_table: sqlalchemy.Table,
@@ -155,54 +203,6 @@ class PostgresSink(SQLSink):
 
         update_stmt = update(from_table).where(where_condition).values(update_columns)
         self.connection.execute(update_stmt)
-
-    def bulk_insert_records(
-        self,
-        table: sqlalchemy.Table,
-        schema: dict,
-        records: Iterable[Dict[str, Any]],
-        primary_keys: List[str],
-    ) -> Optional[int]:
-        """Bulk insert records to an existing destination table.
-
-        The default implementation uses a generic SQLAlchemy bulk insert operation.
-        This method may optionally be overridden by developers in order to provide
-        faster, native bulk uploads.
-
-        Args:
-            full_table_name: the target table name.
-            schema: the JSON schema for the new table, to be used when inferring column
-                names.
-            records: the input records.
-
-        Returns:
-            True if table exists, False if not, None if unsure or undetectable.
-        """
-        columns = self.column_representation(schema)
-        insert = self.generate_insert_statement(
-            table.name,
-            columns,
-        )
-        self.logger.info("Inserting with SQL: %s", insert)
-        # Only one record per PK, we want to take the last one
-        insert_records: Dict[str, Dict] = {}  # pk : record
-        for record in records:
-            insert_record = {}
-            for column in columns:
-                insert_record[column.name] = record.get(column.name)
-            try:
-                primary_key_value = "".join([str(record[key]) for key in primary_keys])
-            except KeyError:
-                raise RuntimeError(
-                    "Primary key not found in record. "
-                    f"full_table_name: {table.name}. "
-                    f"schema: {table.schema}.  "
-                    f"primary_keys: {primary_keys}."
-                )
-            insert_records[primary_key_value] = insert_record
-
-        self.connector.connection.execute(insert, list(insert_records.values()))
-        return True
 
     def column_representation(
         self,
