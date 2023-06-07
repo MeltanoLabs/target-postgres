@@ -166,9 +166,6 @@ class PostgresSink(SQLSink):
             report number of records affected/inserted.
 
         """
-        # TODO think about sql injeciton,
-        # issue here https://github.com/MeltanoLabs/target-postgres/issues/22
-
         # Insert
 
         where_condition = " and ".join([f'target."{key}" is null' for key in join_keys])
