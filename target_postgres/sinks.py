@@ -5,7 +5,7 @@ from typing import Any, Dict, Iterable, List, Optional, Union
 import sqlalchemy
 from pendulum import now
 from singer_sdk.sinks import SQLSink
-from sqlalchemy import Column, MetaData, Table, insert
+from sqlalchemy import Column, MetaData, Table, insert, select, update
 from sqlalchemy.sql import Executable
 from sqlalchemy.sql.expression import bindparam
 
@@ -80,9 +80,9 @@ class PostgresSink(SQLSink):
             records=context["records"],
         )
         # Merge data from Temp table to main table
-        self.merge_upsert_from_table(
-            from_table_name=self.temp_table_name,
-            to_table_name=self.full_table_name,
+        self.upsert(
+            from_table=temp_table,
+            to_table=table,
             schema=self.schema,
             join_keys=self.key_properties,
         )
@@ -95,12 +95,12 @@ class PostgresSink(SQLSink):
         # Is hit if we have a long table name, there is no limit on Temporary tables in postgres, used a guid just in case we are using the same session
         return f"{str(uuid.uuid4()).replace('-','_')}"
 
-    def merge_upsert_from_table(
+    def upsert(
         self,
-        from_table_name: str,
-        to_table_name: str,
+        from_table: sqlalchemy.Table,
+        to_table: sqlalchemy.Table,
         schema: dict,
-        join_keys: List[str],
+        join_keys: List[Column],
     ) -> Optional[int]:
         """Merge upsert data from one table to another.
 
@@ -118,37 +118,43 @@ class PostgresSink(SQLSink):
         # TODO think about sql injeciton,
         # issue here https://github.com/MeltanoLabs/target-postgres/issues/22
 
-        # INSERT
-        join_condition = " and ".join(
-            [f'temp."{key}" = target."{key}"' for key in join_keys]
-        )
+        # Insert
+
         where_condition = " and ".join([f'target."{key}" is null' for key in join_keys])
+        join_predicates = []
+        for key in join_keys:
+            from_table_key: sqlalchemy.Column = from_table.columns[key]
+            to_table_key: sqlalchemy.Column = to_table.columns[key]
+            join_predicates.append(from_table_key == to_table_key)
 
-        insert_sql = f"""
-        INSERT INTO {to_table_name}
-        SELECT
-        temp.*
-        FROM \"{from_table_name}\" AS temp
-        LEFT JOIN {to_table_name} AS target ON {join_condition}
-        WHERE {where_condition}
-        """
-        self.connection.execute(insert_sql)
+        join_condition = sqlalchemy.and_(*join_predicates)
 
-        # UPDATE
-        columns = ", ".join(
-            [
-                f'"{column_name}"=temp."{column_name}"'
-                for column_name in self.schema["properties"].keys()
-            ]
+        where_predicates = []
+        for key in join_keys:
+            to_table_key: sqlalchemy.Column = to_table.columns[key]
+            where_predicates.append(to_table_key.is_(None))
+        where_condition = sqlalchemy.and_(*where_predicates)
+
+        select_stmt = (
+            select(from_table.columns)
+            .select_from(from_table.outerjoin(to_table, join_condition))
+            .where(where_condition)
         )
+        insert_stmt = insert(to_table).from_select(
+            names=to_table.columns, select=select_stmt
+        )
+        self.connection.execute(insert_stmt)
+
+        # Update
         where_condition = join_condition
-        update_sql = f"""
-        UPDATE {to_table_name} AS target
-        SET {columns}
-        FROM \"{from_table_name}\" AS temp
-        WHERE {where_condition}
-        """
-        self.connection.execute(update_sql)
+        update_columns = {}
+        for column_name in self.schema["properties"].keys():
+            from_table_column: sqlalchemy.Column = from_table.columns[column_name]
+            to_table_column: sqlalchemy.Column = to_table.columns[column_name]
+            update_columns[from_table_column] = to_table_column
+
+        update_stmt = update(from_table).where(where_condition).values(update_columns)
+        self.connection.execute(update_stmt)
 
     def bulk_insert_records(
         self,
