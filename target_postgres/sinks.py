@@ -22,6 +22,15 @@ class PostgresSink(SQLSink):
         super().__init__(*args, **kwargs)
         self.temp_table_name = self.generate_temp_table_name()
 
+    @property
+    def connector(self) -> PostgresConnector:
+        """The connector object.
+
+        Returns:
+            The connector object.
+        """
+        return self._connector
+
     def setup(self) -> None:
         """Set up Sink.
 
@@ -53,19 +62,19 @@ class PostgresSink(SQLSink):
             context: Stream partition or context dictionary.
         """
         # First we need to be sure the main table is already created
-        self.connector.prepare_table(
+        table: sqlalchemy.Table = self.connector.prepare_table(
             full_table_name=self.full_table_name,
             schema=self.schema,
             primary_keys=self.key_properties,
             as_temp_table=False,
         )
         # Create a temp table (Creates from the table above)
-        self.connector.create_temp_table_from_table(
-            from_table_name=self.full_table_name, temp_table_name=self.temp_table_name
+        temp_table = self.connector.create_temp_table_from_table(
+            from_table=table, temp_table_name=self.temp_table_name
         )
         # Insert into temp table
         self.bulk_insert_records(
-            full_table_name=self.temp_table_name,
+            table=temp_table,
             schema=self.schema,
             primary_keys=self.key_properties,
             records=context["records"],
@@ -78,13 +87,13 @@ class PostgresSink(SQLSink):
             join_keys=self.key_properties,
         )
         # Drop temp table
-        self.connector.drop_table(self.temp_table_name)
+        self.connector.drop_table(temp_table)
 
     def generate_temp_table_name(self):
         """Uuid temp table name."""
-        # Table name makes debugging easier when data cannot be written to the
-        # temp table for some reason
-        return f"temp_{self.table_name}_{str(uuid.uuid4()).replace('-','_')}"
+        # sqlalchemy.exc.IdentifierError: Identifier 'temp_test_optional_attributes_388470e9_fbd0_47b7_a52f_d32a2ee3f5f6' exceeds maximum length of 63 characters
+        # Is hit if we have a long table name, there is no limit on Temporary tables in postgres, used a guid just in case we are using the same session
+        return f"{str(uuid.uuid4()).replace('-','_')}"
 
     def merge_upsert_from_table(
         self,
@@ -119,7 +128,7 @@ class PostgresSink(SQLSink):
         INSERT INTO {to_table_name}
         SELECT
         temp.*
-        FROM {from_table_name} AS temp
+        FROM \"{from_table_name}\" AS temp
         LEFT JOIN {to_table_name} AS target ON {join_condition}
         WHERE {where_condition}
         """
@@ -136,14 +145,14 @@ class PostgresSink(SQLSink):
         update_sql = f"""
         UPDATE {to_table_name} AS target
         SET {columns}
-        FROM {from_table_name} AS temp
+        FROM \"{from_table_name}\" AS temp
         WHERE {where_condition}
         """
         self.connection.execute(update_sql)
 
     def bulk_insert_records(
         self,
-        full_table_name: str,
+        table: sqlalchemy.Table,
         schema: dict,
         records: Iterable[Dict[str, Any]],
         primary_keys: List[str],
@@ -165,7 +174,7 @@ class PostgresSink(SQLSink):
         """
         columns = self.column_representation(schema)
         insert = self.generate_insert_statement(
-            full_table_name,
+            table.name,
             columns,
         )
         self.logger.info("Inserting with SQL: %s", insert)
@@ -180,8 +189,8 @@ class PostgresSink(SQLSink):
             except KeyError:
                 raise RuntimeError(
                     "Primary key not found in record. "
-                    f"full_table_name: {full_table_name}. "
-                    f"schema: {schema}.  "
+                    f"full_table_name: {table.name}. "
+                    f"schema: {table.schema}.  "
                     f"primary_keys: {primary_keys}."
                 )
             insert_records[primary_key_value] = insert_record

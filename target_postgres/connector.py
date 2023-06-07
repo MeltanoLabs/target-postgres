@@ -8,6 +8,7 @@ from singer_sdk import SQLConnector
 from singer_sdk import typing as th
 from sqlalchemy.dialects.postgresql import ARRAY, BIGINT, JSONB
 from sqlalchemy.engine import URL
+from sqlalchemy.sql.expression import Insert
 from sqlalchemy.types import TIMESTAMP
 
 
@@ -19,6 +20,41 @@ class PostgresConnector(SQLConnector):
     allow_column_alter: bool = False  # Whether altering column types is supported.
     allow_merge_upsert: bool = True  # Whether MERGE UPSERT is supported.
     allow_temp_tables: bool = True  # Whether temp tables are supported.
+
+    def prepare_table(
+        self,
+        full_table_name: str,
+        schema: dict,
+        primary_keys: list[str],
+        partition_keys: list[str] | None = None,
+        as_temp_table: bool = False,
+    ) -> sqlalchemy.Table:
+        """Adapt target table to provided schema if possible.
+
+        Args:
+            full_table_name: the target table name.
+            schema: the JSON Schema for the table.
+            primary_keys: list of key properties.
+            partition_keys: list of partition keys.
+            as_temp_table: True to create a temp table.
+        """
+        if not self.table_exists(full_table_name=full_table_name):
+            self.create_empty_table(
+                full_table_name=full_table_name,
+                schema=schema,
+                primary_keys=primary_keys,
+                partition_keys=partition_keys,
+                as_temp_table=as_temp_table,
+            )
+            return
+        for property_name, property_def in schema["properties"].items():
+            self.prepare_column(
+                full_table_name, property_name, self.to_sql_type(property_def)
+            )
+        meta = sqlalchemy.MetaData(bind=self._engine)
+        meta.reflect(only=[full_table_name])
+
+        return meta.tables[full_table_name]
 
     def create_sqlalchemy_connection(self) -> sqlalchemy.engine.Connection:
         """Return a new SQLAlchemy connection using the provided config.
@@ -53,22 +89,48 @@ class PostgresConnector(SQLConnector):
             )
             return cast(str, sqlalchemy_url)
 
-    def truncate_table(self, name):
-        """Clear table data."""
-        self.connection.execute(f"TRUNCATE TABLE {name}")
-
-    def drop_table(self, name):
+    def drop_table(self, table: sqlalchemy.Table):
         """Drop table data."""
-        self.connection.execute(f"DROP TABLE {name}")
+        table.drop(bind=self.connection)
 
-    def create_temp_table_from_table(self, from_table_name, temp_table_name):
+    def clone_table(
+        self, new_table_name, table, metadata, connection, temp_table
+    ) -> sqlalchemy.Table:
+        """Clone a table"""
+        new_columns = []
+        for column in table.columns:
+            new_columns.append(
+                sqlalchemy.Column(
+                    column.name,
+                    column.type,
+                )
+            )
+        if temp_table is True:
+            new_table = sqlalchemy.Table(
+                new_table_name, metadata, *new_columns, prefixes=["TEMPORARY"]
+            )
+        else:
+            new_table = sqlalchemy.Table(new_table_name, metadata, *new_columns)
+        new_table.create(bind=connection)
+        select = sqlalchemy.sql.select(table.columns)
+        insert = Insert(new_table).from_select(names=table.columns, select=select)
+        connection.execute(insert)
+
+        return new_table
+
+    def create_temp_table_from_table(
+        self, from_table: sqlalchemy.Table, temp_table_name
+    ) -> sqlalchemy.Table:
         """Temp table from another table."""
-        ddl = sqlalchemy.DDL(
-            "CREATE TEMP TABLE %(temp_table_name)s AS "
-            "SELECT * FROM %(from_table_name)s LIMIT 0",
-            {"temp_table_name": temp_table_name, "from_table_name": from_table_name},
+        # Hashtag is used to create a temp table
+        temp_table = self.clone_table(
+            new_table_name=f"{temp_table_name}",
+            table=from_table,
+            metadata=from_table.metadata,
+            connection=self.connection,
+            temp_table=True,
         )
-        self.connection.execute(ddl)
+        return temp_table
 
     @staticmethod
     def to_sql_type(jsonschema_type: dict) -> sqlalchemy.types.TypeEngine:
@@ -104,7 +166,7 @@ class PostgresConnector(SQLConnector):
         primary_keys: list[str] | None = None,
         partition_keys: list[str] | None = None,
         as_temp_table: bool = False,
-    ) -> None:
+    ) -> sqlalchemy.Table:
         """Create an empty target table.
 
         Args:
@@ -124,6 +186,7 @@ class PostgresConnector(SQLConnector):
         _ = partition_keys  # Not supported in generic implementation.
 
         _, schema_name, table_name = self.parse_full_table_name(full_table_name)
+        self._engine
         meta = sqlalchemy.MetaData(schema=schema_name)
         columns: list[sqlalchemy.Column] = []
         primary_keys = primary_keys or []
@@ -145,6 +208,7 @@ class PostgresConnector(SQLConnector):
 
         _ = sqlalchemy.Table(table_name, meta, *columns)
         meta.create_all(self._engine)
+        return _
 
     def get_column_add_ddl(
         self,
