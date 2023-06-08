@@ -31,6 +31,16 @@ class PostgresSink(SQLSink):
         """
         return self._connector
 
+    @property
+    def append_only(self) -> bool:
+        """Return True if the target is append only."""
+        return self._append_only
+
+    @append_only.setter
+    def append_only(self, value: bool) -> None:
+        """Set the append_only attribute."""
+        self._append_only = value
+
     def setup(self) -> None:
         """Set up Sink.
 
@@ -38,11 +48,9 @@ class PostgresSink(SQLSink):
         Table entities in the target database.
         """
         if self.key_properties is None or self.key_properties == []:
-            raise ValueError(
-                "key_properties must be set. See"
-                "https://github.com/MeltanoLabs/target-postgres/issues/54"
-                "for more information."
-            )
+            self.append_only = True
+        else:
+            self.append_only = False
         if self.schema_name:
             self.connector.prepare_schema(self.schema_name)
         self.connector.prepare_table(
@@ -69,8 +77,11 @@ class PostgresSink(SQLSink):
             as_temp_table=False,
         )
         # Create a temp table (Creates from the table above)
-        temp_table = self.connector.create_temp_table_from_table(
-            from_table=table, temp_table_name=self.temp_table_name
+        temp_table: sqlalchemy.Table = self.connector.prepare_table(
+            full_table_name=self.temp_table_name,
+            schema=self.schema,
+            primary_keys=self.key_properties,
+            as_temp_table=True,
         )
         # Insert into temp table
         self.bulk_insert_records(
@@ -127,13 +138,19 @@ class PostgresSink(SQLSink):
         )
         self.logger.info("Inserting with SQL: %s", insert)
         # Only one record per PK, we want to take the last one
-        insert_records: Dict[str, Dict] = {}  # pk : record
-        for record in records:
-            insert_record = {}
-            for column in columns:
-                insert_record[column.name] = record.get(column.name)
+        data_to_insert: List[Dict[str, Any]] = []
+
+        if self.append_only is False:
+            insert_records: Dict[str, Dict] = {}  # pk : record
             try:
-                primary_key_value = "".join([str(record[key]) for key in primary_keys])
+                for record in records:
+                    insert_record = {}
+                    for column in columns:
+                        insert_record[column.name] = record.get(column.name)
+                    primary_key_value = "".join(
+                        [str(record[key]) for key in primary_keys]
+                    )
+                    insert_records[primary_key_value] = insert_record
             except KeyError:
                 raise RuntimeError(
                     "Primary key not found in record. "
@@ -141,9 +158,14 @@ class PostgresSink(SQLSink):
                     f"schema: {table.schema}.  "
                     f"primary_keys: {primary_keys}."
                 )
-            insert_records[primary_key_value] = insert_record
-
-        self.connector.connection.execute(insert, list(insert_records.values()))
+            data_to_insert = list(insert_records.values())
+        else:
+            for record in records:
+                insert_record = {}
+                for column in columns:
+                    insert_record[column.name] = record.get(column.name)
+                data_to_insert.append(insert_record)
+        self.connector.connection.execute(insert, data_to_insert)
         return True
 
     def upsert(
@@ -166,43 +188,54 @@ class PostgresSink(SQLSink):
             report number of records affected/inserted.
 
         """
-        # Insert
+        if self.append_only is True:
+            # Insert
+            select_stmt = select(from_table.columns).select_from(from_table)
+            insert_stmt = to_table.insert().from_select(
+                names=from_table.columns, select=select_stmt
+            )
+            self.connection.execute(insert_stmt)
+        else:
+            # Insert
+            where_condition = " and ".join(
+                [f'target."{key}" is null' for key in join_keys]
+            )
+            join_predicates = []
+            for key in join_keys:
+                from_table_key: sqlalchemy.Column = from_table.columns[key]
+                to_table_key: sqlalchemy.Column = to_table.columns[key]
+                join_predicates.append(from_table_key == to_table_key)
 
-        where_condition = " and ".join([f'target."{key}" is null' for key in join_keys])
-        join_predicates = []
-        for key in join_keys:
-            from_table_key: sqlalchemy.Column = from_table.columns[key]
-            to_table_key: sqlalchemy.Column = to_table.columns[key]
-            join_predicates.append(from_table_key == to_table_key)
+            join_condition = sqlalchemy.and_(*join_predicates)
 
-        join_condition = sqlalchemy.and_(*join_predicates)
+            where_predicates = []
+            for key in join_keys:
+                to_table_key: sqlalchemy.Column = to_table.columns[key]
+                where_predicates.append(to_table_key.is_(None))
+            where_condition = sqlalchemy.and_(*where_predicates)
 
-        where_predicates = []
-        for key in join_keys:
-            to_table_key: sqlalchemy.Column = to_table.columns[key]
-            where_predicates.append(to_table_key.is_(None))
-        where_condition = sqlalchemy.and_(*where_predicates)
+            select_stmt = (
+                select(from_table.columns)
+                .select_from(from_table.outerjoin(to_table, join_condition))
+                .where(where_condition)
+            )
+            insert_stmt = insert(to_table).from_select(
+                names=from_table.columns, select=select_stmt
+            )
+            self.connection.execute(insert_stmt)
 
-        select_stmt = (
-            select(from_table.columns)
-            .select_from(from_table.outerjoin(to_table, join_condition))
-            .where(where_condition)
-        )
-        insert_stmt = insert(to_table).from_select(
-            names=to_table.columns, select=select_stmt
-        )
-        self.connection.execute(insert_stmt)
+            # Update
+            where_condition = join_condition
+            update_columns = {}
+            for column_name in self.schema["properties"].keys():
+                from_table_column: sqlalchemy.Column = from_table.columns[column_name]
+                to_table_column: sqlalchemy.Column = to_table.columns[column_name]
+                update_columns[from_table_column] = to_table_column
 
-        # Update
-        where_condition = join_condition
-        update_columns = {}
-        for column_name in self.schema["properties"].keys():
-            from_table_column: sqlalchemy.Column = from_table.columns[column_name]
-            to_table_column: sqlalchemy.Column = to_table.columns[column_name]
-            update_columns[from_table_column] = to_table_column
-
-        update_stmt = update(from_table).where(where_condition).values(update_columns)
-        self.connection.execute(update_stmt)
+            update_stmt = (
+                update(from_table).where(where_condition).values(update_columns)
+            )
+            self.connection.execute(update_stmt)
 
     def column_representation(
         self,

@@ -39,14 +39,14 @@ class PostgresConnector(SQLConnector):
             as_temp_table: True to create a temp table.
         """
         if not self.table_exists(full_table_name=full_table_name):
-            self.create_empty_table(
+            table = self.create_empty_table(
                 full_table_name=full_table_name,
                 schema=schema,
                 primary_keys=primary_keys,
                 partition_keys=partition_keys,
                 as_temp_table=as_temp_table,
             )
-            return
+            return table
         for property_name, property_def in schema["properties"].items():
             self.prepare_column(
                 full_table_name, property_name, self.to_sql_type(property_def)
@@ -112,25 +112,7 @@ class PostgresConnector(SQLConnector):
         else:
             new_table = sqlalchemy.Table(new_table_name, metadata, *new_columns)
         new_table.create(bind=connection)
-        select = sqlalchemy.sql.select(table.columns)
-        insert = Insert(new_table).from_select(names=table.columns, select=select)
-        connection.execute(insert)
-
         return new_table
-
-    def create_temp_table_from_table(
-        self, from_table: sqlalchemy.Table, temp_table_name
-    ) -> sqlalchemy.Table:
-        """Temp table from another table."""
-        # Hashtag is used to create a temp table
-        temp_table = self.clone_table(
-            new_table_name=f"{temp_table_name}",
-            table=from_table,
-            metadata=from_table.metadata,
-            connection=self.connection,
-            temp_table=True,
-        )
-        return temp_table
 
     @staticmethod
     def to_sql_type(jsonschema_type: dict) -> sqlalchemy.types.TypeEngine:
@@ -180,22 +162,17 @@ class PostgresConnector(SQLConnector):
             NotImplementedError: if temp tables are unsupported and as_temp_table=True.
             RuntimeError: if a variant schema is passed with no properties defined.
         """
-        if as_temp_table:
-            raise NotImplementedError("Temporary tables are not supported.")
-
-        _ = partition_keys  # Not supported in generic implementation.
-
-        _, schema_name, table_name = self.parse_full_table_name(full_table_name)
-        self._engine
-        meta = sqlalchemy.MetaData(schema=schema_name)
         columns: list[sqlalchemy.Column] = []
         primary_keys = primary_keys or []
+        _, schema_name, table_name = self.parse_full_table_name(full_table_name)
+        meta = sqlalchemy.MetaData(schema=schema_name)
         try:
             properties: dict = schema["properties"]
         except KeyError:
             raise RuntimeError(
                 f"Schema for '{full_table_name}' does not define properties: {schema}"
             )
+
         for property_name, property_jsonschema in properties.items():
             is_primary_key = property_name in primary_keys
             columns.append(
@@ -205,10 +182,16 @@ class PostgresConnector(SQLConnector):
                     primary_key=is_primary_key,
                 )
             )
+        if as_temp_table:
+            new_table = sqlalchemy.Table(
+                table_name, meta, *columns, prefixes=["TEMPORARY"]
+            )
+            new_table.create(bind=self.connection)
+            return new_table
 
-        _ = sqlalchemy.Table(table_name, meta, *columns)
-        meta.create_all(self._engine)
-        return _
+        new_table = sqlalchemy.Table(table_name, meta, *columns)
+        new_table.create(bind=self.connection)
+        return new_table
 
     def get_column_add_ddl(
         self,
