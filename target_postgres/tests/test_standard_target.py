@@ -187,7 +187,6 @@ def test_camelcase(postgres_target):
     singer_file_to_target(file_name, postgres_target)
 
 
-@pytest.mark.xfail
 def test_special_chars_in_attributes(postgres_target):
     file_name = "special_chars_in_attributes.singer"
     singer_file_to_target(file_name, postgres_target)
