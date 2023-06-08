@@ -182,9 +182,7 @@ def test_record_missing_required_property(postgres_target):
         singer_file_to_target(file_name, postgres_target)
 
 
-@pytest.mark.xfail
 def test_camelcase(postgres_target):
-    """https://github.com/MeltanoLabs/target-postgres/issues/64 will address fixing this"""
     file_name = "camelcase.singer"
     singer_file_to_target(file_name, postgres_target)
 
