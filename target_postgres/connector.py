@@ -8,7 +8,6 @@ from singer_sdk import SQLConnector
 from singer_sdk import typing as th
 from sqlalchemy.dialects.postgresql import ARRAY, BIGINT, JSONB
 from sqlalchemy.engine import URL
-from sqlalchemy.sql.expression import Insert
 from sqlalchemy.types import TIMESTAMP
 
 
