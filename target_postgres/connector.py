@@ -195,9 +195,9 @@ class PostgresConnector(SQLConnector):
 
             query.update(
                 self.filepath_or_certificate(
-                    "sslrootcert",
-                    config["ssl_certificate_authority"],
-                    ".secrets/root.crt",
+                    key="sslrootcert",
+                    value=config["ssl_certificate_authority"],
+                    alternative_name=".secrets/root.crt",
                 )
             )
 
@@ -205,12 +205,17 @@ class PostgresConnector(SQLConnector):
         if config["ssl_client_certificate_enable"]:
             query.update(
                 self.filepath_or_certificate(
-                    "sslcert", config["ssl_certificate"], ".secrets/cert.crt"
+                    key="sslcert",
+                    value=config["ssl_certificate"],
+                    alternative_name=".secrets/cert.crt",
                 )
             )
             query.update(
                 self.filepath_or_certificate(
-                    "sslkey", config["ssl_private_key"], ".secrets/pkey.key", True
+                    key="sslkey",
+                    value=config["ssl_private_key"],
+                    alternative_name=".secrets/pkey.key",
+                    restrict_permissions=True,
                 )
             )
         return query

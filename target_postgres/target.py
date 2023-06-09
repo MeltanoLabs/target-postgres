@@ -194,7 +194,7 @@ class TargetPostgres(Target):
         th.Property(
             "ssl_mode",
             th.StringType,
-            default="require",
+            default="verify-full",
             description=(
                 "SSL Protection method, see [postgres documentation](https://www.postgresql.org/docs/current/libpq-ssl.html#LIBPQ-SSL-PROTECTION) for more information"
                 + " disable, allow, prefer, require, verify-ca, verify-full."
