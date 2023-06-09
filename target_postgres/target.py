@@ -174,7 +174,7 @@ class TargetPostgres(Target):
             description=(
                 "Whether or not to use ssl to verify the server's identity. Use"
                 + " ssl_certificate_authority and ssl_mode for further customization."
-                + " To use SSL to authenticate yourself to the server, use"
+                + " To use a client certificate to authenticate yourself to the server, use"
                 + " ssl_client_certificate_enable instead."
                 + " Note if sqlalchemy_url is set this will be ignored."
             ),
@@ -196,7 +196,7 @@ class TargetPostgres(Target):
             th.StringType,
             default="require",
             description=(
-                "The level of strictness with which to utilize ssl. Provide one of:"
+                "SSL Protection method, see [postgres documentation](https://www.postgresql.org/docs/current/libpq-ssl.html#LIBPQ-SSL-PROTECTION) for more information"
                 + " disable, allow, prefer, require, verify-ca, verify-full."
                 + " Note if sqlalchemy_url is set this will be ignored."
             ),
