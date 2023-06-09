@@ -31,6 +31,7 @@ def postgres_config():
         "port": 5432,
         "add_record_metadata": True,
         "hard_delete": False,
+        "default_target_schema": "melty",
     }
 
 
@@ -227,8 +228,9 @@ def test_relational_data(postgres_target):
 def test_no_primary_keys(postgres_target, engine):
     """We run both of these tests twice just to ensure that no records are removed and append only works properly"""
     table_name = "test_no_pk"
+    full_table_name = postgres_target.config["default_target_schema"] + "." + table_name
     with engine.connect() as connection:
-        result = connection.execute(f"DROP TABLE IF EXISTS {table_name}")
+        result = connection.execute(f"DROP TABLE IF EXISTS {full_table_name}")
     file_name = f"{table_name}.singer"
     singer_file_to_target(file_name, postgres_target)
 
@@ -243,7 +245,7 @@ def test_no_primary_keys(postgres_target, engine):
 
     # Will populate us with 22 records, we run this twice
     with engine.connect() as connection:
-        result = connection.execute(f"SELECT * FROM {table_name}")
+        result = connection.execute(f"SELECT * FROM {full_table_name}")
         assert result.rowcount == 16
 
 
@@ -377,8 +379,9 @@ def test_activate_version_deletes_data_properly(postgres_config, engine):
     """Activate Version should"""
     table_name = "test_activate_version_deletes_data_properly"
     file_name = f"{table_name}.singer"
+    full_table_name = postgres_config["default_target_schema"] + "." + table_name
     with engine.connect() as connection:
-        result = connection.execute(f"DROP TABLE IF EXISTS {table_name}")
+        result = connection.execute(f"DROP TABLE IF EXISTS {full_table_name}")
 
     postgres_config_soft_delete = copy.deepcopy(postgres_config)
     postgres_config_soft_delete["hard_delete"] = True
@@ -387,17 +390,17 @@ def test_activate_version_deletes_data_properly(postgres_config, engine):
     # Will populate us with 7 records
     with engine.connect() as connection:
         result = connection.execute(
-            f"INSERT INTO {table_name} (code, \"name\") VALUES('Manual1', 'Meltano')"
+            f"INSERT INTO {full_table_name} (code, \"name\") VALUES('Manual1', 'Meltano')"
         )
         result = connection.execute(
-            f"INSERT INTO {table_name} (code, \"name\") VALUES('Manual2', 'Meltano')"
+            f"INSERT INTO {full_table_name} (code, \"name\") VALUES('Manual2', 'Meltano')"
         )
-        result = connection.execute(f"SELECT * FROM {table_name}")
+        result = connection.execute(f"SELECT * FROM {full_table_name}")
         assert result.rowcount == 9
 
     # Only has a schema and one activate_version message, should delete all records as it's a higher version than what's currently in the table
     file_name = f"{table_name}_2.singer"
     singer_file_to_target(file_name, pg_hard_delete)
     with engine.connect() as connection:
-        result = connection.execute(f"SELECT * FROM {table_name}")
+        result = connection.execute(f"SELECT * FROM {full_table_name}")
         assert result.rowcount == 0

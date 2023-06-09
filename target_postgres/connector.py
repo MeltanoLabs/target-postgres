@@ -37,9 +37,12 @@ class PostgresConnector(SQLConnector):
             partition_keys: list of partition keys.
             as_temp_table: True to create a temp table.
         """
+        _, schema_name, table_name = self.parse_full_table_name(full_table_name)
+        meta = sqlalchemy.MetaData(bind=self._engine, schema=schema_name)
         if not self.table_exists(full_table_name=full_table_name):
             table = self.create_empty_table(
-                full_table_name=full_table_name,
+                table_name=table_name,
+                meta=meta,
                 schema=schema,
                 primary_keys=primary_keys,
                 partition_keys=partition_keys,
@@ -50,8 +53,7 @@ class PostgresConnector(SQLConnector):
             self.prepare_column(
                 full_table_name, property_name, self.to_sql_type(property_def)
             )
-        meta = sqlalchemy.MetaData(bind=self._engine)
-        meta.reflect(only=[full_table_name])
+        meta.reflect(only=[table_name])
 
         return meta.tables[full_table_name]
 
@@ -142,7 +144,8 @@ class PostgresConnector(SQLConnector):
 
     def create_empty_table(
         self,
-        full_table_name: str,
+        table_name: str,
+        meta: sqlalchemy.MetaData,
         schema: dict,
         primary_keys: list[str] | None = None,
         partition_keys: list[str] | None = None,
@@ -163,13 +166,11 @@ class PostgresConnector(SQLConnector):
         """
         columns: list[sqlalchemy.Column] = []
         primary_keys = primary_keys or []
-        _, schema_name, table_name = self.parse_full_table_name(full_table_name)
-        meta = sqlalchemy.MetaData(schema=schema_name)
         try:
             properties: dict = schema["properties"]
         except KeyError:
             raise RuntimeError(
-                f"Schema for '{full_table_name}' does not define properties: {schema}"
+                f"Schema for '{table_name=}' does not define properties: {schema=}"
             )
 
         for property_name, property_jsonschema in properties.items():
