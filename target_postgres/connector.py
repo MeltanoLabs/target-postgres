@@ -170,7 +170,8 @@ class PostgresConnector(SQLConnector):
             properties: dict = schema["properties"]
         except KeyError:
             raise RuntimeError(
-                f"Schema for table_name: '{table_name}' does not define properties: {schema}"
+                f"Schema for table_name: '{table_name}'"
+                f"does not define properties: {schema}"
             )
 
         for property_name, property_jsonschema in properties.items():
