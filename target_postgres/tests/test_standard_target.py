@@ -313,64 +313,68 @@ def test_new_array_column(postgres_target):
 
 def test_activate_version_hard_delete(postgres_config, engine):
     """Activate Version Hard Delete Test"""
-    file_name = "activate_version_hard.singer"
+    table_name = "test_activate_version_hard"
+    file_name = f"{table_name}.singer"
+    full_table_name = postgres_config["default_target_schema"] + "." + table_name
     postgres_config_hard_delete_true = copy.deepcopy(postgres_config)
     postgres_config_hard_delete_true["hard_delete"] = True
     pg_hard_delete_true = TargetPostgres(config=postgres_config_hard_delete_true)
     singer_file_to_target(file_name, pg_hard_delete_true)
     with engine.connect() as connection:
-        result = connection.execute("SELECT * FROM test_activate_version_hard")
+        result = connection.execute(f"SELECT * FROM {full_table_name}")
         assert result.rowcount == 7
         # Add a record like someone would if they weren't using the tap target combo
         result = connection.execute(
-            "INSERT INTO test_activate_version_hard(code, \"name\") VALUES('Manual1', 'Meltano')"
+            f"INSERT INTO {full_table_name}(code, \"name\") VALUES('Manual1', 'Meltano')"
         )
         result = connection.execute(
-            "INSERT INTO test_activate_version_hard(code, \"name\") VALUES('Manual2', 'Meltano')"
+            f"INSERT INTO {full_table_name}(code, \"name\") VALUES('Manual2', 'Meltano')"
         )
-        result = connection.execute("SELECT * FROM test_activate_version_hard")
+        result = connection.execute(f"SELECT * FROM {full_table_name}")
         assert result.rowcount == 9
 
     singer_file_to_target(file_name, pg_hard_delete_true)
 
     # Should remove the 2 records we added manually
     with engine.connect() as connection:
-        result = connection.execute("SELECT * FROM test_activate_version_hard")
+        result = connection.execute(f"SELECT * FROM {full_table_name}")
         assert result.rowcount == 7
 
 
 def test_activate_version_soft_delete(postgres_config, engine):
     """Activate Version Soft Delete Test"""
-    file_name = "activate_version_soft.singer"
+    table_name = "test_activate_version_soft"
+    file_name = f"{table_name}.singer"
+    full_table_name = postgres_config["default_target_schema"] + "." + table_name
     with engine.connect() as connection:
-        result = connection.execute("DROP TABLE IF EXISTS test_activate_version_soft")
+        result = connection.execute(f"DROP TABLE IF EXISTS {full_table_name}")
     postgres_config_soft_delete = copy.deepcopy(postgres_config)
     postgres_config_soft_delete["hard_delete"] = False
     pg_soft_delete = TargetPostgres(config=postgres_config_soft_delete)
     singer_file_to_target(file_name, pg_soft_delete)
 
     with engine.connect() as connection:
-        result = connection.execute("SELECT * FROM test_activate_version_soft")
+        result = connection.execute(f"SELECT * FROM {full_table_name}")
         assert result.rowcount == 7
         # Add a record like someone would if they weren't using the tap target combo
         result = connection.execute(
-            "INSERT INTO test_activate_version_soft(code, \"name\") VALUES('Manual1', 'Meltano')"
+            f"INSERT INTO {full_table_name}(code, \"name\") VALUES('Manual1', 'Meltano')"
         )
         result = connection.execute(
-            "INSERT INTO test_activate_version_soft(code, \"name\") VALUES('Manual2', 'Meltano')"
+            f"INSERT INTO {full_table_name}(code, \"name\") VALUES('Manual2', 'Meltano')"
         )
-        result = connection.execute("SELECT * FROM test_activate_version_soft")
+        result = connection.execute(f"SELECT * FROM {full_table_name}")
         assert result.rowcount == 9
 
     singer_file_to_target(file_name, pg_soft_delete)
 
     # Should have all records including the 2 we added manually
     with engine.connect() as connection:
-        result = connection.execute("SELECT * FROM test_activate_version_soft")
+        result = connection.execute(f"SELECT * FROM {full_table_name}")
         assert result.rowcount == 9
 
         result = connection.execute(
-            "SELECT * FROM test_activate_version_soft where _sdc_deleted_at is NOT NULL"
+            f"SELECT * FROM {full_table_name} where _sdc_deleted_at is NOT NULL"
         )
         assert result.rowcount == 2
 
