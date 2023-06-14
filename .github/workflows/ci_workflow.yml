@@ -41,6 +41,7 @@ jobs:
     - name: Set up Postgres
       run: |
         docker compose -f docker-compose.yml up -d
+        sleep 10
         docker ps -a
         docker logs target-postgres-postgres-1
         docker logs target-postgres-postgres_no_ssl-1
