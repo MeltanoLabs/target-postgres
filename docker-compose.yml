@@ -23,10 +23,5 @@ services:
       image: postgres:latest
       environment:
         POSTGRES_PASSWORD: postgres
-      options: >-
-        --health-cmd pg_isready
-        --health-interval 10s
-        --health-timeout 5s
-        --health-retries 5
       ports:
         - 5433:5432
