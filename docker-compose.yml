@@ -19,9 +19,19 @@ services:
       - ./ssl/pg_hba.conf:/var/lib/postgresql/pg_hba.conf
     ports:
       - "5432:5432"
+    healthcheck:
+      test: pg_isready
+      interval: 10s
+      timeout: 5s
+      retries: 5
   postgres_no_ssl: # Borrowed from https://github.com/MeltanoLabs/tap-postgres/blob/main/.github/workflows/test.yml#L13-L23
       image: postgres:latest
       environment:
         POSTGRES_PASSWORD: postgres
       ports:
         - 5433:5432
+      healthcheck:
+        test: pg_isready
+        interval: 10s
+        timeout: 5s
+        retries: 5
