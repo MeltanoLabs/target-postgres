@@ -43,11 +43,12 @@ jobs:
           POSTGRES_HOST_AUTH_METHOD: cert clientcert=verify-full
           POSTGRES_INITDB_ARGS: --auth-host=cert -c ssl=on -c ssl_cert_file=/var/lib/postgresql/server.crt -c ssl_key_file=/var/lib/postgresql/server.key -c ssl_ca_file=/var/lib/postgresql/ca.crt -c hba_file=/var/lib/postgresql/pg_hba.conf
         # Not placed in the data directory (/var/lib/postgresql/data) because of https://gist.github.com/mrw34/c97bb03ea1054afb551886ffc8b63c3b?permalink_comment_id=2678568#gistcomment-2678568
+        # https://stackoverflow.com/questions/69609618/github-action-i-wrote-doesnt-have-access-to-repos-files-that-is-calling-the-ac
         volumes:
-          - /ssl/server.crt:/var/lib/postgresql/server.crt
-          - /ssl/server.key:/var/lib/postgresql/server.key
-          - /ssl/ca.crt:/var/lib/postgresql/ca.crt
-          - /ssl/pg_hba.conf:/var/lib/postgresql/pg_hba.conf
+          - /home/runner/work/target-postgres/target-postgres/ssl/server.crt:/var/lib/postgresql/server.crt
+          - /home/runner/work/target-postgres/target-postgres/ssl/server.key:/var/lib/postgresql/server.key
+          - /home/runner/work/target-postgres/target-postgres/ssl/ca.crt:/var/lib/postgresql/ca.crt
+          - /home/runner/work/target-postgres/target-postgres/ssl/pg_hba.conf:/var/lib/postgresql/pg_hba.conf
         ports:
           - "5432:5432"
       postgres_no_ssl:
@@ -70,9 +71,6 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: '${{ matrix.python-version }}'
-    - name: Check directory structure
-      run: |
-        ls -la
     - name: Install Poetry
       env:
         PIP_CONSTRAINT: .github/workflows/constraints.txt
