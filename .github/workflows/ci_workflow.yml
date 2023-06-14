@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:latest
+        image: postgres
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -57,7 +57,7 @@ jobs:
         ports:
           - "5432:5432"
       postgres_no_ssl:
-        image: postgres:latest
+        image: postgres
         env:
           POSTGRES_PASSWORD: postgres
         options: >-
