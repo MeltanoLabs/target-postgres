@@ -31,6 +31,7 @@ def postgres_config():
         "port": 5432,
         "add_record_metadata": True,
         "hard_delete": False,
+        "default_target_schema": "melty",
     }
 
 
@@ -39,9 +40,10 @@ def postgres_target(postgres_config) -> TargetPostgres:
     return TargetPostgres(config=postgres_config)
 
 
-def sqlalchemy_engine(config) -> sqlalchemy.engine.Engine:
+@pytest.fixture
+def engine(postgres_config) -> sqlalchemy.engine.Engine:
     return create_engine(
-        f"{config['dialect+driver']}://{config['user']}:{config['password']}@{config['host']}:{config['port']}/{config['database']}"
+        f"{(postgres_config)['dialect+driver']}://{(postgres_config)['user']}:{(postgres_config)['password']}@{(postgres_config)['host']}:{(postgres_config)['port']}/{(postgres_config)['database']}"
     )
 
 
@@ -143,11 +145,9 @@ def test_countries_to_postgres(postgres_config):
 
 
 def test_aapl_to_postgres(postgres_config):
-    """Expect to fail with ValueError due to primary key https://github.com/MeltanoLabs/target-postgres/issues/54"""
-    with pytest.raises(ValueError):
-        tap = Fundamentals(config={}, state=None)
-        target = TargetPostgres(config=postgres_config)
-        sync_end_to_end(tap, target)
+    tap = Fundamentals(config={}, state=None)
+    target = TargetPostgres(config=postgres_config)
+    sync_end_to_end(tap, target)
 
 
 def test_record_before_schema(postgres_target):
@@ -182,14 +182,11 @@ def test_record_missing_required_property(postgres_target):
         singer_file_to_target(file_name, postgres_target)
 
 
-@pytest.mark.xfail
 def test_camelcase(postgres_target):
-    """https://github.com/MeltanoLabs/target-postgres/issues/64 will address fixing this"""
     file_name = "camelcase.singer"
     singer_file_to_target(file_name, postgres_target)
 
 
-@pytest.mark.xfail
 def test_special_chars_in_attributes(postgres_target):
     file_name = "special_chars_in_attributes.singer"
     singer_file_to_target(file_name, postgres_target)
@@ -202,10 +199,9 @@ def test_optional_attributes(postgres_target):
 
 
 def test_schema_no_properties(postgres_target):
-    """Expect to fail with ValueError due to primary key https://github.com/MeltanoLabs/target-postgres/issues/54"""
-    with pytest.raises(ValueError):
-        file_name = "schema_no_properties.singer"
-        singer_file_to_target(file_name, postgres_target)
+    """Expect to fail with ValueError"""
+    file_name = "schema_no_properties.singer"
+    singer_file_to_target(file_name, postgres_target)
 
 
 # TODO test that data is correct
@@ -229,14 +225,28 @@ def test_relational_data(postgres_target):
     singer_file_to_target(file_name, postgres_target)
 
 
-def test_no_primary_keys(postgres_target):
-    """Expect to fail with ValueError due to primary key https://github.com/MeltanoLabs/target-postgres/issues/54"""
-    with pytest.raises(ValueError):
-        file_name = "no_primary_keys.singer"
-        singer_file_to_target(file_name, postgres_target)
+def test_no_primary_keys(postgres_target, engine):
+    """We run both of these tests twice just to ensure that no records are removed and append only works properly"""
+    table_name = "test_no_pk"
+    full_table_name = postgres_target.config["default_target_schema"] + "." + table_name
+    with engine.connect() as connection:
+        result = connection.execute(f"DROP TABLE IF EXISTS {full_table_name}")
+    file_name = f"{table_name}.singer"
+    singer_file_to_target(file_name, postgres_target)
 
-        file_name = "no_primary_keys_append.singer"
-        singer_file_to_target(file_name, postgres_target)
+    file_name = f"{table_name}_append.singer"
+    singer_file_to_target(file_name, postgres_target)
+
+    file_name = f"{table_name}.singer"
+    singer_file_to_target(file_name, postgres_target)
+
+    file_name = f"{table_name}_append.singer"
+    singer_file_to_target(file_name, postgres_target)
+
+    # Will populate us with 22 records, we run this twice
+    with engine.connect() as connection:
+        result = connection.execute(f"SELECT * FROM {full_table_name}")
+        assert result.rowcount == 16
 
 
 # TODO test that data is correct
@@ -268,9 +278,8 @@ def test_encoded_string_data(postgres_target):
 
 def test_tap_appl(postgres_target):
     """Expect to fail with ValueError due to primary key https://github.com/MeltanoLabs/target-postgres/issues/54"""
-    with pytest.raises(ValueError):
-        file_name = "tap_aapl.singer"
-        singer_file_to_target(file_name, postgres_target)
+    file_name = "tap_aapl.singer"
+    singer_file_to_target(file_name, postgres_target)
 
 
 def test_tap_countries(postgres_target):
@@ -302,79 +311,81 @@ def test_new_array_column(postgres_target):
     singer_file_to_target(file_name, postgres_target)
 
 
-def test_activate_version_hard_delete(postgres_config):
+def test_activate_version_hard_delete(postgres_config, engine):
     """Activate Version Hard Delete Test"""
-    file_name = "activate_version_hard.singer"
+    table_name = "test_activate_version_hard"
+    file_name = f"{table_name}.singer"
+    full_table_name = postgres_config["default_target_schema"] + "." + table_name
     postgres_config_hard_delete_true = copy.deepcopy(postgres_config)
     postgres_config_hard_delete_true["hard_delete"] = True
     pg_hard_delete_true = TargetPostgres(config=postgres_config_hard_delete_true)
     singer_file_to_target(file_name, pg_hard_delete_true)
-    engine = sqlalchemy_engine(postgres_config)
     with engine.connect() as connection:
-        result = connection.execute("SELECT * FROM test_activate_version_hard")
+        result = connection.execute(f"SELECT * FROM {full_table_name}")
         assert result.rowcount == 7
         # Add a record like someone would if they weren't using the tap target combo
         result = connection.execute(
-            "INSERT INTO test_activate_version_hard(code, \"name\") VALUES('Manual1', 'Meltano')"
+            f"INSERT INTO {full_table_name}(code, \"name\") VALUES('Manual1', 'Meltano')"
         )
         result = connection.execute(
-            "INSERT INTO test_activate_version_hard(code, \"name\") VALUES('Manual2', 'Meltano')"
+            f"INSERT INTO {full_table_name}(code, \"name\") VALUES('Manual2', 'Meltano')"
         )
-        result = connection.execute("SELECT * FROM test_activate_version_hard")
+        result = connection.execute(f"SELECT * FROM {full_table_name}")
         assert result.rowcount == 9
 
     singer_file_to_target(file_name, pg_hard_delete_true)
 
     # Should remove the 2 records we added manually
     with engine.connect() as connection:
-        result = connection.execute("SELECT * FROM test_activate_version_hard")
+        result = connection.execute(f"SELECT * FROM {full_table_name}")
         assert result.rowcount == 7
 
 
-def test_activate_version_soft_delete(postgres_config):
+def test_activate_version_soft_delete(postgres_config, engine):
     """Activate Version Soft Delete Test"""
-    file_name = "activate_version_soft.singer"
-    engine = sqlalchemy_engine(postgres_config)
+    table_name = "test_activate_version_soft"
+    file_name = f"{table_name}.singer"
+    full_table_name = postgres_config["default_target_schema"] + "." + table_name
     with engine.connect() as connection:
-        result = connection.execute("DROP TABLE IF EXISTS test_activate_version_soft")
+        result = connection.execute(f"DROP TABLE IF EXISTS {full_table_name}")
     postgres_config_soft_delete = copy.deepcopy(postgres_config)
     postgres_config_soft_delete["hard_delete"] = False
     pg_soft_delete = TargetPostgres(config=postgres_config_soft_delete)
     singer_file_to_target(file_name, pg_soft_delete)
 
     with engine.connect() as connection:
-        result = connection.execute("SELECT * FROM test_activate_version_soft")
+        result = connection.execute(f"SELECT * FROM {full_table_name}")
         assert result.rowcount == 7
         # Add a record like someone would if they weren't using the tap target combo
         result = connection.execute(
-            "INSERT INTO test_activate_version_soft(code, \"name\") VALUES('Manual1', 'Meltano')"
+            f"INSERT INTO {full_table_name}(code, \"name\") VALUES('Manual1', 'Meltano')"
         )
         result = connection.execute(
-            "INSERT INTO test_activate_version_soft(code, \"name\") VALUES('Manual2', 'Meltano')"
+            f"INSERT INTO {full_table_name}(code, \"name\") VALUES('Manual2', 'Meltano')"
         )
-        result = connection.execute("SELECT * FROM test_activate_version_soft")
+        result = connection.execute(f"SELECT * FROM {full_table_name}")
         assert result.rowcount == 9
 
     singer_file_to_target(file_name, pg_soft_delete)
 
     # Should have all records including the 2 we added manually
     with engine.connect() as connection:
-        result = connection.execute("SELECT * FROM test_activate_version_soft")
+        result = connection.execute(f"SELECT * FROM {full_table_name}")
         assert result.rowcount == 9
 
         result = connection.execute(
-            "SELECT * FROM test_activate_version_soft where _sdc_deleted_at is NOT NULL"
+            f"SELECT * FROM {full_table_name} where _sdc_deleted_at is NOT NULL"
         )
         assert result.rowcount == 2
 
 
-def test_activate_version_deletes_data_properly(postgres_config):
+def test_activate_version_deletes_data_properly(postgres_config, engine):
     """Activate Version should"""
     table_name = "test_activate_version_deletes_data_properly"
     file_name = f"{table_name}.singer"
-    engine = sqlalchemy_engine(postgres_config)
+    full_table_name = postgres_config["default_target_schema"] + "." + table_name
     with engine.connect() as connection:
-        result = connection.execute(f"DROP TABLE IF EXISTS {table_name}")
+        result = connection.execute(f"DROP TABLE IF EXISTS {full_table_name}")
 
     postgres_config_soft_delete = copy.deepcopy(postgres_config)
     postgres_config_soft_delete["hard_delete"] = True
@@ -383,17 +394,17 @@ def test_activate_version_deletes_data_properly(postgres_config):
     # Will populate us with 7 records
     with engine.connect() as connection:
         result = connection.execute(
-            f"INSERT INTO {table_name} (code, \"name\") VALUES('Manual1', 'Meltano')"
+            f"INSERT INTO {full_table_name} (code, \"name\") VALUES('Manual1', 'Meltano')"
         )
         result = connection.execute(
-            f"INSERT INTO {table_name} (code, \"name\") VALUES('Manual2', 'Meltano')"
+            f"INSERT INTO {full_table_name} (code, \"name\") VALUES('Manual2', 'Meltano')"
         )
-        result = connection.execute(f"SELECT * FROM {table_name}")
+        result = connection.execute(f"SELECT * FROM {full_table_name}")
         assert result.rowcount == 9
 
     # Only has a schema and one activate_version message, should delete all records as it's a higher version than what's currently in the table
     file_name = f"{table_name}_2.singer"
     singer_file_to_target(file_name, pg_hard_delete)
     with engine.connect() as connection:
-        result = connection.execute(f"SELECT * FROM {table_name}")
+        result = connection.execute(f"SELECT * FROM {full_table_name}")
         assert result.rowcount == 0

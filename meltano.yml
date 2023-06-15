@@ -1,33 +1,49 @@
 version: 1
 send_anonymous_usage_stats: true
 default_environment: dev
-project_id: "target-postgres"
+project_id: target-postgres
 plugins:
   extractors:
-  - name: "tap-smoke-test"
-    namespace: "tap_smoke_test"
-    executable: "tap-smoke-test"
-    pip_url: "git+https://github.com/meltano/tap-smoke-test.git"
+  - name: tap-smoke-test
+    namespace: tap_smoke_test
+    pip_url: git+https://github.com/meltano/tap-smoke-test.git
+    executable: tap-smoke-test
     config:
       streams:
       - stream_name: animals
-        "input_filename": "https://gitlab.com/meltano/tap-smoke-test/-/raw/main/demo-data/animals-data.jsonl"
+        input_filename: https://gitlab.com/meltano/tap-smoke-test/-/raw/main/demo-data/animals-data.jsonl
       - stream_name: page_views
-        "input_filename": "https://gitlab.com/meltano/tap-smoke-test/-/raw/main/demo-data/pageviews-data.jsonl"
+        input_filename: https://gitlab.com/meltano/tap-smoke-test/-/raw/main/demo-data/pageviews-data.jsonl
       stream_maps:
-        "animals":
-          "__key_properties__": ["id"]
-        "page_views":
-          "__key_properties__": ["vistor_id"]
-  loaders:
-  - name: "target-postgres"
-    namespace: "target_postgres"
-    pip_url: -e .
+        animals:
+          __key_properties__: [id]
+        page_views:
+          __key_properties__: [vistor_id]
+  - name: tap-github
+    variant: meltanolabs
+    pip_url: git+https://github.com/MeltanoLabs/tap-github.git
     config:
-      sqlalchemy_url: "postgresql://postgres:postgres@localhost:5432/postgres"
-      target_schema: test
+      repositories:
+      - sbalnojan/meltano-lightdash
+      start_date: '2022-01-01'
+    select:
+    - commits.url
+    - commits.sha
+    - commits.commit_timestamp
+  loaders:
+  - name: target-postgres
+    namespace: target_postgres
+    pip_url: -e .
     settings:
     - name: sqlalchemy_url
       kind: password
+    config:
+      host: localhost
+      port: 5432
+      user: postgres
+      password: postgres
+      database: postgres
+      target_schema: test
+      add_record_metadata: true
 environments:
 - name: dev
