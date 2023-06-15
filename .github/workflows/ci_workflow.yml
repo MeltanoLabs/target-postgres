@@ -38,11 +38,13 @@ jobs:
         python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
     steps:
     - uses: actions/checkout@v3
-    - name: Set up Postgres
+    - name: Fix key permissions
       run: |
         chmod 600 ssl/server.key
         sudo chown 999:999 ssl/server.key
         chmod 600 ssl/pkey.key
+    - name: Set up Postgres container
+      run: |
         docker compose -f docker-compose.yml up -d
     - name: Set up Python '${{ matrix.python-version }}'
       uses: actions/setup-python@v4

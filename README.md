@@ -36,6 +36,7 @@ Built with the [Meltano SDK](https://sdk.meltano.com) for Singer Taps and Target
 | stream_map_config            | False    | None    | User-defined config values to be used within map expressions. |
 | flattening_enabled           | False    | None    | 'True' to enable schema flattening and automatically expand nested properties. |
 | flattening_max_depth         | False    | None    | The max depth to flatten schemas. |
+
 A full list of supported settings and capabilities is available by running: `target-postgres --about`
 
 ## Installation
@@ -74,6 +75,10 @@ target-postgres --help
 pipx install git+https://gitlab.com/meltano/tap-carbon-intensity
 tap-carbon-intensity | target-postgres --config /path/to/target-postgres-config.json
 ```
+
+### Using Docker Compose
+
+`docker-compose.yml` provides the commands to create two empty sample databases using [Docker](https://docs.docker.com/engine/install/). These can be a starting point to create your own database running in Docker, or can be used to run the tap's [built-in tests](#create-and-run-tests).
 
 ## Developer Resources
 

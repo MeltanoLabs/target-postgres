@@ -103,7 +103,7 @@ def test_sqlalchemy_url_config(postgres_config_no_ssl):
     port = postgres_config_no_ssl["port"]
 
     config = {
-        "sqlalchemy_url": f"postgresql://{user}:{password}@{host}:{port}/{database}",
+        "sqlalchemy_url": f"postgresql://{user}:{password}@{host}:{port}/{database}"
     }
     tap = SampleTapCountries(config={}, state=None)
     target = TargetPostgres(config=config)
