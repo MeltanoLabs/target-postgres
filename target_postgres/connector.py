@@ -201,7 +201,8 @@ class PostgresConnector(SQLConnector):
                 )
             )
 
-        # ssl_client_certificate_enable is for verifying the client's identity to the server.
+        # ssl_client_certificate_enable is for verifying the client's identity to the
+        # server.
         if config["ssl_client_certificate_enable"]:
             query.update(
                 self.filepath_or_certificate(

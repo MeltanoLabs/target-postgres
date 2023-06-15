@@ -35,7 +35,7 @@ class TargetPostgres(Target):
             validate_config=validate_config,
         )
         # There's a few ways to do this in JSON Schema but it is schema draft dependent.
-        # https://stackoverflow.com/questions/38717933/jsonschema-attribute-conditionally-required
+        # https://stackoverflow.com/questions/38717933/jsonschema-attribute-conditionally-required # noqa: E501
         assert (self.config.get("sqlalchemy_url") is not None) or (
             self.config.get("host") is not None
             and self.config.get("port") is not None
@@ -47,7 +47,9 @@ class TargetPostgres(Target):
             + "password, and dialect+driver to be set"
         )
 
-        # If sqlalchemy_url is not being used and ssl_enable is on, ssl_mode must have one of six allowable values. If ssl_mode is verify-ca or verify-full, a certificate authority must be provided to verify against.
+        # If sqlalchemy_url is not being used and ssl_enable is on, ssl_mode must have
+        # one of six allowable values. If ssl_mode is verify-ca or verify-full, a
+        # certificate authority must be provided to verify against.
         assert (
             (self.config.get("sqlalchemy_url") is not None)
             or (self.config.get("ssl_enable") is False)
@@ -63,7 +65,8 @@ class TargetPostgres(Target):
             + "ssl_certificate_authority."
         )
 
-        # If sqlalchemy_url is not being used and ssl_client_certificate_enable is on, the client must provide a certificate and associated private key.
+        # If sqlalchemy_url is not being used and ssl_client_certificate_enable is on,
+        # the client must provide a certificate and associated private key.
         assert (
             (self.config.get("sqlalchemy_url") is not None)
             or (self.config.get("ssl_client_certificate_enable") is False)
@@ -126,7 +129,7 @@ class TargetPostgres(Target):
                 "SQLAlchemy connection string. "
                 + "This will override using host, user, password, port, "
                 + "dialect, and all ssl settings. Note that you must escape password "
-                + "special characters properly see "
+                + "special characters properly. See "
                 + "https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords"  # noqa: E501
             ),
         ),
@@ -174,8 +177,8 @@ class TargetPostgres(Target):
             description=(
                 "Whether or not to use ssl to verify the server's identity. Use"
                 + " ssl_certificate_authority and ssl_mode for further customization."
-                + " To use a client certificate to authenticate yourself to the server, use"
-                + " ssl_client_certificate_enable instead."
+                + " To use a client certificate to authenticate yourself to the server,"
+                + " use ssl_client_certificate_enable instead."
                 + " Note if sqlalchemy_url is set this will be ignored."
             ),
         ),
@@ -196,8 +199,9 @@ class TargetPostgres(Target):
             th.StringType,
             default="verify-full",
             description=(
-                "SSL Protection method, see [postgres documentation](https://www.postgresql.org/docs/current/libpq-ssl.html#LIBPQ-SSL-PROTECTION) for more information"
-                + " disable, allow, prefer, require, verify-ca, verify-full."
+                "SSL Protection method, see [postgres documentation](https://www.postgresql.org/docs/current/libpq-ssl.html#LIBPQ-SSL-PROTECTION)"  # noqa: E501
+                + " for more information. Must be one of disable, allow, prefer,"
+                + " require, verify-ca, or verify-full."
                 + " Note if sqlalchemy_url is set this will be ignored."
             ),
         ),
