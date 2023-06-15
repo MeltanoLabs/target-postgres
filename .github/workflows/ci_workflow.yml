@@ -42,6 +42,7 @@ jobs:
       run: |
         chmod 600 ssl/server.key
         sudo chown 999:999 ssl/server.key
+        chmod 600 ssl/pkey.key
         docker compose -f docker-compose.yml up -d
     - name: Set up Python '${{ matrix.python-version }}'
       uses: actions/setup-python@v4
