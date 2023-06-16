@@ -70,6 +70,7 @@ def engine(postgres_config_no_ssl) -> sqlalchemy.engine.Engine:
         f"{(postgres_config_no_ssl)['database']}"
     )
 
+
 @pytest.fixture
 def engine(postgres_config) -> sqlalchemy.engine.Engine:
     return create_engine(
@@ -346,7 +347,6 @@ def test_new_array_column(postgres_target):
     singer_file_to_target(file_name, postgres_target)
 
 
-
 def test_activate_version_hard_delete(postgres_config_no_ssl, engine):
     """Activate Version Hard Delete Test"""
     table_name = "test_activate_version_hard"
@@ -513,6 +513,7 @@ def test_postgres_ssl_invalid_cn(postgres_config):
 
     postgres_config_modified = copy.deepcopy(postgres_config)
     postgres_config_modified["host"] = "127.0.0.1"
+    postgres_config_modified["ssl_mode"] = "verify-full"
 
     with pytest.raises(sqlalchemy.exc.OperationalError):
         target = TargetPostgres(config=postgres_config_modified)
