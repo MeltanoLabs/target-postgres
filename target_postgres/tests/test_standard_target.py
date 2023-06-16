@@ -37,6 +37,7 @@ def postgres_config():
         "ssl_private_key": "./ssl/pkey.key",
         "add_record_metadata": True,
         "hard_delete": False,
+        "default_target_schema": "melty",
     }
 
 
@@ -67,6 +68,12 @@ def engine(postgres_config_no_ssl) -> sqlalchemy.engine.Engine:
         f"{(postgres_config_no_ssl)['user']}:{(postgres_config_no_ssl)['password']}@"
         f"{(postgres_config_no_ssl)['host']}:{(postgres_config_no_ssl)['port']}/"
         f"{(postgres_config_no_ssl)['database']}"
+    )
+
+@pytest.fixture
+def engine(postgres_config) -> sqlalchemy.engine.Engine:
+    return create_engine(
+        f"{(postgres_config)['dialect+driver']}://{(postgres_config)['user']}:{(postgres_config)['password']}@{(postgres_config)['host']}:{(postgres_config)['port']}/{(postgres_config)['database']}"
     )
 
 
@@ -337,6 +344,7 @@ def test_new_array_column(postgres_target):
     """Create a new Array column with an existing table"""
     file_name = "new_array_column.singer"
     singer_file_to_target(file_name, postgres_target)
+
 
 
 def test_activate_version_hard_delete(postgres_config_no_ssl, engine):
