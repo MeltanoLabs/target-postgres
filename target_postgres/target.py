@@ -148,6 +148,7 @@ class TargetPostgres(Target):
             "default_target_schema",
             th.StringType,
             description="Postgres schema to send data to, example: tap-clickup",
+            default="melty",
         ),
         th.Property(
             "hard_delete",
