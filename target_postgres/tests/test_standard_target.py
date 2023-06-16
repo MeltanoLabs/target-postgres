@@ -71,13 +71,6 @@ def engine(postgres_config_no_ssl) -> sqlalchemy.engine.Engine:
     )
 
 
-@pytest.fixture
-def engine(postgres_config) -> sqlalchemy.engine.Engine:
-    return create_engine(
-        f"{(postgres_config)['dialect+driver']}://{(postgres_config)['user']}:{(postgres_config)['password']}@{(postgres_config)['host']}:{(postgres_config)['port']}/{(postgres_config)['database']}"
-    )
-
-
 def singer_file_to_target(file_name, target) -> None:
     """Singer file to Target, emulates a tap run
 
