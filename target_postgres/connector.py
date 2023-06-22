@@ -264,7 +264,7 @@ class PostgresConnector(SQLConnector):
         value: str,
         alternative_name: str,
         restrict_permissions: bool = False,
-    ) -> dict[str, str]:
+    ) -> str:
         """Provide the appropriate key-value pair based on a filepath or raw value.
 
         For SSL configuration options, support is provided for either raw values in
