@@ -190,8 +190,8 @@ class TargetPostgres(Target):
             description=(
                 "Whether or not to provide client-side certificates as a method of"
                 + " authentication to the server. Use ssl_client_certificate and"
-                + " ssl_client_private_key for further customization. To use SSL to verify"
-                + " the server's identity, use ssl_enable instead."
+                + " ssl_client_private_key for further customization. To use SSL to"
+                + " verify the server's identity, use ssl_enable instead."
                 + " Note if sqlalchemy_url is set this will be ignored."
             ),
         ),
