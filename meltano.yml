@@ -44,9 +44,9 @@ plugins:
     - name: ssl_mode
     - name: ssl_certificate_authority
       kind: password
-    - name: ssl_certificate
+    - name: ssl_client_certificate
       kind: password
-    - name: ssl_private_key
+    - name: ssl_client_private_key
       kind: password
     config:
       host: localhost

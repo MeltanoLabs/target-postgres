@@ -33,8 +33,8 @@ def postgres_config():
         "ssl_client_certificate_enable": True,
         "ssl_mode": "verify-full",
         "ssl_certificate_authority": "./ssl/root.crt",
-        "ssl_certificate": "./ssl/cert.crt",
-        "ssl_private_key": "./ssl/pkey.key",
+        "ssl_client_certificate": "./ssl/cert.crt",
+        "ssl_client_private_key": "./ssl/pkey.key",
         "add_record_metadata": True,
         "hard_delete": False,
         "default_target_schema": "melty",
@@ -461,7 +461,7 @@ def test_postgres_ssl_no_pkey(postgres_config):
     """Test that connection will fail when no private key is provided."""
 
     postgres_config_modified = copy.deepcopy(postgres_config)
-    postgres_config_modified["ssl_private_key"] = None
+    postgres_config_modified["ssl_client_private_key"] = None
 
     # This is an AssertionError because checking that a private key exists is asserted
     # for when ssl_client_certificate_enable is on.
@@ -475,7 +475,7 @@ def test_postgres_ssl_public_pkey(postgres_config):
     tap = SampleTapCountries(config={}, state=None)
 
     postgres_config_modified = copy.deepcopy(postgres_config)
-    postgres_config_modified["ssl_private_key"] = "./ssl/public_pkey.key"
+    postgres_config_modified["ssl_client_private_key"] = "./ssl/public_pkey.key"
 
     # If the private key exists but access is too public, the target won't fail until
     # the it attempts to establish a connection to the database.
@@ -487,7 +487,7 @@ def test_postgres_ssl_public_pkey(postgres_config):
 def test_postgres_ssl_no_client_cert(postgres_config):
     """Test that connection will fail when client certificate is not provided."""
     postgres_config_modified = copy.deepcopy(postgres_config)
-    postgres_config_modified["ssl_certificate"] = None
+    postgres_config_modified["ssl_client_certificate"] = None
 
     # This is an AssertionError because checking that a certificate exists is asserted
     # for when ssl_client_certificate_enable is on.

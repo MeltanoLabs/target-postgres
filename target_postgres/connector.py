@@ -240,38 +240,27 @@ class PostgresConnector(SQLConnector):
         if config["ssl_enable"]:
             ssl_mode = config["ssl_mode"]
             query.update({"sslmode": ssl_mode})
-
-            query.update(
-                self.filepath_or_certificate(
-                    key="sslrootcert",
-                    value=config["ssl_certificate_authority"],
-                    alternative_name=".secrets/root.crt",
-                )
+            query["sslrootcert"] = self.filepath_or_certificate(
+                value=config["ssl_certificate_authority"],
+                alternative_name=config["ssl_storage_directory"] + "/root.crt",
             )
 
         # ssl_client_certificate_enable is for verifying the client's identity to the
         # server.
         if config["ssl_client_certificate_enable"]:
-            query.update(
-                self.filepath_or_certificate(
-                    key="sslcert",
-                    value=config["ssl_certificate"],
-                    alternative_name=".secrets/cert.crt",
-                )
+            query["sslcert"] = self.filepath_or_certificate(
+                value=config["ssl_client_certificate"],
+                alternative_name=config["ssl_storage_directory"] + "/cert.crt",
             )
-            query.update(
-                self.filepath_or_certificate(
-                    key="sslkey",
-                    value=config["ssl_private_key"],
-                    alternative_name=".secrets/pkey.key",
-                    restrict_permissions=True,
-                )
+            query["sslkey"] = self.filepath_or_certificate(
+                value=config["ssl_client_private_key"],
+                alternative_name=config["ssl_storage_directory"] + "/pkey.key",
+                restrict_permissions=True,
             )
         return query
 
     def filepath_or_certificate(
         self,
-        key: str,
         value: str,
         alternative_name: str,
         restrict_permissions: bool = False,
@@ -285,7 +274,6 @@ class PostgresConnector(SQLConnector):
         file.
 
         Args:
-            key: The key that should be returned in a dictionary.
             value: Either a filepath or a raw value to be written to a file.
             alternative_name: The filename to use in case `value` is not a filepath.
             restrict_permissions: Whether to restrict permissions on a newly created
@@ -296,10 +284,10 @@ class PostgresConnector(SQLConnector):
 
         """
         if path.isfile(value):
-            return {key: value}
+            return value
         else:
             with open(alternative_name, "wb") as alternative_file:
                 alternative_file.write(value.encode("utf-8"))
             if restrict_permissions:
                 chmod(alternative_name, 0o600)
-            return {key: alternative_name}
+            return alternative_name

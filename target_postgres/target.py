@@ -71,12 +71,12 @@ class TargetPostgres(Target):
             (self.config.get("sqlalchemy_url") is not None)
             or (self.config.get("ssl_client_certificate_enable") is False)
             or (
-                self.config.get("ssl_certificate") is not None
-                and self.config.get("ssl_private_key") is not None
+                self.config.get("ssl_client_certificate") is not None
+                and self.config.get("ssl_client_private_key") is not None
             )
         ), (
             "ssl_client_certificate_enable is true but one or both of"
-            + " ssl_certificate or ssl_private_key are unset."
+            + " ssl_client_certificate or ssl_client_private_key are unset."
         )
 
     name = "target-postgres"
@@ -189,8 +189,8 @@ class TargetPostgres(Target):
             default=False,
             description=(
                 "Whether or not to provide client-side certificates as a method of"
-                + " authentication to the server. Use ssl_certificate and"
-                + " ssl_private_key for further customization. To use SSL to verify"
+                + " authentication to the server. Use ssl_client_certificate and"
+                + " ssl_client_private_key for further customization. To use SSL to verify"
                 + " the server's identity, use ssl_enable instead."
                 + " Note if sqlalchemy_url is set this will be ignored."
             ),
@@ -209,6 +209,7 @@ class TargetPostgres(Target):
         th.Property(
             "ssl_certificate_authority",
             th.StringType,
+            default="~/.postgresql/root.crl",
             description=(
                 "The certificate authority that should be used to verify the server's"
                 + " identity. Can be provided either as the certificate itself (in"
@@ -217,8 +218,9 @@ class TargetPostgres(Target):
             ),
         ),
         th.Property(
-            "ssl_certificate",
+            "ssl_client_certificate",
             th.StringType,
+            default="~/.postgresql/postgresql.crt",
             description=(
                 "The certificate that should be used to verify your identity to the"
                 + " server. Can be provided either as the certificate itself (in .env)"
@@ -227,13 +229,25 @@ class TargetPostgres(Target):
             ),
         ),
         th.Property(
-            "ssl_private_key",
+            "ssl_client_private_key",
             th.StringType,
+            default="~/.postgresql/postgresql.key",
             description=(
                 "The private key for the certificate you provided. Can be provided"
                 + " either as the certificate itself (in .env) or as a filepath to the"
                 + " certificate."
                 + " Note if sqlalchemy_url is set this will be ignored."
+            ),
+        ),
+        th.Property(
+            "ssl_storage_directory",
+            th.StringType,
+            default=".secrets",
+            description=(
+                "The folder in which to store SSL certificates provided as raw values."
+                + " When a certificate/key is provided as a raw value instead of as a"
+                + " filepath, it must be written to a file before it can be used. This"
+                + " configuration option determines where that file is created."
             ),
         ),
     ).to_dict()
