@@ -35,7 +35,7 @@ class TargetPostgres(Target):
             validate_config=validate_config,
         )
         # There's a few ways to do this in JSON Schema but it is schema draft dependent.
-        # https://stackoverflow.com/questions/38717933/jsonschema-attribute-conditionally-required
+        # https://stackoverflow.com/questions/38717933/jsonschema-attribute-conditionally-required # noqa: E501
         assert (self.config.get("sqlalchemy_url") is not None) or (
             self.config.get("host") is not None
             and self.config.get("port") is not None
@@ -45,6 +45,38 @@ class TargetPostgres(Target):
         ), (
             "Need either the sqlalchemy_url to be set or host, port, user,"
             + "password, and dialect+driver to be set"
+        )
+
+        # If sqlalchemy_url is not being used and ssl_enable is on, ssl_mode must have
+        # one of six allowable values. If ssl_mode is verify-ca or verify-full, a
+        # certificate authority must be provided to verify against.
+        assert (
+            (self.config.get("sqlalchemy_url") is not None)
+            or (self.config.get("ssl_enable") is False)
+            or (
+                self.config.get("ssl_mode") in {"disable", "allow", "prefer", "require"}
+            )
+            or (
+                self.config.get("ssl_mode") in {"verify-ca", "verify-full"}
+                and self.config.get("ssl_certificate_authority") is not None
+            )
+        ), (
+            "ssl_enable is true but invalid values are provided for ssl_mode and/or"
+            + "ssl_certificate_authority."
+        )
+
+        # If sqlalchemy_url is not being used and ssl_client_certificate_enable is on,
+        # the client must provide a certificate and associated private key.
+        assert (
+            (self.config.get("sqlalchemy_url") is not None)
+            or (self.config.get("ssl_client_certificate_enable") is False)
+            or (
+                self.config.get("ssl_client_certificate") is not None
+                and self.config.get("ssl_client_private_key") is not None
+            )
+        ), (
+            "ssl_client_certificate_enable is true but one or both of"
+            + " ssl_client_certificate or ssl_client_private_key are unset."
         )
 
     name = "target-postgres"
@@ -96,8 +128,8 @@ class TargetPostgres(Target):
             description=(
                 "SQLAlchemy connection string. "
                 + "This will override using host, user, password, port, "
-                + "dialect. Note that you must esacpe password special "
-                + "characters properly see "
+                + "dialect, and all ssl settings. Note that you must escape password "
+                + "special characters properly. See "
                 + "https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords"  # noqa: E501
             ),
         ),
@@ -137,6 +169,85 @@ class TargetPostgres(Target):
                 + "This adds _sdc_extracted_at, _sdc_batched_at, and more to every "
                 + "table. See https://sdk.meltano.com/en/latest/implementation/record_metadata.html "  # noqa: E501
                 + "for more information."
+            ),
+        ),
+        th.Property(
+            "ssl_enable",
+            th.BooleanType,
+            default=False,
+            description=(
+                "Whether or not to use ssl to verify the server's identity. Use"
+                + " ssl_certificate_authority and ssl_mode for further customization."
+                + " To use a client certificate to authenticate yourself to the server,"
+                + " use ssl_client_certificate_enable instead."
+                + " Note if sqlalchemy_url is set this will be ignored."
+            ),
+        ),
+        th.Property(
+            "ssl_client_certificate_enable",
+            th.BooleanType,
+            default=False,
+            description=(
+                "Whether or not to provide client-side certificates as a method of"
+                + " authentication to the server. Use ssl_client_certificate and"
+                + " ssl_client_private_key for further customization. To use SSL to"
+                + " verify the server's identity, use ssl_enable instead."
+                + " Note if sqlalchemy_url is set this will be ignored."
+            ),
+        ),
+        th.Property(
+            "ssl_mode",
+            th.StringType,
+            default="verify-full",
+            description=(
+                "SSL Protection method, see [postgres documentation](https://www.postgresql.org/docs/current/libpq-ssl.html#LIBPQ-SSL-PROTECTION)"  # noqa: E501
+                + " for more information. Must be one of disable, allow, prefer,"
+                + " require, verify-ca, or verify-full."
+                + " Note if sqlalchemy_url is set this will be ignored."
+            ),
+        ),
+        th.Property(
+            "ssl_certificate_authority",
+            th.StringType,
+            default="~/.postgresql/root.crl",
+            description=(
+                "The certificate authority that should be used to verify the server's"
+                + " identity. Can be provided either as the certificate itself (in"
+                + " .env) or as a filepath to the certificate."
+                + " Note if sqlalchemy_url is set this will be ignored."
+            ),
+        ),
+        th.Property(
+            "ssl_client_certificate",
+            th.StringType,
+            default="~/.postgresql/postgresql.crt",
+            description=(
+                "The certificate that should be used to verify your identity to the"
+                + " server. Can be provided either as the certificate itself (in .env)"
+                + " or as a filepath to the certificate."
+                + " Note if sqlalchemy_url is set this will be ignored."
+            ),
+        ),
+        th.Property(
+            "ssl_client_private_key",
+            th.StringType,
+            default="~/.postgresql/postgresql.key",
+            description=(
+                "The private key for the certificate you provided. Can be provided"
+                + " either as the certificate itself (in .env) or as a filepath to the"
+                + " certificate."
+                + " Note if sqlalchemy_url is set this will be ignored."
+            ),
+        ),
+        th.Property(
+            "ssl_storage_directory",
+            th.StringType,
+            default=".secrets",
+            description=(
+                "The folder in which to store SSL certificates provided as raw values."
+                + " When a certificate/key is provided as a raw value instead of as a"
+                + " filepath, it must be written to a file before it can be used. This"
+                + " configuration option determines where that file is created."
             ),
         ),
     ).to_dict()
