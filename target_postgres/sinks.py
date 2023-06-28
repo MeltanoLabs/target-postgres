@@ -69,7 +69,7 @@ class PostgresSink(SQLSink):
         Args:
             context: Stream partition or context dictionary.
         """
-        # First we need to be sure the main table is already created
+        # Check structure of table
         table: sqlalchemy.Table = self.connector.prepare_table(
             full_table_name=self.full_table_name,
             schema=self.schema,
@@ -77,10 +77,9 @@ class PostgresSink(SQLSink):
             as_temp_table=False,
         )
         # Create a temp table (Creates from the table above)
-        temp_table: sqlalchemy.Table = self.connector.prepare_table(
+        temp_table: sqlalchemy.Table = self.connector.copy_table_structure(
             full_table_name=self.temp_table_name,
-            schema=self.schema,
-            primary_keys=self.key_properties,
+            from_table=table,
             as_temp_table=True,
         )
         # Insert into temp table

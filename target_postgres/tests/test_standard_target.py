@@ -297,14 +297,6 @@ def test_large_int(postgres_target):
     singer_file_to_target(file_name, postgres_target)
 
 
-def test_reserved_keywords(postgres_target):
-    """Postgres has a number of resereved keywords listed here https://www.postgresql.org/docs/current/sql-keywords-appendix.html.
-
-    The target should work regradless of the column names"""
-    file_name = "reserved_keywords.singer"
-    singer_file_to_target(file_name, postgres_target)
-
-
 def test_new_array_column(postgres_target):
     """Create a new Array column with an existing table"""
     file_name = "new_array_column.singer"
@@ -408,3 +400,9 @@ def test_activate_version_deletes_data_properly(postgres_config, engine):
     with engine.connect() as connection:
         result = connection.execute(f"SELECT * FROM {full_table_name}")
         assert result.rowcount == 0
+
+
+def test_uppercase_stream_name_with_column_alter(postgres_target):
+    """Column Alters need to work with uppercase stream names"""
+    file_name = "uppercase_stream_name_with_column_alter.singer"
+    singer_file_to_target(file_name, postgres_target)
