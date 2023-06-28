@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import typing as t
 from contextlib import contextmanager
+from os import chmod, path
 from typing import cast
 
 import sqlalchemy
@@ -132,6 +133,7 @@ class PostgresConnector(SQLConnector):
                 host=config["host"],
                 port=config["port"],
                 database=config["database"],
+                query=self.get_sqlalchemy_query(config),
             )
             return cast(str, sqlalchemy_url)
 
@@ -424,6 +426,73 @@ class PostgresConnector(SQLConnector):
                 "column_type": column.type.compile(dialect=self._engine.dialect),
             },
         )
+
+    def get_sqlalchemy_query(self, config: dict) -> dict:
+        """Get query values to be used for sqlalchemy URL creation.
+
+        Args:
+            config: The configuration for the connector.
+
+        Returns:
+            A dictionary with key-value pairs for the sqlalchemy query.
+        """
+        query = {}
+
+        # ssl_enable is for verifying the server's identity to the client.
+        if config["ssl_enable"]:
+            ssl_mode = config["ssl_mode"]
+            query.update({"sslmode": ssl_mode})
+            query["sslrootcert"] = self.filepath_or_certificate(
+                value=config["ssl_certificate_authority"],
+                alternative_name=config["ssl_storage_directory"] + "/root.crt",
+            )
+
+        # ssl_client_certificate_enable is for verifying the client's identity to the
+        # server.
+        if config["ssl_client_certificate_enable"]:
+            query["sslcert"] = self.filepath_or_certificate(
+                value=config["ssl_client_certificate"],
+                alternative_name=config["ssl_storage_directory"] + "/cert.crt",
+            )
+            query["sslkey"] = self.filepath_or_certificate(
+                value=config["ssl_client_private_key"],
+                alternative_name=config["ssl_storage_directory"] + "/pkey.key",
+                restrict_permissions=True,
+            )
+        return query
+
+    def filepath_or_certificate(
+        self,
+        value: str,
+        alternative_name: str,
+        restrict_permissions: bool = False,
+    ) -> str:
+        """Provide the appropriate key-value pair based on a filepath or raw value.
+
+        For SSL configuration options, support is provided for either raw values in
+        .env file or filepaths to a file containing a certificate. This function
+        attempts to parse a value as a filepath, and if no file is found, assumes the
+        value is a certificate and creates a file named `alternative_name` to store the
+        file.
+
+        Args:
+            value: Either a filepath or a raw value to be written to a file.
+            alternative_name: The filename to use in case `value` is not a filepath.
+            restrict_permissions: Whether to restrict permissions on a newly created
+                file. On UNIX systems, private keys cannot have public access.
+
+        Returns:
+            A dictionary with key-value pairs for the sqlalchemy query
+
+        """
+        if path.isfile(value):
+            return value
+        else:
+            with open(alternative_name, "wb") as alternative_file:
+                alternative_file.write(value.encode("utf-8"))
+            if restrict_permissions:
+                chmod(alternative_name, 0o600)
+            return alternative_name
 
     def _get_column_type(
         self,

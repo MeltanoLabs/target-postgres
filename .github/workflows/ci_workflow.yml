@@ -1,6 +1,12 @@
 name: Test target-postgres
 
-on: [push]
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs: {}
 
 jobs:
   linting:
@@ -33,23 +39,19 @@ jobs:
 
   pytest:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres
-        env:
-          POSTGRES_PASSWORD: postgres
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
     strategy:
       matrix:
         python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
     steps:
     - uses: actions/checkout@v3
+    - name: Fix key permissions
+      run: |
+        chmod 600 ssl/server.key
+        sudo chown 999:999 ssl/server.key
+        chmod 600 ssl/pkey.key
+    - name: Set up Postgres container
+      run: |
+        docker compose -f docker-compose.yml up -d
     - name: Set up Python '${{ matrix.python-version }}'
       uses: actions/setup-python@v4
       with:

@@ -14,22 +14,28 @@ Built with the [Meltano SDK](https://sdk.meltano.com) for Singer Taps and Target
 * `schema-flattening`
 
 ## Settings
-| Setting               | Required |       Default       | Description                                                                                                                                                                                                                                                            |
-| :-------------------- | :------: | :-----------------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| host                  |  False   |        None         | Hostname for postgres instance. Note if sqlalchemy_url is set this will be ignored.                                                                                                                                                                                    |
-| port                  |  False   |        5432         | The port on which postgres is awaiting connection. Note if sqlalchemy_url is set this will be ignored.                                                                                                                                                                 |
-| user                  |  False   |        None         | User name used to authenticate. Note if sqlalchemy_url is set this will be ignored.                                                                                                                                                                                    |
-| password              |  False   |        None         | Password used to authenticate. Note if sqlalchemy_url is set this will be ignored.                                                                                                                                                                                     |
-| database              |  False   |        None         | Database name. Note if sqlalchemy_url is set this will be ignored.                                                                                                                                                                                                     |
-| sqlalchemy_url        |  False   |        None         | SQLAlchemy connection string. This will override using host, user, password, port,dialect. Note that you must escape password special characters properly. See https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords |
-| dialect+driver        |  False   | postgresql+psycopg2 | Dialect+driver see https://docs.sqlalchemy.org/en/20/core/engines.html. Generally just leave this alone. Note if sqlalchemy_url is set this will be ignored.                                                                                                           |
-| default_target_schema |  False   |        None         | Postgres schema to send data to, example: tap-clickup                                                                                                                                                                                                                  |
-| hard_delete           |  False   |          0          | When activate version is sent from a tap this specefies if we should delete the records that don't match, or mark them with a date in the `_sdc_deleted_at` column.                                                                                                    |
-| add_record_metadata   |  False   |          1          | Note that this must be enabled for activate_version to work!This adds _sdc_extracted_at, _sdc_batched_at, and more to every table. See https://sdk.meltano.com/en/latest/implementation/record_metadata.html for more information.                                     |
-| stream_maps           |  False   |        None         | Config object for stream maps capability. For more information check out [Stream Maps](https://sdk.meltano.com/en/latest/stream_maps.html).                                                                                                                            |
-| stream_map_config     |  False   |        None         | User-defined config values to be used within map expressions.                                                                                                                                                                                                          |
-| flattening_enabled    |  False   |        None         | 'True' to enable schema flattening and automatically expand nested properties.                                                                                                                                                                                         |
-| flattening_max_depth  |  False   |        None         | The max depth to flatten schemas.                                                                                                                                                                                                                                      |
+| Setting                      | Required | Default | Description |
+|:-----------------------------|:--------:|:-------:|:------------|
+| host                         | False    | None    | Hostname for postgres instance. Note if sqlalchemy_url is set this will be ignored. |
+| port                         | False    |    5432 | The port on which postgres is awaiting connection. Note if sqlalchemy_url is set this will be ignored. |
+| user                         | False    | None    | User name used to authenticate. Note if sqlalchemy_url is set this will be ignored. |
+| password                     | False    | None    | Password used to authenticate. Note if sqlalchemy_url is set this will be ignored. |
+| database                     | False    | None    | Database name. Note if sqlalchemy_url is set this will be ignored. |
+| sqlalchemy_url               | False    | None    | SQLAlchemy connection string. This will override using host, user, password, port, dialect, and all ssl settings. Note that you must escape password special characters properly. See https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords |
+| dialect+driver               | False    | postgresql+psycopg2 | Dialect+driver see https://docs.sqlalchemy.org/en/20/core/engines.html. Generally just leave this alone. Note if sqlalchemy_url is set this will be ignored. |
+| default_target_schema        | False    | None    | Postgres schema to send data to, example: tap-clickup |
+| hard_delete                  | False    |       0 | When activate version is sent from a tap this specefies if we should delete the records that don't match, or mark them with a date in the `_sdc_deleted_at` column. |
+| add_record_metadata          | False    |       1 | Note that this must be enabled for activate_version to work!This adds _sdc_extracted_at, _sdc_batched_at, and more to every table. See https://sdk.meltano.com/en/latest/implementation/record_metadata.html for more information. |
+| ssl_enable                   | False    |       0 | Whether or not to use ssl to verify the server's identity. Use ssl_certificate_authority and ssl_mode for further customization. To use a client certificate to authenticate yourself to the server, use ssl_client_certificate_enable instead. Note if sqlalchemy_url is set this will be ignored. |
+| ssl_client_certificate_enable| False    |       0 | Whether or not to provide client-side certificates as a method of authentication to the server. Use ssl_client_certificate and ssl_client_private_key for further customization. To use SSL to verify the server's identity, use ssl_enable instead. Note if sqlalchemy_url is set this will be ignored. |
+| ssl_mode                     | False    | verify-full | SSL Protection method, see [postgres documentation](https://www.postgresql.org/docs/current/libpq-ssl.html#LIBPQ-SSL-PROTECTION) for more information. Must be one of disable, allow, prefer, require, verify-ca, or verify-full. Note if sqlalchemy_url is set this will be ignored. |
+| ssl_certificate_authority    | False    | None    | The certificate authority that should be used to verify the server's identity. Can be provided either as the certificate itself (in .env) or as a filepath to the certificate. Note if sqlalchemy_url is set this will be ignored. |
+| ssl_client_certificate              | False    | None    | The certificate that should be used to verify your identity to the server. Can be provided either as the certificate itself (in .env) or as a filepath to the certificate. Note if sqlalchemy_url is set this will be ignored. |
+| ssl_client_private_key              | False    | None    | The private key for the certificate you provided. Can be provided either as the certificate itself (in .env) or as a filepath to the certificate. Note if sqlalchemy_url is set this will be ignored. |
+| stream_maps                  | False    | None    | Config object for stream maps capability. For more information check out [Stream Maps](https://sdk.meltano.com/en/latest/stream_maps.html). |
+| stream_map_config            | False    | None    | User-defined config values to be used within map expressions. |
+| flattening_enabled           | False    | None    | 'True' to enable schema flattening and automatically expand nested properties. |
+| flattening_max_depth         | False    | None    | The max depth to flatten schemas. |
 
 A full list of supported settings and capabilities is available by running: `target-postgres --about`
 
@@ -42,6 +48,14 @@ pipx install -e .
 ```
 
 ## Configuration
+
+### An Explanation of Various SSL Configuration Options
+
+There are two distinct processes which both fall under the banner of SSL. One process occurs when the client wishes to ensure the identity of the server, and is the more common reason that SSL is used. Another is when the server wishes to ensure the identity of the client, for authentication/authorization purposes.
+
+If your server is set up with a certificate and private key, and you wish to check their certificate against a root certificate which you posess, use `ssl_enable`. You may then further customize this process using the `ssl_certificate_authority` and `ssl_mode` settings. See the [documentation](https://www.postgresql.org/docs/current/libpq-ssl.html#LIBQ-SSL-CERTIFICATES) for further details.
+
+If your server is set up with a root certificate, and you wish to provide a certificate to the server to verify your identity, use `ssl_client_certificate_enable`. You may then further customize this process using the `ssl_client_certificate` and `ssl_client_private_key` settings. See the [documentation](https://www.postgresql.org/docs/current/libpq-ssl.html#LIBPQ-SSL-CLIENTCERT) for further details.
 
 ### Configure using environment variables
 
@@ -69,6 +83,10 @@ target-postgres --help
 pipx install git+https://gitlab.com/meltano/tap-carbon-intensity
 tap-carbon-intensity | target-postgres --config /path/to/target-postgres-config.json
 ```
+
+### Using Docker Compose
+
+`docker-compose.yml` provides the commands to create two empty sample databases using [Docker](https://docs.docker.com/engine/install/). These can be a starting point to create your own database running in Docker, or can be used to run the tap's [built-in tests](#create-and-run-tests).
 
 ## Developer Resources
 
