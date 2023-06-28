@@ -1,3 +1,4 @@
+"""Handles Postgres interactions."""
 from __future__ import annotations
 
 import typing as t
@@ -327,7 +328,10 @@ class PostgresConnector(SQLConnector):
         column = sqlalchemy.Column(column_name, column_type)
 
         return sqlalchemy.DDL(
-            'ALTER TABLE "%(schema_name)s"."%(table_name)s" ADD COLUMN %(column_name)s %(column_type)s',
+            (
+                'ALTER TABLE "%(schema_name)s"."%(table_name)s"'
+                "ADD COLUMN %(column_name)s %(column_type)s"
+            ),
             {
                 "schema_name": schema_name,
                 "table_name": table_name,
@@ -418,7 +422,10 @@ class PostgresConnector(SQLConnector):
         """
         column = sqlalchemy.Column(column_name, column_type)
         return sqlalchemy.DDL(
-            'ALTER TABLE "%(schema_name)s"."%(table_name)s" ALTER COLUMN %(column_name)s %(column_type)s',
+            (
+                'ALTER TABLE "%(schema_name)s"."%(table_name)s"'
+                "ALTER COLUMN %(column_name)s %(column_type)s"
+            ),
             {
                 "schema_name": schema_name,
                 "table_name": table_name,
