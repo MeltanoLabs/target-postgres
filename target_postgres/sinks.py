@@ -1,21 +1,14 @@
 """Postgres target sink class, which handles writing streams."""
-import atexit
-import io
-import signal
-import uuid
-from os import chmod, path
-from typing import Any, Dict, Iterable, List, Optional, Union, cast
 
-import paramiko
+import uuid
+from typing import Any, Dict, Iterable, List, Optional, Union
+
 import sqlalchemy
 from pendulum import now
 from singer_sdk.sinks import SQLSink
 from sqlalchemy import Column, MetaData, Table, insert, select, update
-from sqlalchemy.engine import URL
-from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import Executable
 from sqlalchemy.sql.expression import bindparam
-from sshtunnel import SSHTunnelForwarder
 
 from target_postgres.connector import PostgresConnector
 
@@ -27,171 +20,9 @@ class PostgresSink(SQLSink):
 
     def __init__(self, target, *args, **kwargs):
         """Initialize SQL Sink. See super class for more details."""
-        url: URL = make_url(self.get_sqlalchemy_url(config=target.config))
-        ssh_config = target.config.get("ssh_tunnel", {})
-        self.ssh_tunnel = None
-
-        if ssh_config.get("enable", False):
-            # Return a new URL with SSH tunnel parameters
-            self.ssh_tunnel: SSHTunnelForwarder = SSHTunnelForwarder(
-                ssh_address_or_host=(ssh_config["host"], ssh_config["port"]),
-                ssh_username=ssh_config["username"],
-                ssh_private_key=self.guess_key_type(ssh_config["private_key"]),
-                ssh_private_key_password=ssh_config.get("private_key_password"),
-                remote_bind_address=(url.host, url.port),
-            )
-            self.ssh_tunnel.start()
-            # On program exit clean up, want to also catch signals
-            atexit.register(self.clean_up)
-            signal.signal(signal.SIGTERM, self.catch_signal)
-            # Probably overkill to catch SIGINT, but needed for SIGTERM
-            signal.signal(signal.SIGINT, self.catch_signal)
-
-            # Swap the URL to use the tunnel
-            url = url.set(
-                host=self.ssh_tunnel.local_bind_host,
-                port=self.ssh_tunnel.local_bind_port,
-            )
-
-        connector = PostgresConnector(
-            config=dict(target.config),
-            sqlalchemy_url=url.render_as_string(hide_password=False),
-        )
+        connector = PostgresConnector(config=dict(target.config))
         super().__init__(target=target, connector=connector, *args, **kwargs)
         self.temp_table_name = self.generate_temp_table_name()
-
-    def get_sqlalchemy_url(self, config: dict) -> str:
-        """Generate a SQLAlchemy URL.
-
-        Args:
-            config: The configuration for the connector.
-        """
-        if config.get("sqlalchemy_url"):
-            return cast(str, config["sqlalchemy_url"])
-
-        else:
-            sqlalchemy_url = URL.create(
-                drivername=config["dialect+driver"],
-                username=config["user"],
-                password=config["password"],
-                host=config["host"],
-                port=config["port"],
-                database=config["database"],
-                query=self.get_sqlalchemy_query(config),
-            )
-            return cast(str, sqlalchemy_url)
-
-    def get_sqlalchemy_query(self, config: dict) -> dict:
-        """Get query values to be used for sqlalchemy URL creation.
-
-        Args:
-            config: The configuration for the connector.
-
-        Returns:
-            A dictionary with key-value pairs for the sqlalchemy query.
-        """
-        query = {}
-
-        # ssl_enable is for verifying the server's identity to the client.
-        if config["ssl_enable"]:
-            ssl_mode = config["ssl_mode"]
-            query.update({"sslmode": ssl_mode})
-            query["sslrootcert"] = self.filepath_or_certificate(
-                value=config["ssl_certificate_authority"],
-                alternative_name=config["ssl_storage_directory"] + "/root.crt",
-            )
-
-        # ssl_client_certificate_enable is for verifying the client's identity to the
-        # server.
-        if config["ssl_client_certificate_enable"]:
-            query["sslcert"] = self.filepath_or_certificate(
-                value=config["ssl_client_certificate"],
-                alternative_name=config["ssl_storage_directory"] + "/cert.crt",
-            )
-            query["sslkey"] = self.filepath_or_certificate(
-                value=config["ssl_client_private_key"],
-                alternative_name=config["ssl_storage_directory"] + "/pkey.key",
-                restrict_permissions=True,
-            )
-        return query
-
-    def filepath_or_certificate(
-        self,
-        value: str,
-        alternative_name: str,
-        restrict_permissions: bool = False,
-    ) -> str:
-        """Provide the appropriate key-value pair based on a filepath or raw value.
-
-        For SSL configuration options, support is provided for either raw values in
-        .env file or filepaths to a file containing a certificate. This function
-        attempts to parse a value as a filepath, and if no file is found, assumes the
-        value is a certificate and creates a file named `alternative_name` to store the
-        file.
-
-        Args:
-            value: Either a filepath or a raw value to be written to a file.
-            alternative_name: The filename to use in case `value` is not a filepath.
-            restrict_permissions: Whether to restrict permissions on a newly created
-                file. On UNIX systems, private keys cannot have public access.
-
-        Returns:
-            A dictionary with key-value pairs for the sqlalchemy query
-
-        """
-        if path.isfile(value):
-            return value
-        else:
-            with open(alternative_name, "wb") as alternative_file:
-                alternative_file.write(value.encode("utf-8"))
-            if restrict_permissions:
-                chmod(alternative_name, 0o600)
-            return alternative_name
-
-    def guess_key_type(self, key_data: str) -> paramiko.PKey:
-        """Guess the type of the private key.
-
-        We are duplicating some logic from the ssh_tunnel package here,
-        we could try to use their function instead.
-
-        Args:
-            key_data: The private key data to guess the type of.
-
-        Returns:
-            The private key object.
-
-        Raises:
-            ValueError: If the key type could not be determined.
-        """
-        for key_class in (
-            paramiko.RSAKey,
-            paramiko.DSSKey,
-            paramiko.ECDSAKey,
-            paramiko.Ed25519Key,
-        ):
-            try:
-                key = key_class.from_private_key(io.StringIO(key_data))  # type: ignore[attr-defined]  # noqa: E501
-            except paramiko.SSHException:
-                continue
-            else:
-                return key
-
-        errmsg = "Could not determine the key type."
-        raise ValueError(errmsg)
-
-    def clean_up(self) -> None:
-        """Stop the SSH Tunnel."""
-        if self.ssh_tunnel is not None:
-            self.ssh_tunnel.stop()
-
-    def catch_signal(self, signum, frame) -> None:
-        """Catch signals and exit cleanly.
-
-        Args:
-            signum: The signal number
-            frame: The current stack frame
-        """
-        exit(1)  # Calling this to be sure atexit is called, so clean_up gets called
 
     @property
     def append_only(self) -> bool:
