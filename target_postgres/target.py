@@ -250,6 +250,62 @@ class TargetPostgres(Target):
                 + " configuration option determines where that file is created."
             ),
         ),
+        th.Property(
+            "ssh_tunnel",
+            th.ObjectType(
+                th.Property(
+                    "enable",
+                    th.BooleanType,
+                    required=False,
+                    default=False,
+                    description=(
+                        "Enable an ssh tunnel (also known as bastion host), see the "
+                        "other ssh_tunnel.* properties for more details"
+                    ),
+                ),
+                th.Property(
+                    "host",
+                    th.StringType,
+                    required=False,
+                    description=(
+                        "Host of the bastion host, this is the host "
+                        "we'll connect to via ssh"
+                    ),
+                ),
+                th.Property(
+                    "username",
+                    th.StringType,
+                    required=False,
+                    description="Username to connect to bastion host",
+                ),
+                th.Property(
+                    "port",
+                    th.IntegerType,
+                    required=False,
+                    default=22,
+                    description="Port to connect to bastion host",
+                ),
+                th.Property(
+                    "private_key",
+                    th.StringType,
+                    required=False,
+                    secret=True,
+                    description="Private Key for authentication to the bastion host",
+                ),
+                th.Property(
+                    "private_key_password",
+                    th.StringType,
+                    required=False,
+                    secret=True,
+                    default=None,
+                    description=(
+                        "Private Key Password, leave None if no password is set"
+                    ),
+                ),
+            ),
+            required=False,
+            description="SSH Tunnel Configuration, this is a json object",
+        ),
     ).to_dict()
     default_sink_class = PostgresSink
 
