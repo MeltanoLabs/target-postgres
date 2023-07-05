@@ -167,7 +167,7 @@ class PostgresSink(SQLSink):
         errmsg = "Could not determine the key type."
         raise ValueError(errmsg)
 
-    def ssh_tunnel_connect(self, *, ssh_config: dict[str, Any], url: URL) -> URL:
+    def ssh_tunnel_connect(self, *, ssh_config: dict, url: URL) -> URL:
         """Connect to the SSH Tunnel and swap the URL to use the tunnel.
 
         Args:
