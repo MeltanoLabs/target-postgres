@@ -25,29 +25,40 @@ class PostgresSink(SQLSink):
 
     connector_class = PostgresConnector
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, target, *args, **kwargs):
         """Initialize SQL Sink. See super class for more details."""
-        super().__init__(*args, **kwargs)
-        self.temp_table_name = self.generate_temp_table_name()
-
-    @property
-    def connector(self) -> PostgresConnector:
-        """The connector object.
-
-        Returns:
-            The connector object.
-        """
-        url: URL = make_url(self.get_sqlalchemy_url(config=self.config))
-        ssh_config = self.config.get("ssh_tunnel", {})
+        url: URL = make_url(self.get_sqlalchemy_url(config=target.config))
+        ssh_config = target.config.get("ssh_tunnel", {})
+        self.ssh_tunnel = None
 
         if ssh_config.get("enable", False):
             # Return a new URL with SSH tunnel parameters
-            url = self.ssh_tunnel_connect(ssh_config=ssh_config, url=url)
+            self.ssh_tunnel: SSHTunnelForwarder = SSHTunnelForwarder(
+                ssh_address_or_host=(ssh_config["host"], ssh_config["port"]),
+                ssh_username=ssh_config["username"],
+                ssh_private_key=self.guess_key_type(ssh_config["private_key"]),
+                ssh_private_key_password=ssh_config.get("private_key_password"),
+                remote_bind_address=(url.host, url.port),
+            )
+            self.ssh_tunnel.start()
+            # On program exit clean up, want to also catch signals
+            atexit.register(self.clean_up)
+            signal.signal(signal.SIGTERM, self.catch_signal)
+            # Probably overkill to catch SIGINT, but needed for SIGTERM
+            signal.signal(signal.SIGINT, self.catch_signal)
 
-        return PostgresConnector(
-            config=dict(self.config),
+            # Swap the URL to use the tunnel
+            url = url.set(
+                host=self.ssh_tunnel.local_bind_host,
+                port=self.ssh_tunnel.local_bind_port,
+            )
+
+        connector = PostgresConnector(
+            config=dict(target.config),
             sqlalchemy_url=url.render_as_string(hide_password=False),
         )
+        super().__init__(target=target, connector=connector, *args, **kwargs)
+        self.temp_table_name = self.generate_temp_table_name()
 
     def get_sqlalchemy_url(self, config: dict) -> str:
         """Generate a SQLAlchemy URL.
@@ -168,41 +179,10 @@ class PostgresSink(SQLSink):
         errmsg = "Could not determine the key type."
         raise ValueError(errmsg)
 
-    def ssh_tunnel_connect(self, *, ssh_config: dict, url: URL) -> URL:
-        """Connect to the SSH Tunnel and swap the URL to use the tunnel.
-
-        Args:
-            ssh_config: The SSH Tunnel configuration
-            url: The original URL to connect to.
-
-        Returns:
-            The new URL to connect to, using the tunnel.
-        """
-        self.ssh_tunnel: SSHTunnelForwarder = SSHTunnelForwarder(
-            ssh_address_or_host=(ssh_config["host"], ssh_config["port"]),
-            ssh_username=ssh_config["username"],
-            ssh_private_key=self.guess_key_type(ssh_config["private_key"]),
-            ssh_private_key_password=ssh_config.get("private_key_password"),
-            remote_bind_address=(url.host, url.port),
-        )
-        self.ssh_tunnel.start()
-        self.logger.info("SSH Tunnel started")
-        # On program exit clean up, want to also catch signals
-        atexit.register(self.clean_up)
-        signal.signal(signal.SIGTERM, self.catch_signal)
-        # Probably overkill to catch SIGINT, but needed for SIGTERM
-        signal.signal(signal.SIGINT, self.catch_signal)
-
-        # Swap the URL to use the tunnel
-        return url.set(
-            host=self.ssh_tunnel.local_bind_host,
-            port=self.ssh_tunnel.local_bind_port,
-        )
-
     def clean_up(self) -> None:
         """Stop the SSH Tunnel."""
-        self.logger.info("Shutting down SSH Tunnel")
-        self.ssh_tunnel.stop()
+        if self.ssh_tunnel is not None:
+            self.ssh_tunnel.stop()
 
     def catch_signal(self, signum, frame) -> None:
         """Catch signals and exit cleanly.
