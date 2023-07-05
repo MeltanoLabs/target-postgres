@@ -326,6 +326,12 @@ def test_large_int(postgres_target):
     singer_file_to_target(file_name, postgres_target)
 
 
+def test_anyof(postgres_target):
+    """Test that anyOf is handled correctly"""
+    file_name = "anyof.singer"
+    singer_file_to_target(file_name, postgres_target)
+
+
 def test_reserved_keywords(postgres_target):
     """Postgres has a number of resereved keywords listed here https://www.postgresql.org/docs/current/sql-keywords-appendix.html.
 
