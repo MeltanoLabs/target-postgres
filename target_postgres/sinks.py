@@ -1,5 +1,6 @@
 """Postgres target sink class, which handles writing streams."""
 import atexit
+import io
 import signal
 import uuid
 from os import chmod, path
