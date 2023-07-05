@@ -28,7 +28,7 @@ class PostgresConnector(SQLConnector):
     allow_temp_tables: bool = True  # Whether temp tables are supported.
 
     def __init__(self, config: dict | None = None) -> None:
-        """A connector to a Postgres database.
+        """Initialize a connector to a Postgres database.
 
         Args:
             config: Configuration for the connector. Defaults to None.
