@@ -189,10 +189,6 @@ class PostgresSink(SQLSink):
             )
             self.connection.execute(insert_stmt)
         else:
-            # Insert
-            where_condition = " and ".join(
-                [f'target."{key}" is null' for key in join_keys]
-            )
             join_predicates = []
             for key in join_keys:
                 from_table_key: sqlalchemy.Column = from_table.columns[key]
