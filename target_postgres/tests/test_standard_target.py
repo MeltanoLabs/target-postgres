@@ -133,7 +133,7 @@ def test_port_default_config():
     target_config = TargetPostgres(config=config).config
     connector = PostgresConnector(target_config)
 
-    engine: sqlalchemy.engine.Engine = connector.create_sqlalchemy_engine()
+    engine: sqlalchemy.engine.Engine = connector._engine
     assert (
         str(engine.url)
         == f"{dialect_driver}://{user}:{password}@{host}:5432/{database}"
@@ -158,7 +158,7 @@ def test_port_config():
     target_config = TargetPostgres(config=config).config
     connector = PostgresConnector(target_config)
 
-    engine: sqlalchemy.engine.Engine = connector.create_sqlalchemy_engine()
+    engine: sqlalchemy.engine.Engine = connector._engine
     assert (
         str(engine.url)
         == f"{dialect_driver}://{user}:{password}@{host}:5433/{database}"
@@ -429,6 +429,15 @@ def test_activate_version_deletes_data_properly(postgres_config_no_ssl, engine):
     with engine.connect() as connection:
         result = connection.execute(f"SELECT * FROM {full_table_name}")
         assert result.rowcount == 0
+
+
+def test_reserved_keywords(postgres_target):
+    """Target should work regardless of column names
+
+    Postgres has a number of resereved keywords listed here https://www.postgresql.org/docs/current/sql-keywords-appendix.html.
+    """
+    file_name = "reserved_keywords.singer"
+    singer_file_to_target(file_name, postgres_target)
 
 
 def test_uppercase_stream_name_with_column_alter(postgres_target):
