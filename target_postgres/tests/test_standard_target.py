@@ -337,16 +337,29 @@ def test_anyof(postgres_config_no_ssl, engine):
         )
         breakpoint()
         for row in result.all():
+            # {"type":"string"}
             if row[0] == "id":
-                assert True
+                assert row[1] == "character varying"
+
+            # Any of nullable date-time.
+            # {"anyOf":[{"type":"string","format":"date-time"},{"type":"null"}]}
             if row[0] in {"authored_date", "committed_date"}:
-                assert True
+                assert row[1] == "timestamp without timezone"
+
+            # Any of nullable array of strings or single string.
+            # {"anyOf":[{"type":"array","items":{"type":["null","string"]}},{"type":"string"},{"type":"null"}]}
             if row[0] == "parent_ids":
-                assert True
+                assert row[1] == "ARRAY"
+
+            # Any of nullable string.
+            # {"anyOf":[{"type":"string"},{"type":"null"}]}
             if row[0] == "commit_message":
-                assert True
+                assert row[1] == "character varying"
+
+            # Any of nullable string or integer.
+            # {"anyOf":[{"type":"string"},{"type":"integer"},{"type":"null"}]}
             if row[0] == "legacy_id":
-                assert True
+                assert row[1] == "character varying"
 
 
 def test_reserved_keywords(postgres_target):
