@@ -134,10 +134,10 @@ class PostgresConnector(SQLConnector):
         Returns:
             The SQLAlchemy type representation of the data type.
         """
-        if "anyOf" in jsonschema_type:
+        if "anyOf" in jsonschema_type:  # Convert anyOf to type array before processing.
             jsonschema_type["type"] = []
             for object in jsonschema_type["anyOf"]:
-                jsonschema_type["types"].append(PostgresConnector.to_sql_type(object))
+                jsonschema_type["type"].append(object)
         if "integer" in jsonschema_type["type"]:
             return BIGINT()
         if "object" in jsonschema_type["type"]:
