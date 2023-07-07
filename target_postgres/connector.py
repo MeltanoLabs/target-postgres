@@ -9,7 +9,16 @@ from singer_sdk import SQLConnector
 from singer_sdk import typing as th
 from sqlalchemy.dialects.postgresql import ARRAY, BIGINT, JSONB
 from sqlalchemy.engine import URL
-from sqlalchemy.types import TIMESTAMP
+from sqlalchemy.types import (
+    BOOLEAN,
+    DATE,
+    DATETIME,
+    DECIMAL,
+    INTEGER,
+    TIME,
+    TIMESTAMP,
+    VARCHAR,
+)
 
 
 class PostgresConnector(SQLConnector):
@@ -134,10 +143,50 @@ class PostgresConnector(SQLConnector):
         Returns:
             The SQLAlchemy type representation of the data type.
         """
-        if "anyOf" in jsonschema_type:  # Convert anyOf to type array before processing.
-            jsonschema_type["type"] = []
-            for object in jsonschema_type["anyOf"]:
-                jsonschema_type["type"].append(object)
+        json_type_array = []
+
+        if jsonschema_type.get("type", False):
+            if type(jsonschema_type["type"]) is str:
+                json_type_array.append(jsonschema_type)
+            elif type(jsonschema_type["type"]) is list:
+                for entry in jsonschema_type["type"]:
+                    json_type_dict = {}
+                    json_type_dict["type"] = entry
+                    if jsonschema_type.get("format", False):
+                        json_type_dict["format"] = jsonschema_type["format"]
+                    json_type_array.append(json_type_dict)
+            else:
+                msg = "Invalid format for jsonschema type: not str or list."
+                raise RuntimeError(msg)
+        elif jsonschema_type.get("anyOf", False):
+            for entry in jsonschema_type["anyOf"]:
+                json_type_array.append(entry)
+        else:
+            msg = "Neither type nor anyOf are present. Unable to determine type."
+            raise RuntimeError(msg)
+
+        sql_type_array = []
+        for json_type in json_type_array:
+            picked_type = PostgresConnector.pick_individual_type(
+                jsonschema_type=json_type
+            )
+            if picked_type is not None:
+                sql_type_array.append(picked_type)
+
+        return PostgresConnector.pick_best_sql_type(sql_type_array=sql_type_array)
+
+    @staticmethod
+    def pick_individual_type(jsonschema_type: dict):
+        """Selects the correct sql type assuming jsonschema_type has only a single type.
+
+        Args:
+            jsonschema_type: A jsonschema_type array containing only a single type.
+
+        Returns:
+            An instance of the appropriate SQL type class based on jsonschema_type.
+        """
+        if "null" in jsonschema_type["type"]:
+            return None
         if "integer" in jsonschema_type["type"]:
             return BIGINT()
         if "object" in jsonschema_type["type"]:
@@ -147,6 +196,36 @@ class PostgresConnector(SQLConnector):
         if jsonschema_type.get("format") == "date-time":
             return TIMESTAMP()
         return th.to_sql_type(jsonschema_type)
+
+    @staticmethod
+    def pick_best_sql_type(sql_type_array: list):
+        """Selects the best SQL type from an array of instances of SQL type classes.
+
+        Args:
+            sql_type_array: The array of instances of SQL type classes.
+
+        Returns:
+            An instance of the best SQL type class based on defined precedence order.
+        """
+        precedence_order = [
+            ARRAY,
+            JSONB,
+            VARCHAR,
+            TIMESTAMP,
+            DATETIME,
+            DATE,
+            TIME,
+            DECIMAL,
+            BIGINT,
+            INTEGER,
+            BOOLEAN,
+        ]
+
+        for sql_type in precedence_order:
+            for obj in sql_type_array:
+                if isinstance(obj, sql_type):
+                    return obj
+        return VARCHAR()
 
     def create_empty_table(
         self,

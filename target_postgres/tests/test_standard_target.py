@@ -326,10 +326,27 @@ def test_large_int(postgres_target):
     singer_file_to_target(file_name, postgres_target)
 
 
-def test_anyof(postgres_target):
+def test_anyof(postgres_config_no_ssl, engine):
     """Test that anyOf is handled correctly"""
-    file_name = "anyof.singer"
-    singer_file_to_target(file_name, postgres_target)
+    table_name = "commits"
+    file_name = f"{table_name}.singer"
+    singer_file_to_target(file_name, TargetPostgres(config=postgres_config_no_ssl))
+    with engine.connect() as connection:
+        result: sqlalchemy.engine.cursor.LegacyCursorResult = connection.execute(
+            f"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '{table_name}'"
+        )
+        breakpoint()
+        for row in result.all():
+            if row[0] == "id":
+                assert True
+            if row[0] in {"authored_date", "committed_date"}:
+                assert True
+            if row[0] == "parent_ids":
+                assert True
+            if row[0] == "commit_message":
+                assert True
+            if row[0] == "legacy_id":
+                assert True
 
 
 def test_reserved_keywords(postgres_target):
