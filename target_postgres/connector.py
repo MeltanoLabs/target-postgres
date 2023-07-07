@@ -177,7 +177,7 @@ class PostgresConnector(SQLConnector):
 
     @staticmethod
     def pick_individual_type(jsonschema_type: dict):
-        """Selects the correct sql type assuming jsonschema_type has only a single type.
+        """Select the correct sql type assuming jsonschema_type has only a single type.
 
         Args:
             jsonschema_type: A jsonschema_type array containing only a single type.
@@ -199,7 +199,7 @@ class PostgresConnector(SQLConnector):
 
     @staticmethod
     def pick_best_sql_type(sql_type_array: list):
-        """Selects the best SQL type from an array of instances of SQL type classes.
+        """Select the best SQL type from an array of instances of SQL type classes.
 
         Args:
             sql_type_array: The array of instances of SQL type classes.

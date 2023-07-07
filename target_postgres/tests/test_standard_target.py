@@ -335,7 +335,6 @@ def test_anyof(postgres_config_no_ssl, engine):
         result: sqlalchemy.engine.cursor.LegacyCursorResult = connection.execute(
             f"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '{table_name}'"
         )
-        breakpoint()
         for row in result.all():
             # {"type":"string"}
             if row[0] == "id":
