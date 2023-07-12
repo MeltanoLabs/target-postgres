@@ -10,7 +10,9 @@ import jsonschema
 import pytest
 import sqlalchemy
 from singer_sdk.testing import sync_end_to_end
-from sqlalchemy import create_engine, engine_from_config
+from sqlalchemy import create_engine
+from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.types import TIMESTAMP, VARCHAR
 
 from target_postgres.connector import PostgresConnector
 from target_postgres.target import TargetPostgres
@@ -326,39 +328,40 @@ def test_large_int(postgres_target):
     singer_file_to_target(file_name, postgres_target)
 
 
-def test_anyof(postgres_config_no_ssl, engine):
+def test_anyof(postgres_config, engine):
     """Test that anyOf is handled correctly"""
     table_name = "commits"
     file_name = f"{table_name}.singer"
-    singer_file_to_target(file_name, TargetPostgres(config=postgres_config_no_ssl))
+    schema = postgres_config["default_target_schema"]
+    singer_file_to_target(file_name, TargetPostgres(config=postgres_config))
     with engine.connect() as connection:
-        result: sqlalchemy.engine.cursor.LegacyCursorResult = connection.execute(
-            f"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '{table_name}'"
-        )
-        for row in result.all():
+        meta = sqlalchemy.MetaData(bind=connection)
+        table = sqlalchemy.Table(f"commits", meta, schema=schema, autoload=True)
+        for column in table.c:
             # {"type":"string"}
-            if row[0] == "id":
-                assert row[1] == "character varying"
+            if column.name == "id":
+                assert isinstance(column.type, VARCHAR)
 
             # Any of nullable date-time.
+            # Note that postgres timestamp is equivalent to jsonschema date-time.
             # {"anyOf":[{"type":"string","format":"date-time"},{"type":"null"}]}
-            if row[0] in {"authored_date", "committed_date"}:
-                assert row[1] == "timestamp without timezone"
+            if column.name in {"authored_date", "committed_date"}:
+                assert isinstance(column.type, TIMESTAMP)
 
             # Any of nullable array of strings or single string.
             # {"anyOf":[{"type":"array","items":{"type":["null","string"]}},{"type":"string"},{"type":"null"}]}
-            if row[0] == "parent_ids":
-                assert row[1] == "ARRAY"
+            if column.name == "parent_ids":
+                assert isinstance(column.type, ARRAY)
 
             # Any of nullable string.
             # {"anyOf":[{"type":"string"},{"type":"null"}]}
-            if row[0] == "commit_message":
-                assert row[1] == "character varying"
+            if column.name == "commit_message":
+                assert isinstance(column.type, VARCHAR)
 
             # Any of nullable string or integer.
             # {"anyOf":[{"type":"string"},{"type":"integer"},{"type":"null"}]}
-            if row[0] == "legacy_id":
-                assert row[1] == "character varying"
+            if column.name == "legacy_id":
+                assert isinstance(column.type, VARCHAR)
 
 
 def test_reserved_keywords(postgres_target):
