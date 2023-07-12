@@ -1,9 +1,13 @@
 """Connector class for target."""
 from __future__ import annotations
 
+import atexit
+import io
+import signal
 from os import chmod, path
 from typing import cast
 
+import paramiko
 import sqlalchemy
 from singer_sdk import SQLConnector
 from singer_sdk import typing as th
@@ -19,6 +23,8 @@ from sqlalchemy.types import (
     TIMESTAMP,
     VARCHAR,
 )
+from sqlalchemy.engine.url import make_url
+from sshtunnel import SSHTunnelForwarder
 
 
 class PostgresConnector(SQLConnector):
@@ -29,6 +35,43 @@ class PostgresConnector(SQLConnector):
     allow_column_alter: bool = False  # Whether altering column types is supported.
     allow_merge_upsert: bool = True  # Whether MERGE UPSERT is supported.
     allow_temp_tables: bool = True  # Whether temp tables are supported.
+
+    def __init__(self, config: dict | None = None) -> None:
+        """Initialize a connector to a Postgres database.
+
+        Args:
+            config: Configuration for the connector. Defaults to None.
+        """
+        url: URL = make_url(self.get_sqlalchemy_url(config=config))
+        ssh_config = config.get("ssh_tunnel", {})
+        self.ssh_tunnel = None
+
+        if ssh_config.get("enable", False):
+            # Return a new URL with SSH tunnel parameters
+            self.ssh_tunnel: SSHTunnelForwarder = SSHTunnelForwarder(
+                ssh_address_or_host=(ssh_config["host"], ssh_config["port"]),
+                ssh_username=ssh_config["username"],
+                ssh_private_key=self.guess_key_type(ssh_config["private_key"]),
+                ssh_private_key_password=ssh_config.get("private_key_password"),
+                remote_bind_address=(url.host, url.port),
+            )
+            self.ssh_tunnel.start()
+            # On program exit clean up, want to also catch signals
+            atexit.register(self.clean_up)
+            signal.signal(signal.SIGTERM, self.catch_signal)
+            # Probably overkill to catch SIGINT, but needed for SIGTERM
+            signal.signal(signal.SIGINT, self.catch_signal)
+
+            # Swap the URL to use the tunnel
+            url = url.set(
+                host=self.ssh_tunnel.local_bind_host,
+                port=self.ssh_tunnel.local_bind_port,
+            )
+
+        super().__init__(
+            config,
+            sqlalchemy_url=url.render_as_string(hide_password=False),
+        )
 
     def prepare_table(
         self,
@@ -79,27 +122,6 @@ class PostgresConnector(SQLConnector):
             A newly created SQLAlchemy engine object.
         """
         return self.create_sqlalchemy_engine().connect()
-
-    def get_sqlalchemy_url(self, config: dict) -> str:
-        """Generate a SQLAlchemy URL.
-
-        Args:
-            config: The configuration for the connector.
-        """
-        if config.get("sqlalchemy_url"):
-            return cast(str, config["sqlalchemy_url"])
-
-        else:
-            sqlalchemy_url = URL.create(
-                drivername=config["dialect+driver"],
-                username=config["user"],
-                password=config["password"],
-                host=config["host"],
-                port=config["port"],
-                database=config["database"],
-                query=self.get_sqlalchemy_query(config),
-            )
-            return cast(str, sqlalchemy_url)
 
     def drop_table(self, table: sqlalchemy.Table):
         """Drop table data."""
@@ -308,6 +330,27 @@ class PostgresConnector(SQLConnector):
             },
         )
 
+    def get_sqlalchemy_url(self, config: dict) -> str:
+        """Generate a SQLAlchemy URL.
+
+        Args:
+            config: The configuration for the connector.
+        """
+        if config.get("sqlalchemy_url"):
+            return cast(str, config["sqlalchemy_url"])
+
+        else:
+            sqlalchemy_url = URL.create(
+                drivername=config["dialect+driver"],
+                username=config["user"],
+                password=config["password"],
+                host=config["host"],
+                port=config["port"],
+                database=config["database"],
+                query=self.get_sqlalchemy_query(config),
+            )
+            return cast(str, sqlalchemy_url)
+
     def get_sqlalchemy_query(self, config: dict) -> dict:
         """Get query values to be used for sqlalchemy URL creation.
 
@@ -374,3 +417,48 @@ class PostgresConnector(SQLConnector):
             if restrict_permissions:
                 chmod(alternative_name, 0o600)
             return alternative_name
+
+    def guess_key_type(self, key_data: str) -> paramiko.PKey:
+        """Guess the type of the private key.
+
+        We are duplicating some logic from the ssh_tunnel package here,
+        we could try to use their function instead.
+
+        Args:
+            key_data: The private key data to guess the type of.
+
+        Returns:
+            The private key object.
+
+        Raises:
+            ValueError: If the key type could not be determined.
+        """
+        for key_class in (
+            paramiko.RSAKey,
+            paramiko.DSSKey,
+            paramiko.ECDSAKey,
+            paramiko.Ed25519Key,
+        ):
+            try:
+                key = key_class.from_private_key(io.StringIO(key_data))  # type: ignore[attr-defined]  # noqa: E501
+            except paramiko.SSHException:
+                continue
+            else:
+                return key
+
+        errmsg = "Could not determine the key type."
+        raise ValueError(errmsg)
+
+    def clean_up(self) -> None:
+        """Stop the SSH Tunnel."""
+        if self.ssh_tunnel is not None:
+            self.ssh_tunnel.stop()
+
+    def catch_signal(self, signum, frame) -> None:
+        """Catch signals and exit cleanly.
+
+        Args:
+            signum: The signal number
+            frame: The current stack frame
+        """
+        exit(1)  # Calling this to be sure atexit is called, so clean_up gets called
