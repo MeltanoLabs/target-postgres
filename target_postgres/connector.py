@@ -13,6 +13,7 @@ from singer_sdk import SQLConnector
 from singer_sdk import typing as th
 from sqlalchemy.dialects.postgresql import ARRAY, BIGINT, JSONB
 from sqlalchemy.engine import URL
+from sqlalchemy.engine.url import make_url
 from sqlalchemy.types import (
     BOOLEAN,
     DATE,
@@ -23,7 +24,6 @@ from sqlalchemy.types import (
     TIMESTAMP,
     VARCHAR,
 )
-from sqlalchemy.engine.url import make_url
 from sshtunnel import SSHTunnelForwarder
 
 
