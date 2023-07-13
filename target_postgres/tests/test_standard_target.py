@@ -342,15 +342,15 @@ def test_large_int(postgres_target):
     singer_file_to_target(file_name, postgres_target)
 
 
-def test_anyof(postgres_config, engine):
+def test_anyof(postgres_config_no_ssl, engine):
     """Test that anyOf is handled correctly"""
     table_name = "commits"
     file_name = f"{table_name}.singer"
-    schema = postgres_config["default_target_schema"]
-    singer_file_to_target(file_name, TargetPostgres(config=postgres_config))
+    schema = postgres_config_no_ssl["default_target_schema"]
+    singer_file_to_target(file_name, TargetPostgres(config=postgres_config_no_ssl))
     with engine.connect() as connection:
         meta = sqlalchemy.MetaData(bind=connection)
-        table = sqlalchemy.Table(f"commits", meta, schema=schema, autoload=True)
+        table = sqlalchemy.Table("commits", meta, schema=schema, autoload=True)
         for column in table.c:
             # {"type":"string"}
             if column.name == "id":
