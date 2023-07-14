@@ -10,7 +10,9 @@ import jsonschema
 import pytest
 import sqlalchemy
 from singer_sdk.testing import sync_end_to_end
-from sqlalchemy import create_engine, engine_from_config
+from sqlalchemy import create_engine
+from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.types import TIMESTAMP, VARCHAR
 
 from target_postgres.connector import PostgresConnector
 from target_postgres.target import TargetPostgres
@@ -338,6 +340,42 @@ def test_missing_value(postgres_target):
 def test_large_int(postgres_target):
     file_name = "large_int.singer"
     singer_file_to_target(file_name, postgres_target)
+
+
+def test_anyof(postgres_config_no_ssl, engine):
+    """Test that anyOf is handled correctly"""
+    table_name = "commits"
+    file_name = f"{table_name}.singer"
+    schema = postgres_config_no_ssl["default_target_schema"]
+    singer_file_to_target(file_name, TargetPostgres(config=postgres_config_no_ssl))
+    with engine.connect() as connection:
+        meta = sqlalchemy.MetaData(bind=connection)
+        table = sqlalchemy.Table("commits", meta, schema=schema, autoload=True)
+        for column in table.c:
+            # {"type":"string"}
+            if column.name == "id":
+                assert isinstance(column.type, VARCHAR)
+
+            # Any of nullable date-time.
+            # Note that postgres timestamp is equivalent to jsonschema date-time.
+            # {"anyOf":[{"type":"string","format":"date-time"},{"type":"null"}]}
+            if column.name in {"authored_date", "committed_date"}:
+                assert isinstance(column.type, TIMESTAMP)
+
+            # Any of nullable array of strings or single string.
+            # {"anyOf":[{"type":"array","items":{"type":["null","string"]}},{"type":"string"},{"type":"null"}]}
+            if column.name == "parent_ids":
+                assert isinstance(column.type, ARRAY)
+
+            # Any of nullable string.
+            # {"anyOf":[{"type":"string"},{"type":"null"}]}
+            if column.name == "commit_message":
+                assert isinstance(column.type, VARCHAR)
+
+            # Any of nullable string or integer.
+            # {"anyOf":[{"type":"string"},{"type":"integer"},{"type":"null"}]}
+            if column.name == "legacy_id":
+                assert isinstance(column.type, VARCHAR)
 
 
 def test_new_array_column(postgres_target):
