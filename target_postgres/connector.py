@@ -11,7 +11,7 @@ from singer_sdk import SQLConnector
 from singer_sdk import typing as th
 from sqlalchemy.dialects.postgresql import ARRAY, BIGINT, JSONB
 from sqlalchemy.engine import URL
-from sqlalchemy.types import TIME, TIMESTAMP
+from sqlalchemy.types import TIMESTAMP
 
 
 class PostgresConnector(SQLConnector):
