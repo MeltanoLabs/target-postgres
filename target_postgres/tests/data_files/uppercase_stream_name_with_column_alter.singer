@@ -1,0 +1,6 @@
+{"type": "SCHEMA", "stream": "Uppercase_stream_name_with_column_alter", "schema": {"type": "object", "properties": { "Id": {"type": "string"}, "clientNumber": {"type": "string"} }}, "key_properties": ["Id"]}
+{"type": "RECORD", "stream": "Uppercase_stream_name_with_column_alter", "record": {"Id": "1", "clientNumber": "Gitter Windows Desktop App"}}
+{"type": "RECORD", "stream": "Uppercase_stream_name_with_column_alter", "record": {"Id": "2", "clientNumber": "Gitter iOS App"}}
+{"type": "SCHEMA", "stream": "Uppercase_stream_name_with_column_alter", "schema": {"type": "object", "properties": { "Id": {"type": "string"}, "clientNumber": {"type": "integer"} }}, "key_properties": ["Id"]}
+{"type": "RECORD", "stream": "Uppercase_stream_name_with_column_alter", "record": {"Id": "1", "clientNumber": 1}}
+{"type": "RECORD", "stream": "Uppercase_stream_name_with_column_alter", "record": {"Id": "2", "clientNumber": 2}}

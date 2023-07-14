@@ -10,7 +10,9 @@ import jsonschema
 import pytest
 import sqlalchemy
 from singer_sdk.testing import sync_end_to_end
-from sqlalchemy import create_engine, engine_from_config
+from sqlalchemy import create_engine
+from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.types import TIMESTAMP, VARCHAR
 
 from target_postgres.connector import PostgresConnector
 from target_postgres.target import TargetPostgres
@@ -53,6 +55,20 @@ def postgres_config_no_ssl():
         "add_record_metadata": True,
         "hard_delete": False,
         "default_target_schema": "melty",
+    }
+
+
+@pytest.fixture(scope="session")
+def postgres_config_ssh_tunnel():
+    return {
+        "sqlalchemy_url": "postgresql://postgres:postgres@10.5.0.5:5432/main",
+        "ssh_tunnel": {
+            "enable": True,
+            "host": "127.0.0.1",
+            "port": 2223,
+            "username": "melty",
+            "private_key": "-----BEGIN OPENSSH PRIVATE KEY-----\n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\n-----END OPENSSH PRIVATE KEY-----",  # noqa: E501
+        },
     }
 
 
@@ -133,7 +149,7 @@ def test_port_default_config():
     target_config = TargetPostgres(config=config).config
     connector = PostgresConnector(target_config)
 
-    engine: sqlalchemy.engine.Engine = connector.create_sqlalchemy_engine()
+    engine: sqlalchemy.engine.Engine = connector._engine
     assert (
         str(engine.url)
         == f"{dialect_driver}://{user}:{password}@{host}:5432/{database}"
@@ -158,7 +174,7 @@ def test_port_config():
     target_config = TargetPostgres(config=config).config
     connector = PostgresConnector(target_config)
 
-    engine: sqlalchemy.engine.Engine = connector.create_sqlalchemy_engine()
+    engine: sqlalchemy.engine.Engine = connector._engine
     assert (
         str(engine.url)
         == f"{dialect_driver}://{user}:{password}@{host}:5433/{database}"
@@ -326,12 +342,40 @@ def test_large_int(postgres_target):
     singer_file_to_target(file_name, postgres_target)
 
 
-def test_reserved_keywords(postgres_target):
-    """Postgres has a number of resereved keywords listed here https://www.postgresql.org/docs/current/sql-keywords-appendix.html.
+def test_anyof(postgres_config_no_ssl, engine):
+    """Test that anyOf is handled correctly"""
+    table_name = "commits"
+    file_name = f"{table_name}.singer"
+    schema = postgres_config_no_ssl["default_target_schema"]
+    singer_file_to_target(file_name, TargetPostgres(config=postgres_config_no_ssl))
+    with engine.connect() as connection:
+        meta = sqlalchemy.MetaData(bind=connection)
+        table = sqlalchemy.Table("commits", meta, schema=schema, autoload=True)
+        for column in table.c:
+            # {"type":"string"}
+            if column.name == "id":
+                assert isinstance(column.type, VARCHAR)
 
-    The target should work regradless of the column names"""
-    file_name = "reserved_keywords.singer"
-    singer_file_to_target(file_name, postgres_target)
+            # Any of nullable date-time.
+            # Note that postgres timestamp is equivalent to jsonschema date-time.
+            # {"anyOf":[{"type":"string","format":"date-time"},{"type":"null"}]}
+            if column.name in {"authored_date", "committed_date"}:
+                assert isinstance(column.type, TIMESTAMP)
+
+            # Any of nullable array of strings or single string.
+            # {"anyOf":[{"type":"array","items":{"type":["null","string"]}},{"type":"string"},{"type":"null"}]}
+            if column.name == "parent_ids":
+                assert isinstance(column.type, ARRAY)
+
+            # Any of nullable string.
+            # {"anyOf":[{"type":"string"},{"type":"null"}]}
+            if column.name == "commit_message":
+                assert isinstance(column.type, VARCHAR)
+
+            # Any of nullable string or integer.
+            # {"anyOf":[{"type":"string"},{"type":"integer"},{"type":"null"}]}
+            if column.name == "legacy_id":
+                assert isinstance(column.type, VARCHAR)
 
 
 def test_new_array_column(postgres_target):
@@ -437,6 +481,21 @@ def test_activate_version_deletes_data_properly(postgres_config_no_ssl, engine):
     with engine.connect() as connection:
         result = connection.execute(f"SELECT * FROM {full_table_name}")
         assert result.rowcount == 0
+
+
+def test_reserved_keywords(postgres_target):
+    """Target should work regardless of column names
+
+    Postgres has a number of resereved keywords listed here https://www.postgresql.org/docs/current/sql-keywords-appendix.html.
+    """
+    file_name = "reserved_keywords.singer"
+    singer_file_to_target(file_name, postgres_target)
+
+
+def test_uppercase_stream_name_with_column_alter(postgres_target):
+    """Column Alters need to work with uppercase stream names"""
+    file_name = "uppercase_stream_name_with_column_alter.singer"
+    singer_file_to_target(file_name, postgres_target)
 
 
 def test_postgres_ssl_no_config(postgres_config_no_ssl):
@@ -559,4 +618,12 @@ def test_postgres_ssl_prefer(postgres_config):
     postgres_config_modified["ssl_mode"] = "prefer"
 
     target = TargetPostgres(config=postgres_config_modified)
+    sync_end_to_end(tap, target)
+
+
+def test_postgres_ssh_tunnel(postgres_config_ssh_tunnel):
+    """Test that using an ssh tunnel is successful."""
+    tap = SampleTapCountries(config={}, state=None)
+
+    target = TargetPostgres(config=postgres_config_ssh_tunnel)
     sync_end_to_end(tap, target)

@@ -1,15 +1,32 @@
-"""Connector class for target."""
+"""Handles Postgres interactions."""
 from __future__ import annotations
 
+import atexit
+import io
+import signal
+import typing as t
+from contextlib import contextmanager
 from os import chmod, path
 from typing import cast
 
+import paramiko
 import sqlalchemy
 from singer_sdk import SQLConnector
 from singer_sdk import typing as th
 from sqlalchemy.dialects.postgresql import ARRAY, BIGINT, JSONB
 from sqlalchemy.engine import URL
-from sqlalchemy.types import TIMESTAMP
+from sqlalchemy.engine.url import make_url
+from sqlalchemy.types import (
+    BOOLEAN,
+    DATE,
+    DATETIME,
+    DECIMAL,
+    INTEGER,
+    TIME,
+    TIMESTAMP,
+    VARCHAR,
+)
+from sshtunnel import SSHTunnelForwarder
 
 
 class PostgresConnector(SQLConnector):
@@ -21,11 +38,49 @@ class PostgresConnector(SQLConnector):
     allow_merge_upsert: bool = True  # Whether MERGE UPSERT is supported.
     allow_temp_tables: bool = True  # Whether temp tables are supported.
 
+    def __init__(self, config: dict | None = None) -> None:
+        """Initialize a connector to a Postgres database.
+
+        Args:
+            config: Configuration for the connector. Defaults to None.
+        """
+        url: URL = make_url(self.get_sqlalchemy_url(config=config))
+        ssh_config = config.get("ssh_tunnel", {})
+        self.ssh_tunnel = None
+
+        if ssh_config.get("enable", False):
+            # Return a new URL with SSH tunnel parameters
+            self.ssh_tunnel: SSHTunnelForwarder = SSHTunnelForwarder(
+                ssh_address_or_host=(ssh_config["host"], ssh_config["port"]),
+                ssh_username=ssh_config["username"],
+                ssh_private_key=self.guess_key_type(ssh_config["private_key"]),
+                ssh_private_key_password=ssh_config.get("private_key_password"),
+                remote_bind_address=(url.host, url.port),
+            )
+            self.ssh_tunnel.start()
+            # On program exit clean up, want to also catch signals
+            atexit.register(self.clean_up)
+            signal.signal(signal.SIGTERM, self.catch_signal)
+            # Probably overkill to catch SIGINT, but needed for SIGTERM
+            signal.signal(signal.SIGINT, self.catch_signal)
+
+            # Swap the URL to use the tunnel
+            url = url.set(
+                host=self.ssh_tunnel.local_bind_host,
+                port=self.ssh_tunnel.local_bind_port,
+            )
+
+        super().__init__(
+            config,
+            sqlalchemy_url=url.render_as_string(hide_password=False),
+        )
+
     def prepare_table(
         self,
         full_table_name: str,
         schema: dict,
         primary_keys: list[str],
+        connection: sqlalchemy.engine.Connection,
         partition_keys: list[str] | None = None,
         as_temp_table: bool = False,
     ) -> sqlalchemy.Table:
@@ -39,7 +94,8 @@ class PostgresConnector(SQLConnector):
             as_temp_table: True to create a temp table.
         """
         _, schema_name, table_name = self.parse_full_table_name(full_table_name)
-        meta = sqlalchemy.MetaData(bind=self._engine, schema=schema_name)
+        meta = sqlalchemy.MetaData(bind=connection, schema=schema_name)
+        table: sqlalchemy.Table = None
         if not self.table_exists(full_table_name=full_table_name):
             table = self.create_empty_table(
                 table_name=table_name,
@@ -48,20 +104,61 @@ class PostgresConnector(SQLConnector):
                 primary_keys=primary_keys,
                 partition_keys=partition_keys,
                 as_temp_table=as_temp_table,
+                connection=connection,
             )
             return table
+        meta.reflect(only=[table_name])
+        table = meta.tables[
+            full_table_name
+        ]  # So we don't mess up the casing of the Table reference
         for property_name, property_def in schema["properties"].items():
             self.prepare_column(
-                full_table_name, property_name, self.to_sql_type(property_def)
+                schema_name=schema_name,
+                table=table,
+                column_name=property_name,
+                sql_type=self.to_sql_type(property_def),
+                connection=connection,
             )
-        meta.reflect(only=[table_name])
 
         return meta.tables[full_table_name]
+
+    def copy_table_structure(
+        self,
+        full_table_name: str,
+        from_table: sqlalchemy.Table,
+        connection: sqlalchemy.engine.Connection,
+        as_temp_table: bool = False,
+    ) -> sqlalchemy.Table:
+        """Copy table structure.
+
+        Args:
+            full_table_name: the target table name potentially including schema
+            fromtable: the  source table
+            as_temp_table: True to create a temp table.
+        """
+        _, schema_name, table_name = self.parse_full_table_name(full_table_name)
+        meta = sqlalchemy.MetaData(bind=connection, schema=schema_name)
+        new_table: sqlalchemy.Table = None
+        columns = []
+        if self.table_exists(full_table_name=full_table_name):
+            raise RuntimeError("Table already exists")
+        for column in from_table.columns:
+            columns.append(column._copy())
+        if as_temp_table:
+            new_table = sqlalchemy.Table(
+                table_name, meta, *columns, prefixes=["TEMPORARY"]
+            )
+            new_table.create(bind=connection)
+            return new_table
+        else:
+            new_table = sqlalchemy.Table(table_name, meta, *columns)
+            new_table.create(bind=connection)
+            return new_table
 
     def create_sqlalchemy_connection(self) -> sqlalchemy.engine.Connection:
         """Return a new SQLAlchemy connection using the provided config.
 
-        Read more details about why this doesn't work on postgres here.
+        Read more details about why server side cursors don't work on postgres here.
         DML/DDL doesn't work with this being on according to these docs
 
         https://docs.sqlalchemy.org/en/14/core/connections.html#using-server-side-cursors-a-k-a-stream-results
@@ -71,30 +168,16 @@ class PostgresConnector(SQLConnector):
         """
         return self.create_sqlalchemy_engine().connect()
 
-    def get_sqlalchemy_url(self, config: dict) -> str:
-        """Generate a SQLAlchemy URL.
+    @contextmanager
+    def _connect(self) -> t.Iterator[sqlalchemy.engine.Connection]:
+        with self._engine.connect().execution_options() as conn:
+            yield conn
 
-        Args:
-            config: The configuration for the connector.
-        """
-        if config.get("sqlalchemy_url"):
-            return cast(str, config["sqlalchemy_url"])
-
-        else:
-            sqlalchemy_url = URL.create(
-                drivername=config["dialect+driver"],
-                username=config["user"],
-                password=config["password"],
-                host=config["host"],
-                port=config["port"],
-                database=config["database"],
-                query=self.get_sqlalchemy_query(config),
-            )
-            return cast(str, sqlalchemy_url)
-
-    def drop_table(self, table: sqlalchemy.Table):
+    def drop_table(
+        self, table: sqlalchemy.Table, connection: sqlalchemy.engine.Connection
+    ):
         """Drop table data."""
-        table.drop(bind=self.connection)
+        table.drop(bind=connection)
 
     def clone_table(
         self, new_table_name, table, metadata, connection, temp_table
@@ -114,7 +197,8 @@ class PostgresConnector(SQLConnector):
             )
         else:
             new_table = sqlalchemy.Table(new_table_name, metadata, *new_columns)
-        new_table.create(bind=connection)
+        with self._connect() as connection:
+            new_table.create(bind=connection)
         return new_table
 
     @staticmethod
@@ -134,6 +218,50 @@ class PostgresConnector(SQLConnector):
         Returns:
             The SQLAlchemy type representation of the data type.
         """
+        json_type_array = []
+
+        if jsonschema_type.get("type", False):
+            if type(jsonschema_type["type"]) is str:
+                json_type_array.append(jsonschema_type)
+            elif type(jsonschema_type["type"]) is list:
+                for entry in jsonschema_type["type"]:
+                    json_type_dict = {}
+                    json_type_dict["type"] = entry
+                    if jsonschema_type.get("format", False):
+                        json_type_dict["format"] = jsonschema_type["format"]
+                    json_type_array.append(json_type_dict)
+            else:
+                msg = "Invalid format for jsonschema type: not str or list."
+                raise RuntimeError(msg)
+        elif jsonschema_type.get("anyOf", False):
+            for entry in jsonschema_type["anyOf"]:
+                json_type_array.append(entry)
+        else:
+            msg = "Neither type nor anyOf are present. Unable to determine type."
+            raise RuntimeError(msg)
+
+        sql_type_array = []
+        for json_type in json_type_array:
+            picked_type = PostgresConnector.pick_individual_type(
+                jsonschema_type=json_type
+            )
+            if picked_type is not None:
+                sql_type_array.append(picked_type)
+
+        return PostgresConnector.pick_best_sql_type(sql_type_array=sql_type_array)
+
+    @staticmethod
+    def pick_individual_type(jsonschema_type: dict):
+        """Select the correct sql type assuming jsonschema_type has only a single type.
+
+        Args:
+            jsonschema_type: A jsonschema_type array containing only a single type.
+
+        Returns:
+            An instance of the appropriate SQL type class based on jsonschema_type.
+        """
+        if "null" in jsonschema_type["type"]:
+            return None
         if "integer" in jsonschema_type["type"]:
             return BIGINT()
         if "object" in jsonschema_type["type"]:
@@ -144,11 +272,42 @@ class PostgresConnector(SQLConnector):
             return TIMESTAMP()
         return th.to_sql_type(jsonschema_type)
 
+    @staticmethod
+    def pick_best_sql_type(sql_type_array: list):
+        """Select the best SQL type from an array of instances of SQL type classes.
+
+        Args:
+            sql_type_array: The array of instances of SQL type classes.
+
+        Returns:
+            An instance of the best SQL type class based on defined precedence order.
+        """
+        precedence_order = [
+            ARRAY,
+            JSONB,
+            VARCHAR,
+            TIMESTAMP,
+            DATETIME,
+            DATE,
+            TIME,
+            DECIMAL,
+            BIGINT,
+            INTEGER,
+            BOOLEAN,
+        ]
+
+        for sql_type in precedence_order:
+            for obj in sql_type_array:
+                if isinstance(obj, sql_type):
+                    return obj
+        return VARCHAR()
+
     def create_empty_table(
         self,
         table_name: str,
         meta: sqlalchemy.MetaData,
         schema: dict,
+        connection: sqlalchemy.engine.Connection,
         primary_keys: list[str] | None = None,
         partition_keys: list[str] | None = None,
         as_temp_table: bool = False,
@@ -189,25 +348,91 @@ class PostgresConnector(SQLConnector):
             new_table = sqlalchemy.Table(
                 table_name, meta, *columns, prefixes=["TEMPORARY"]
             )
-            new_table.create(bind=self.connection)
+            new_table.create(bind=connection)
             return new_table
 
         new_table = sqlalchemy.Table(table_name, meta, *columns)
-        new_table.create(bind=self.connection)
+        new_table.create(bind=connection)
         return new_table
+
+    def prepare_column(
+        self,
+        schema_name: str,
+        table: sqlalchemy.Table,
+        column_name: str,
+        sql_type: sqlalchemy.types.TypeEngine,
+        connection: sqlalchemy.engine.Connection,
+    ) -> None:
+        """Adapt target table to provided schema if possible.
+
+        Args:
+            full_table_name: the target table name.
+            column_name: the target column name.
+            sql_type: the SQLAlchemy type.
+            schema_name: the schema name.
+        """
+        if not self.column_exists(table.fullname, column_name):
+            self._create_empty_column(
+                # We should migrate every function to use sqlalchemy.Table
+                # instead of having to know what the function wants
+                table_name=table.name,
+                column_name=column_name,
+                sql_type=sql_type,
+                schema_name=schema_name,
+                connection=connection,
+            )
+            return
+
+        self._adapt_column_type(
+            schema_name=schema_name,
+            table_name=table.name,
+            column_name=column_name,
+            sql_type=sql_type,
+            connection=connection,
+        )
+
+    def _create_empty_column(
+        self,
+        schema_name: str,
+        table_name: str,
+        column_name: str,
+        sql_type: sqlalchemy.types.TypeEngine,
+        connection: sqlalchemy.engine.Connection,
+    ) -> None:
+        """Create a new column.
+
+        Args:
+            full_table_name: The target table name.
+            column_name: The name of the new column.
+            sql_type: SQLAlchemy type engine to be used in creating the new column.
+
+        Raises:
+            NotImplementedError: if adding columns is not supported.
+        """
+        if not self.allow_column_add:
+            msg = "Adding columns is not supported."
+            raise NotImplementedError(msg)
+
+        column_add_ddl = self.get_column_add_ddl(
+            schema_name=schema_name,
+            table_name=table_name,
+            column_name=column_name,
+            column_type=sql_type,
+        )
+        connection.execute(column_add_ddl)
 
     def get_column_add_ddl(
         self,
         table_name: str,
+        schema_name: str,
         column_name: str,
         column_type: sqlalchemy.types.TypeEngine,
     ) -> sqlalchemy.DDL:
         """Get the create column DDL statement.
 
-        Override this if your database uses a different syntax for creating columns.
-
         Args:
             table_name: Fully qualified table name of column to alter.
+            schema_name: Schema name.
             column_name: Column name to create.
             column_type: New column sqlalchemy type.
 
@@ -217,13 +442,132 @@ class PostgresConnector(SQLConnector):
         column = sqlalchemy.Column(column_name, column_type)
 
         return sqlalchemy.DDL(
-            "ALTER TABLE %(table_name)s ADD COLUMN %(column_name)s %(column_type)s",
+            (
+                'ALTER TABLE "%(schema_name)s"."%(table_name)s"'
+                "ADD COLUMN %(column_name)s %(column_type)s"
+            ),
             {
+                "schema_name": schema_name,
                 "table_name": table_name,
                 "column_name": column.compile(dialect=self._engine.dialect),
                 "column_type": column.type.compile(dialect=self._engine.dialect),
             },
         )
+
+    def _adapt_column_type(
+        self,
+        schema_name: str,
+        table_name: str,
+        column_name: str,
+        sql_type: sqlalchemy.types.TypeEngine,
+        connection: sqlalchemy.engine.Connection,
+    ) -> None:
+        """Adapt table column type to support the new JSON schema type.
+
+        Args:
+            full_table_name: The target table name.
+            column_name: The target column name.
+            sql_type: The new SQLAlchemy type.
+
+        Raises:
+            NotImplementedError: if altering columns is not supported.
+        """
+        current_type: sqlalchemy.types.TypeEngine = self._get_column_type(
+            schema_name=schema_name,
+            table_name=table_name,
+            column_name=column_name,
+        )
+
+        # remove collation if present and save it
+        current_type_collation = self.remove_collation(current_type)
+
+        # Check if the existing column type and the sql type are the same
+        if str(sql_type) == str(current_type):
+            # The current column and sql type are the same
+            # Nothing to do
+            return
+
+        # Not the same type, generic type or compatible types
+        # calling merge_sql_types for assistnace
+        compatible_sql_type = self.merge_sql_types([current_type, sql_type])
+
+        if str(compatible_sql_type) == str(current_type):
+            # Nothing to do
+            return
+
+        # Put the collation level back before altering the column
+        if current_type_collation:
+            self.update_collation(compatible_sql_type, current_type_collation)
+
+        if not self.allow_column_alter:
+            msg = (
+                "Altering columns is not supported. Could not convert column "
+                f"'{schema_name}.{table_name}.{column_name}' from '{current_type}' to "
+                f"'{compatible_sql_type}'."
+            )
+            raise NotImplementedError(msg)
+
+        alter_column_ddl = self.get_column_alter_ddl(
+            schema_name=schema_name,
+            table_name=table_name,
+            column_name=column_name,
+            column_type=compatible_sql_type,
+        )
+        connection.execute(alter_column_ddl)
+
+    def get_column_alter_ddl(
+        self,
+        schema_name: str,
+        table_name: str,
+        column_name: str,
+        column_type: sqlalchemy.types.TypeEngine,
+    ) -> sqlalchemy.DDL:
+        """Get the alter column DDL statement.
+
+        Override this if your database uses a different syntax for altering columns.
+
+        Args:
+            table_name: Fully qualified table name of column to alter.
+            column_name: Column name to alter.
+            column_type: New column type string.
+
+        Returns:
+            A sqlalchemy DDL instance.
+        """
+        column = sqlalchemy.Column(column_name, column_type)
+        return sqlalchemy.DDL(
+            (
+                'ALTER TABLE "%(schema_name)s"."%(table_name)s"'
+                "ALTER COLUMN %(column_name)s %(column_type)s"
+            ),
+            {
+                "schema_name": schema_name,
+                "table_name": table_name,
+                "column_name": column.compile(dialect=self._engine.dialect),
+                "column_type": column.type.compile(dialect=self._engine.dialect),
+            },
+        )
+
+    def get_sqlalchemy_url(self, config: dict) -> str:
+        """Generate a SQLAlchemy URL.
+
+        Args:
+            config: The configuration for the connector.
+        """
+        if config.get("sqlalchemy_url"):
+            return cast(str, config["sqlalchemy_url"])
+
+        else:
+            sqlalchemy_url = URL.create(
+                drivername=config["dialect+driver"],
+                username=config["user"],
+                password=config["password"],
+                host=config["host"],
+                port=config["port"],
+                database=config["database"],
+                query=self.get_sqlalchemy_query(config),
+            )
+            return cast(str, sqlalchemy_url)
 
     def get_sqlalchemy_query(self, config: dict) -> dict:
         """Get query values to be used for sqlalchemy URL creation.
@@ -291,3 +635,129 @@ class PostgresConnector(SQLConnector):
             if restrict_permissions:
                 chmod(alternative_name, 0o600)
             return alternative_name
+
+    def guess_key_type(self, key_data: str) -> paramiko.PKey:
+        """Guess the type of the private key.
+
+        We are duplicating some logic from the ssh_tunnel package here,
+        we could try to use their function instead.
+
+        Args:
+            key_data: The private key data to guess the type of.
+
+        Returns:
+            The private key object.
+
+        Raises:
+            ValueError: If the key type could not be determined.
+        """
+        for key_class in (
+            paramiko.RSAKey,
+            paramiko.DSSKey,
+            paramiko.ECDSAKey,
+            paramiko.Ed25519Key,
+        ):
+            try:
+                key = key_class.from_private_key(io.StringIO(key_data))  # type: ignore[attr-defined]  # noqa: E501
+            except paramiko.SSHException:
+                continue
+            else:
+                return key
+
+        errmsg = "Could not determine the key type."
+        raise ValueError(errmsg)
+
+    def clean_up(self) -> None:
+        """Stop the SSH Tunnel."""
+        if self.ssh_tunnel is not None:
+            self.ssh_tunnel.stop()
+
+    def catch_signal(self, signum, frame) -> None:
+        """Catch signals and exit cleanly.
+
+        Args:
+            signum: The signal number
+            frame: The current stack frame
+        """
+        exit(1)  # Calling this to be sure atexit is called, so clean_up gets called
+
+    def _get_column_type(
+        self,
+        schema_name: str,
+        table_name: str,
+        column_name: str,
+    ) -> sqlalchemy.types.TypeEngine:
+        """Get the SQL type of the declared column.
+
+        Args:
+            full_table_name: The name of the table.
+            column_name: The name of the column.
+
+        Returns:
+            The type of the column.
+
+        Raises:
+            KeyError: If the provided column name does not exist.
+        """
+        try:
+            column = self.get_table_columns(
+                schema_name=schema_name,
+                table_name=table_name,
+            )[column_name]
+        except KeyError as ex:
+            msg = (
+                f"Column `{column_name}` does not exist in table"
+                "`{schema_name}.{table_name}`."
+            )
+            raise KeyError(msg) from ex
+
+        return t.cast(sqlalchemy.types.TypeEngine, column.type)
+
+    def get_table_columns(
+        self,
+        schema_name: str,
+        table_name: str,
+        column_names: list[str] | None = None,
+    ) -> dict[str, sqlalchemy.Column]:
+        """Return a list of table columns.
+
+        Overrode to support schema_name
+
+        Args:
+            schema_name: schema name.
+            table_name: table name to get columns for.
+            column_names: A list of column names to filter to.
+
+        Returns:
+            An ordered list of column objects.
+        """
+        inspector = sqlalchemy.inspect(self._engine)
+        columns = inspector.get_columns(table_name, schema_name)
+
+        return {
+            col_meta["name"]: sqlalchemy.Column(
+                col_meta["name"],
+                col_meta["type"],
+                nullable=col_meta.get("nullable", False),
+            )
+            for col_meta in columns
+            if not column_names
+            or col_meta["name"].casefold() in {col.casefold() for col in column_names}
+        }
+
+    def column_exists(self, full_table_name: str, column_name: str) -> bool:
+        """Determine if the target column already exists.
+
+        Args:
+            full_table_name: the target table name.
+            column_name: the target column name.
+
+        Returns:
+            True if table exists, False if not.
+        """
+        _, schema_name, table_name = self.parse_full_table_name(full_table_name)
+        assert schema_name is not None
+        assert table_name is not None
+        return column_name in self.get_table_columns(
+            schema_name=schema_name, table_name=table_name
+        )
