@@ -46,12 +46,14 @@ class PostgresSink(SQLSink):
             self.append_only = False
         if self.schema_name:
             self.connector.prepare_schema(self.schema_name)
-        self.connector.prepare_table(
-            full_table_name=self.full_table_name,
-            schema=self.schema,
-            primary_keys=self.key_properties,
-            as_temp_table=False,
-        )
+        with self.connector._connect() as connection:
+            self.connector.prepare_table(
+                full_table_name=self.full_table_name,
+                schema=self.schema,
+                primary_keys=self.key_properties,
+                connection=connection,
+                as_temp_table=False,
+            )
 
     def process_batch(self, context: dict) -> None:
         """Process a batch with the given batch context.
@@ -62,36 +64,41 @@ class PostgresSink(SQLSink):
         Args:
             context: Stream partition or context dictionary.
         """
-        # First we need to be sure the main table is already created
-        table: sqlalchemy.Table = self.connector.prepare_table(
-            full_table_name=self.full_table_name,
-            schema=self.schema,
-            primary_keys=self.key_properties,
-            as_temp_table=False,
-        )
-        # Create a temp table (Creates from the table above)
-        temp_table: sqlalchemy.Table = self.connector.prepare_table(
-            full_table_name=self.temp_table_name,
-            schema=self.schema,
-            primary_keys=self.key_properties,
-            as_temp_table=True,
-        )
-        # Insert into temp table
-        self.bulk_insert_records(
-            table=temp_table,
-            schema=self.schema,
-            primary_keys=self.key_properties,
-            records=context["records"],
-        )
-        # Merge data from Temp table to main table
-        self.upsert(
-            from_table=temp_table,
-            to_table=table,
-            schema=self.schema,
-            join_keys=self.key_properties,
-        )
-        # Drop temp table
-        self.connector.drop_table(temp_table)
+        # Use one connection so we do this all in a single transaction
+        with self.connector._connect() as connection:
+            # Check structure of table
+            table: sqlalchemy.Table = self.connector.prepare_table(
+                full_table_name=self.full_table_name,
+                schema=self.schema,
+                primary_keys=self.key_properties,
+                as_temp_table=False,
+                connection=connection,
+            )
+            # Create a temp table (Creates from the table above)
+            temp_table: sqlalchemy.Table = self.connector.copy_table_structure(
+                full_table_name=self.temp_table_name,
+                from_table=table,
+                as_temp_table=True,
+                connection=connection,
+            )
+            # Insert into temp table
+            self.bulk_insert_records(
+                table=temp_table,
+                schema=self.schema,
+                primary_keys=self.key_properties,
+                records=context["records"],
+                connection=connection,
+            )
+            # Merge data from Temp table to main table
+            self.upsert(
+                from_table=temp_table,
+                to_table=table,
+                schema=self.schema,
+                join_keys=self.key_properties,
+                connection=connection,
+            )
+            # Drop temp table
+            self.connector.drop_table(table=temp_table, connection=connection)
 
     def generate_temp_table_name(self):
         """Uuid temp table name."""
@@ -108,6 +115,7 @@ class PostgresSink(SQLSink):
         schema: dict,
         records: Iterable[Dict[str, Any]],
         primary_keys: List[str],
+        connection: sqlalchemy.engine.Connection,
     ) -> Optional[int]:
         """Bulk insert records to an existing destination table.
 
@@ -158,7 +166,7 @@ class PostgresSink(SQLSink):
                 for column in columns:
                     insert_record[column.name] = record.get(column.name)
                 data_to_insert.append(insert_record)
-        self.connector.connection.execute(insert, data_to_insert)
+        connection.execute(insert, data_to_insert)
         return True
 
     def upsert(
@@ -167,6 +175,7 @@ class PostgresSink(SQLSink):
         to_table: sqlalchemy.Table,
         schema: dict,
         join_keys: List[Column],
+        connection: sqlalchemy.engine.Connection,
     ) -> Optional[int]:
         """Merge upsert data from one table to another.
 
@@ -187,7 +196,7 @@ class PostgresSink(SQLSink):
             insert_stmt = to_table.insert().from_select(
                 names=from_table.columns, select=select_stmt
             )
-            self.connection.execute(insert_stmt)
+            connection.execute(insert_stmt)
         else:
             join_predicates = []
             for key in join_keys:
@@ -211,7 +220,8 @@ class PostgresSink(SQLSink):
             insert_stmt = insert(to_table).from_select(
                 names=from_table.columns, select=select_stmt
             )
-            self.connection.execute(insert_stmt)
+
+            connection.execute(insert_stmt)
 
             # Update
             where_condition = join_condition
@@ -224,7 +234,9 @@ class PostgresSink(SQLSink):
             update_stmt = (
                 update(from_table).where(where_condition).values(update_columns)
             )
-            self.connection.execute(update_stmt)
+            connection.execute(update_stmt)
+
+        return None
 
     def column_representation(
         self,
@@ -355,4 +367,5 @@ class PostgresSink(SQLSink):
             bindparam("deletedate", value=deleted_at, type_=datetime_type),
             bindparam("version", value=new_version, type_=integer_type),
         )
-        self.connector.connection.execute(query)
+        with self.connector._connect() as connection:
+            connection.execute(query)
