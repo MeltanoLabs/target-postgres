@@ -377,6 +377,7 @@ def test_anyof(postgres_config_no_ssl, engine):
             if column.name == "legacy_id":
                 assert isinstance(column.type, VARCHAR)
 
+
 def test_new_array_column(postgres_target):
     """Create a new Array column with an existing table"""
     file_name = "new_array_column.singer"
