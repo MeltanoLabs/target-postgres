@@ -1,4 +1,5 @@
 """Postgres target sink class, which handles writing streams."""
+
 import uuid
 from typing import Any, Dict, Iterable, List, Optional, Union
 
@@ -17,19 +18,11 @@ class PostgresSink(SQLSink):
 
     connector_class = PostgresConnector
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, target, *args, **kwargs):
         """Initialize SQL Sink. See super class for more details."""
-        super().__init__(*args, **kwargs)
+        connector = PostgresConnector(config=dict(target.config))
+        super().__init__(target=target, connector=connector, *args, **kwargs)
         self.temp_table_name = self.generate_temp_table_name()
-
-    @property
-    def connector(self) -> PostgresConnector:
-        """The connector object.
-
-        Returns:
-            The connector object.
-        """
-        return self._connector
 
     @property
     def append_only(self) -> bool:
@@ -205,10 +198,6 @@ class PostgresSink(SQLSink):
             )
             connection.execute(insert_stmt)
         else:
-            # Insert
-            where_condition = " and ".join(
-                [f'target."{key}" is null' for key in join_keys]
-            )
             join_predicates = []
             for key in join_keys:
                 from_table_key: sqlalchemy.Column = from_table.columns[key]
