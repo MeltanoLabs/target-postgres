@@ -4,9 +4,6 @@ Target for Postgres.
 
 Built with the [Meltano SDK](https://sdk.meltano.com) for Singer Taps and Targets.
 
-# Limitations
-1. Target is not working with Empty key properties. See https://github.com/MeltanoLabs/target-postgres/issues/54
-
 ## Capabilities
 
 * `about`
