@@ -1,0 +1,10 @@
+{"type": "SCHEMA", "stream": "Account", "schema": {"type": "object", "properties": {"Code": {"type": ["string"]}, "Name": {"type": ["null", "string"]}}}, "key_properties": ["Code"], "bookmark_properties": []}
+{"type": "ACTIVATE_VERSION", "stream": "Account", "version": 1674486431563}
+{"type": "RECORD", "stream": "Account", "record": {"Code": "AF", "Name": "Africa"}, "version": 1674486431563, "time_extracted": "2023-01-23T15:07:11.563063Z"}
+{"type": "RECORD", "stream": "Account", "record": {"Code": "AN", "Name": "Antarctica"}, "version": 1674486431563, "time_extracted": "2023-01-23T15:07:11.563063Z"}
+{"type": "RECORD", "stream": "Account", "record": {"Code": "AS", "Name": "Asia"}, "version": 1674486431563, "time_extracted": "2023-01-23T15:07:11.563063Z"}
+{"type": "RECORD", "stream": "Account", "record": {"Code": "EU", "Name": "Europe"}, "version": 1674486431563, "time_extracted": "2023-01-23T15:07:11.563063Z"}
+{"type": "RECORD", "stream": "Account", "record": {"Code": "NA", "Name": "North America"}, "version": 1674486431563, "time_extracted": "2023-01-23T15:07:11.563063Z"}
+{"type": "RECORD", "stream": "Account", "record": {"Code": "OC", "Name": "Oceania"}, "version": 1674486431563, "time_extracted": "2023-01-23T15:07:11.563063Z"}
+{"type": "RECORD", "stream": "Account", "record": {"Code": "SA", "Name": "South America"}, "version": 1674486431563, "time_extracted": "2023-01-23T15:07:11.563063Z"}
+{"type": "ACTIVATE_VERSION", "stream": "Account", "version": 1674486431563}
