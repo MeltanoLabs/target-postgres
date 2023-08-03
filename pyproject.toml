@@ -2,8 +2,8 @@
 name = "meltanolabs-target-postgres"
 version = "0.0.0"
 description = "`target-postgres` is a Singer target for Postgres, built with the Meltano SDK for Singer Targets."
-authors = ["Meltano Team and Contributors"]
-maintainers = ["Meltano Team and Contributors"]
+authors = ["Meltano Team and Contributors <hello@meltano.com>"]
+maintainers = ["Meltano Team and Contributors <hello@meltano.com>"]
 license = "MIT"
 readme = "README.md"
 homepage = "https://meltano.com"
@@ -35,6 +35,7 @@ python = "<3.12,>=3.7.1"
 requests = "^2.25.1"
 singer-sdk = "^0.28.0"
 psycopg2-binary = "2.9.6"
+sqlalchemy = "<2"
 sshtunnel = "0.4.0"
 
 [tool.poetry.dev-dependencies]
@@ -60,7 +61,7 @@ build-backend = "poetry_dynamic_versioning.backend"
 # CLI declaration
 target-postgres = 'target_postgres.target:TargetPostgres.cli'
 
-[pytest]
+[tool.pytest.ini_options]
 pythonpath = [
   "."
 ]
