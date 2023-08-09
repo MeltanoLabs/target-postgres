@@ -217,7 +217,7 @@ def test_record_missing_key_property(postgres_target):
     with pytest.raises(Exception) as e:
         file_name = "record_missing_key_property.singer"
         singer_file_to_target(file_name, postgres_target)
-    assert "Primary key not found in record." in str(e.value)
+    assert "Record is missing one or more key_properties." in str(e.value)
 
 
 def test_record_missing_required_property(postgres_target):
