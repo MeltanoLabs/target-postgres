@@ -338,7 +338,7 @@ class PostgresSink(SQLSink):
         self.logger.info("Hard delete: %s", self.config.get("hard_delete"))
         if self.config["hard_delete"] is True:
             self.connection.execute(
-                f"DELETE FROM {self.full_table_name} "
+                f'DELETE FROM "{self.schema_name}"."{self.table_name}" '
                 f"WHERE {self.version_column_name} <= {new_version} "
                 f"OR {self.version_column_name} IS NULL"
             )
@@ -355,7 +355,7 @@ class PostgresSink(SQLSink):
             )
         # Need to deal with the case where data doesn't exist for the version column
         query = sqlalchemy.text(
-            f"UPDATE {self.full_table_name}\n"
+            f'UPDATE "{self.schema_name}"."{self.table_name}"\n'
             f"SET {self.soft_delete_column_name} = :deletedate \n"
             f"WHERE {self.version_column_name} < :version "
             f"OR {self.version_column_name} IS NULL \n"

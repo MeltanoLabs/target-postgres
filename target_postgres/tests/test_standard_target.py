@@ -575,6 +575,15 @@ def test_uppercase_stream_name_with_column_alter(postgres_target):
     singer_file_to_target(file_name, postgres_target)
 
 
+def test_activate_version_uppercase_stream_name(postgres_config_no_ssl):
+    """Activate Version should work with uppercase stream names"""
+    file_name = "test_activate_version_uppercase_stream_name.singer"
+    postgres_config_hard_delete = copy.deepcopy(postgres_config_no_ssl)
+    postgres_config_hard_delete["hard_delete"] = True
+    pg_hard_delete = TargetPostgres(config=postgres_config_hard_delete)
+    singer_file_to_target(file_name, pg_hard_delete)
+
+
 def test_postgres_ssl_no_config(postgres_config_no_ssl):
     """Test that connection will fail when no SSL configuration options are provided.
 
