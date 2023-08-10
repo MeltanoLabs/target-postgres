@@ -341,10 +341,8 @@ def test_relational_data(postgres_target, engine):
         ]
 
         full_table_name = f"{schema_name}.test_user_in_location"
-        result = connection.execute(
-            f"SELECT id, user_id, location_id, info FROM {full_table_name} ORDER BY id"
-        )
-        result_dict = [row._asdict() for row in result.all()]
+        result = connection.execute(f"SELECT * FROM {full_table_name} ORDER BY id")
+        result_dict = [remove_metadata_columns(row._asdict()) for row in result.all()]
         assert result_dict == expected_test_user_in_location
 
 
