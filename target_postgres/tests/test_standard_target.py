@@ -29,7 +29,7 @@ def postgres_config():
         "user": "postgres",
         "password": "postgres",
         "database": "postgres",
-        "port": 5432,
+        "port": 5433,
         "ssl_enable": True,
         "ssl_client_certificate_enable": True,
         "ssl_mode": "verify-full",
@@ -72,8 +72,8 @@ def postgres_config_ssh_tunnel():
 
 
 @pytest.fixture
-def postgres_target(postgres_config_no_ssl) -> TargetPostgres:
-    return TargetPostgres(config=postgres_config_no_ssl)
+def postgres_target(postgres_config) -> TargetPostgres:
+    return TargetPostgres(config=postgres_config)
 
 
 def create_engine(target_postgres: TargetPostgres) -> sqlalchemy.engine.Engine:
