@@ -10,7 +10,6 @@ import jsonschema
 import pytest
 import sqlalchemy
 from singer_sdk.testing import sync_end_to_end
-from sqlalchemy import create_engine
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.types import TIMESTAMP, VARCHAR
 
@@ -51,7 +50,7 @@ def postgres_config_no_ssl():
         "user": "postgres",
         "password": "postgres",
         "database": "postgres",
-        "port": 5433,
+        "port": 5432,
         "add_record_metadata": True,
         "hard_delete": False,
         "default_target_schema": "melty",
@@ -73,18 +72,14 @@ def postgres_config_ssh_tunnel():
 
 
 @pytest.fixture
-def postgres_target(postgres_config) -> TargetPostgres:
-    return TargetPostgres(config=postgres_config)
+def postgres_target(postgres_config_no_ssl) -> TargetPostgres:
+    return TargetPostgres(config=postgres_config_no_ssl)
 
 
-@pytest.fixture
-def engine(postgres_config_no_ssl) -> sqlalchemy.engine.Engine:
-    return create_engine(
-        f"{(postgres_config_no_ssl)['dialect+driver']}://"
-        f"{(postgres_config_no_ssl)['user']}:{(postgres_config_no_ssl)['password']}@"
-        f"{(postgres_config_no_ssl)['host']}:{(postgres_config_no_ssl)['port']}/"
-        f"{(postgres_config_no_ssl)['database']}"
-    )
+def create_engine(target_postgres: TargetPostgres) -> sqlalchemy.engine.Engine:
+    return TargetPostgres.default_sink_class.connector_class(
+        config=target_postgres.config
+    )._engine
 
 
 def singer_file_to_target(file_name, target) -> None:
@@ -268,7 +263,8 @@ def test_multiple_state_messages(postgres_target):
     singer_file_to_target(file_name, postgres_target)
 
 
-def test_relational_data(postgres_target, engine):
+def test_relational_data(postgres_target):
+    engine = create_engine(postgres_target)
     file_name = "user_location_data.singer"
     singer_file_to_target(file_name, postgres_target)
 
@@ -346,10 +342,10 @@ def test_relational_data(postgres_target, engine):
         assert result_dict == expected_test_user_in_location
 
 
-def test_no_primary_keys(postgres_config_no_ssl, engine):
+def test_no_primary_keys(postgres_target):
     """We run both of these tests twice just to ensure that no records are removed and append only works properly"""
+    engine = create_engine(postgres_target)
     table_name = "test_no_pk"
-    postgres_target = TargetPostgres(config=postgres_config_no_ssl)
     full_table_name = postgres_target.config["default_target_schema"] + "." + table_name
     with engine.connect() as connection:
         result = connection.execute(f"DROP TABLE IF EXISTS {full_table_name}")
@@ -419,12 +415,13 @@ def test_large_int(postgres_target):
     singer_file_to_target(file_name, postgres_target)
 
 
-def test_anyof(postgres_config_no_ssl, engine):
+def test_anyof(postgres_target):
     """Test that anyOf is handled correctly"""
+    engine = create_engine(postgres_target)
     table_name = "commits"
     file_name = f"{table_name}.singer"
-    schema = postgres_config_no_ssl["default_target_schema"]
-    singer_file_to_target(file_name, TargetPostgres(config=postgres_config_no_ssl))
+    schema = postgres_target.config["default_target_schema"]
+    singer_file_to_target(file_name, postgres_target)
     with engine.connect() as connection:
         meta = sqlalchemy.MetaData(bind=connection)
         table = sqlalchemy.Table("commits", meta, schema=schema, autoload=True)
@@ -461,7 +458,7 @@ def test_new_array_column(postgres_target):
     singer_file_to_target(file_name, postgres_target)
 
 
-def test_activate_version_hard_delete(postgres_config_no_ssl, engine):
+def test_activate_version_hard_delete(postgres_config_no_ssl):
     """Activate Version Hard Delete Test"""
     table_name = "test_activate_version_hard"
     file_name = f"{table_name}.singer"
@@ -469,6 +466,7 @@ def test_activate_version_hard_delete(postgres_config_no_ssl, engine):
     postgres_config_hard_delete_true = copy.deepcopy(postgres_config_no_ssl)
     postgres_config_hard_delete_true["hard_delete"] = True
     pg_hard_delete_true = TargetPostgres(config=postgres_config_hard_delete_true)
+    engine = create_engine(pg_hard_delete_true)
     singer_file_to_target(file_name, pg_hard_delete_true)
     with engine.connect() as connection:
         result = connection.execute(f"SELECT * FROM {full_table_name}")
@@ -491,14 +489,15 @@ def test_activate_version_hard_delete(postgres_config_no_ssl, engine):
         assert result.rowcount == 7
 
 
-def test_activate_version_soft_delete(postgres_config_no_ssl, engine):
+def test_activate_version_soft_delete(postgres_target):
     """Activate Version Soft Delete Test"""
+    engine = create_engine(postgres_target)
     table_name = "test_activate_version_soft"
     file_name = f"{table_name}.singer"
-    full_table_name = postgres_config_no_ssl["default_target_schema"] + "." + table_name
+    full_table_name = postgres_target.config["default_target_schema"] + "." + table_name
     with engine.connect() as connection:
         result = connection.execute(f"DROP TABLE IF EXISTS {full_table_name}")
-    postgres_config_soft_delete = copy.deepcopy(postgres_config_no_ssl)
+    postgres_config_soft_delete = copy.deepcopy(postgres_target._config)
     postgres_config_soft_delete["hard_delete"] = False
     pg_soft_delete = TargetPostgres(config=postgres_config_soft_delete)
     singer_file_to_target(file_name, pg_soft_delete)
@@ -529,15 +528,16 @@ def test_activate_version_soft_delete(postgres_config_no_ssl, engine):
         assert result.rowcount == 2
 
 
-def test_activate_version_deletes_data_properly(postgres_config_no_ssl, engine):
+def test_activate_version_deletes_data_properly(postgres_target):
     """Activate Version should"""
+    engine = create_engine(postgres_target)
     table_name = "test_activate_version_deletes_data_properly"
     file_name = f"{table_name}.singer"
-    full_table_name = postgres_config_no_ssl["default_target_schema"] + "." + table_name
+    full_table_name = postgres_target.config["default_target_schema"] + "." + table_name
     with engine.connect() as connection:
         result = connection.execute(f"DROP TABLE IF EXISTS {full_table_name}")
 
-    postgres_config_soft_delete = copy.deepcopy(postgres_config_no_ssl)
+    postgres_config_soft_delete = copy.deepcopy(postgres_target._config)
     postgres_config_soft_delete["hard_delete"] = True
     pg_hard_delete = TargetPostgres(config=postgres_config_soft_delete)
     singer_file_to_target(file_name, pg_hard_delete)
