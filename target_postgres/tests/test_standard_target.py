@@ -112,6 +112,14 @@ def singer_file_to_target(file_name, target) -> None:
 # TODO should set schemas for each tap individually so we don't collide
 
 
+def remove_metadata_columns(row: dict) -> dict:
+    new_row = {}
+    for column in row.keys():
+        if not column.startswith("_sdc"):
+            new_row[column] = row[column]
+    return new_row
+
+
 def test_sqlalchemy_url_config(postgres_config_no_ssl):
     """Be sure that passing a sqlalchemy_url works
 
@@ -260,13 +268,84 @@ def test_multiple_state_messages(postgres_target):
     singer_file_to_target(file_name, postgres_target)
 
 
-# TODO test that data is correct
-def test_relational_data(postgres_target):
+def test_relational_data(postgres_target, engine):
     file_name = "user_location_data.singer"
     singer_file_to_target(file_name, postgres_target)
 
     file_name = "user_location_upsert_data.singer"
     singer_file_to_target(file_name, postgres_target)
+
+    schema_name = postgres_target.config["default_target_schema"]
+
+    with engine.connect() as connection:
+        expected_test_users = [
+            {"id": 1, "name": "Johny"},
+            {"id": 2, "name": "George"},
+            {"id": 3, "name": "Jacob"},
+            {"id": 4, "name": "Josh"},
+            {"id": 5, "name": "Jim"},
+            {"id": 8, "name": "Thomas"},
+            {"id": 12, "name": "Paul"},
+            {"id": 13, "name": "Mary"},
+        ]
+
+        full_table_name = f"{schema_name}.test_users"
+        result = connection.execute(f"SELECT * FROM {full_table_name} ORDER BY id")
+        result_dict = [remove_metadata_columns(row._asdict()) for row in result.all()]
+        assert result_dict == expected_test_users
+
+        expected_test_locations = [
+            {"id": 1, "name": "Philly"},
+            {"id": 2, "name": "NY"},
+            {"id": 3, "name": "San Francisco"},
+            {"id": 6, "name": "Colorado"},
+            {"id": 8, "name": "Boston"},
+        ]
+
+        full_table_name = f"{schema_name}.test_locations"
+        result = connection.execute(f"SELECT * FROM {full_table_name} ORDER BY id")
+        result_dict = [remove_metadata_columns(row._asdict()) for row in result.all()]
+        assert result_dict == expected_test_locations
+
+        expected_test_user_in_location = [
+            {
+                "id": 1,
+                "user_id": 1,
+                "location_id": 4,
+                "info": {"weather": "rainy", "mood": "sad"},
+            },
+            {
+                "id": 2,
+                "user_id": 2,
+                "location_id": 3,
+                "info": {"weather": "sunny", "mood": "satisfied"},
+            },
+            {
+                "id": 3,
+                "user_id": 1,
+                "location_id": 3,
+                "info": {"weather": "sunny", "mood": "happy"},
+            },
+            {
+                "id": 6,
+                "user_id": 3,
+                "location_id": 2,
+                "info": {"weather": "sunny", "mood": "happy"},
+            },
+            {
+                "id": 14,
+                "user_id": 4,
+                "location_id": 1,
+                "info": {"weather": "cloudy", "mood": "ok"},
+            },
+        ]
+
+        full_table_name = f"{schema_name}.test_user_in_location"
+        result = connection.execute(
+            f"SELECT id, user_id, location_id, info FROM {full_table_name} ORDER BY id"
+        )
+        result_dict = [row._asdict() for row in result.all()]
+        assert result_dict == expected_test_user_in_location
 
 
 def test_no_primary_keys(postgres_config_no_ssl, engine):
