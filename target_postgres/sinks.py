@@ -229,11 +229,9 @@ class PostgresSink(SQLSink):
             for column_name in self.schema["properties"].keys():
                 from_table_column: sqlalchemy.Column = from_table.columns[column_name]
                 to_table_column: sqlalchemy.Column = to_table.columns[column_name]
-                update_columns[from_table_column] = to_table_column
+                update_columns[to_table_column] = from_table_column
 
-            update_stmt = (
-                update(from_table).where(where_condition).values(update_columns)
-            )
+            update_stmt = update(to_table).where(where_condition).values(update_columns)
             connection.execute(update_stmt)
 
         return None
