@@ -367,6 +367,11 @@ def test_no_primary_keys(postgres_target):
         assert result.rowcount == 16
 
 
+def test_no_type(postgres_target):
+    file_name = "test_no_type.singer"
+    singer_file_to_target(file_name, postgres_target)
+
+
 # TODO test that data is correct
 def test_duplicate_records(postgres_target):
     file_name = "duplicate_records.singer"

@@ -237,9 +237,8 @@ class PostgresConnector(SQLConnector):
             for entry in jsonschema_type["anyOf"]:
                 json_type_array.append(entry)
         else:
-            msg = "Neither type nor anyOf are present. Unable to determine type."
-            raise RuntimeError(msg)
-
+            msg = "Neither type nor anyOf are present. Unable to determine type. Defaulting to string."
+            json_type_array.append({"type": "string"})
         sql_type_array = []
         for json_type in json_type_array:
             picked_type = PostgresConnector.pick_individual_type(
