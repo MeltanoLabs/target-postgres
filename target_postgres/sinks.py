@@ -9,6 +9,7 @@ from singer_sdk.sinks import SQLSink
 from sqlalchemy import Column, MetaData, Table, insert, select, update
 from sqlalchemy.sql import Executable
 from sqlalchemy.sql.expression import bindparam
+from sqlalchemy.types import VARCHAR
 
 from target_postgres.connector import PostgresConnector
 
@@ -147,7 +148,13 @@ class PostgresSink(SQLSink):
                 for record in records:
                     insert_record = {}
                     for column in columns:
-                        insert_record[column.name] = record.get(column.name)
+                        record_val = record.get(column.name)
+                        # handle properties with no type and value is dict
+                        if isinstance(column.type, VARCHAR) and isinstance(
+                            record_val, (dict, list)
+                        ):
+                            record_val = self.connector.serialize_json(record_val)
+                        insert_record[column.name] = record_val
                     primary_key_value = "".join(
                         [str(record[key]) for key in primary_keys]
                     )
@@ -164,7 +171,13 @@ class PostgresSink(SQLSink):
             for record in records:
                 insert_record = {}
                 for column in columns:
-                    insert_record[column.name] = record.get(column.name)
+                    record_val = record.get(column.name)
+                    # handle properties with no type and value is dict
+                    if isinstance(column.type, VARCHAR) and isinstance(
+                        record_val, (dict, list)
+                    ):
+                        record_val = self.connector.serialize_json(record_val)
+                    insert_record[column.name] = record_val
                 data_to_insert.append(insert_record)
         connection.execute(insert, data_to_insert)
         return True
