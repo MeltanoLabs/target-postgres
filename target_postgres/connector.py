@@ -155,19 +155,6 @@ class PostgresConnector(SQLConnector):
             new_table.create(bind=connection)
             return new_table
 
-    def create_sqlalchemy_connection(self) -> sqlalchemy.engine.Connection:
-        """Return a new SQLAlchemy connection using the provided config.
-
-        Read more details about why server side cursors don't work on postgres here.
-        DML/DDL doesn't work with this being on according to these docs
-
-        https://docs.sqlalchemy.org/en/14/core/connections.html#using-server-side-cursors-a-k-a-stream-results
-
-        Returns:
-            A newly created SQLAlchemy engine object.
-        """
-        return self.create_sqlalchemy_engine().connect()
-
     @contextmanager
     def _connect(self) -> t.Iterator[sqlalchemy.engine.Connection]:
         with self._engine.connect().execution_options() as conn:
