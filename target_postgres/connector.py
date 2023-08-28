@@ -10,6 +10,7 @@ from os import chmod, path
 from typing import cast
 
 import paramiko
+import simplejson
 import sqlalchemy
 from singer_sdk import SQLConnector
 from singer_sdk import typing as th
@@ -25,6 +26,7 @@ from sqlalchemy.types import (
     TIME,
     TIMESTAMP,
     VARCHAR,
+    TypeDecorator,
 )
 from sshtunnel import SSHTunnelForwarder
 
@@ -241,7 +243,7 @@ class PostgresConnector(SQLConnector):
                 "Neither type nor anyOf are present. Unable to determine type. "
                 "Defaulting to string."
             )
-            json_type_array.append({"type": "string"})
+            json_type_array.append({"type": "string", "format": "no-type"})
         sql_type_array = []
         for json_type in json_type_array:
             picked_type = PostgresConnector.pick_individual_type(
@@ -272,6 +274,8 @@ class PostgresConnector(SQLConnector):
             return ARRAY(JSONB())
         if jsonschema_type.get("format") == "date-time":
             return TIMESTAMP()
+        if jsonschema_type.get("format") == "no-type":
+            return NOTYPE()
         return th.to_sql_type(jsonschema_type)
 
     @staticmethod
@@ -296,6 +300,7 @@ class PostgresConnector(SQLConnector):
             BIGINT,
             INTEGER,
             BOOLEAN,
+            NOTYPE,
         ]
 
         for sql_type in precedence_order:
@@ -763,3 +768,13 @@ class PostgresConnector(SQLConnector):
         return column_name in self.get_table_columns(
             schema_name=schema_name, table_name=table_name
         )
+
+
+class NOTYPE(TypeDecorator):
+    impl = VARCHAR
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is not None and isinstance(value, (dict, list)):
+            value = simplejson.dumps(value, use_decimal=True)
+        return value
