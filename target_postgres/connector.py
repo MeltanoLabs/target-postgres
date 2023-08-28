@@ -777,6 +777,10 @@ class NOTYPE(TypeDecorator):
     cache_ok = True
 
     def process_bind_param(self, value, dialect):
+        """Returns value as is unless it is dict or list.
+
+        Used internally by SQL Alchemy. Should not be used directly.
+        """
         if value is not None and isinstance(value, (dict, list)):
             value = simplejson.dumps(value, use_decimal=True)
         return value
