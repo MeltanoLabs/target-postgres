@@ -243,7 +243,7 @@ class PostgresConnector(SQLConnector):
                 "Neither type nor anyOf are present. Unable to determine type. "
                 "Defaulting to string."
             )
-            json_type_array.append({"type": "string", "format": "no-type"})
+            return NOTYPE()
         sql_type_array = []
         for json_type in json_type_array:
             picked_type = PostgresConnector.pick_individual_type(
@@ -274,8 +274,6 @@ class PostgresConnector(SQLConnector):
             return ARRAY(JSONB())
         if jsonschema_type.get("format") == "date-time":
             return TIMESTAMP()
-        if jsonschema_type.get("format") == "no-type":
-            return NOTYPE()
         return th.to_sql_type(jsonschema_type)
 
     @staticmethod
