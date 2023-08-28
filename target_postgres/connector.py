@@ -771,6 +771,8 @@ class PostgresConnector(SQLConnector):
 
 
 class NOTYPE(TypeDecorator):
+    """Type to use when none is provided in the schema."""
+
     impl = VARCHAR
     cache_ok = True
 
