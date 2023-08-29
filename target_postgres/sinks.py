@@ -336,12 +336,13 @@ class PostgresSink(SQLSink):
 
         self.logger.info("Hard delete: %s", self.config.get("hard_delete"))
         if self.config["hard_delete"] is True:
-            self.connection.execute(
-                f'DELETE FROM "{self.schema_name}"."{self.table_name}" '
-                f"WHERE {self.version_column_name} <= {new_version} "
-                f"OR {self.version_column_name} IS NULL"
-            )
-            return
+            with self.connector._connect() as connection:
+                connection.execute(
+                    f'DELETE FROM "{self.schema_name}"."{self.table_name}" '
+                    f"WHERE {self.version_column_name} <= {new_version} "
+                    f"OR {self.version_column_name} IS NULL"
+                )
+                return
 
         if not self.connector.column_exists(
             full_table_name=self.full_table_name,
