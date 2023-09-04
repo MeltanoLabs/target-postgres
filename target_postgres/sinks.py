@@ -65,7 +65,7 @@ class PostgresSink(SQLSink):
             context: Stream partition or context dictionary.
         """
         # Use one connection so we do this all in a single transaction
-        with self.connector._connect() as connection:
+        with self.connector._connect() as connection, connection.begin():
             # Check structure of table
             table: sqlalchemy.Table = self.connector.prepare_table(
                 full_table_name=self.full_table_name,
@@ -99,7 +99,6 @@ class PostgresSink(SQLSink):
             )
             # Drop temp table
             self.connector.drop_table(table=temp_table, connection=connection)
-            connection.commit()
 
     def generate_temp_table_name(self):
         """Uuid temp table name."""
