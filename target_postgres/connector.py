@@ -96,7 +96,7 @@ class PostgresConnector(SQLConnector):
             as_temp_table: True to create a temp table.
         """
         _, schema_name, table_name = self.parse_full_table_name(full_table_name)
-        meta = sqlalchemy.MetaData(bind=connection, schema=schema_name)
+        meta = sqlalchemy.MetaData(schema=schema_name)
         table: sqlalchemy.Table = None
         if not self.table_exists(full_table_name=full_table_name):
             table = self.create_empty_table(
@@ -109,7 +109,7 @@ class PostgresConnector(SQLConnector):
                 connection=connection,
             )
             return table
-        meta.reflect(only=[table_name])
+        meta.reflect(connection, only=[table_name])
         table = meta.tables[
             full_table_name
         ]  # So we don't mess up the casing of the Table reference
@@ -139,7 +139,7 @@ class PostgresConnector(SQLConnector):
             as_temp_table: True to create a temp table.
         """
         _, schema_name, table_name = self.parse_full_table_name(full_table_name)
-        meta = sqlalchemy.MetaData(bind=connection, schema=schema_name)
+        meta = sqlalchemy.MetaData(schema=schema_name)
         new_table: sqlalchemy.Table = None
         columns = []
         if self.table_exists(full_table_name=full_table_name):
@@ -199,8 +199,7 @@ class PostgresConnector(SQLConnector):
             )
         else:
             new_table = sqlalchemy.Table(new_table_name, metadata, *new_columns)
-        with self._connect() as connection:
-            new_table.create(bind=connection)
+        new_table.create(bind=connection)
         return new_table
 
     @staticmethod
@@ -425,6 +424,7 @@ class PostgresConnector(SQLConnector):
             column_type=sql_type,
         )
         connection.execute(column_add_ddl)
+        connection.commit()
 
     def get_column_add_ddl(
         self,
@@ -519,6 +519,7 @@ class PostgresConnector(SQLConnector):
             column_type=compatible_sql_type,
         )
         connection.execute(alter_column_ddl)
+        connection.commit()
 
     def get_column_alter_ddl(
         self,

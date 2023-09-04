@@ -99,6 +99,7 @@ class PostgresSink(SQLSink):
             )
             # Drop temp table
             self.connector.drop_table(table=temp_table, connection=connection)
+            connection.commit()
 
     def generate_temp_table_name(self):
         """Uuid temp table name."""
@@ -337,11 +338,14 @@ class PostgresSink(SQLSink):
 
         self.logger.info("Hard delete: %s", self.config.get("hard_delete"))
         if self.config["hard_delete"] is True:
-            self.connection.execute(
-                f'DELETE FROM "{self.schema_name}"."{self.table_name}" '
-                f"WHERE {self.version_column_name} <= {new_version} "
-                f"OR {self.version_column_name} IS NULL"
-            )
+            with self.connector._connect() as connection, connection.begin():
+                connection.execute(
+                    sqlalchemy.text(
+                        f'DELETE FROM "{self.schema_name}"."{self.table_name}" '
+                        f"WHERE {self.version_column_name} <= {new_version} "
+                        f"OR {self.version_column_name} IS NULL"
+                    )
+                )
             return
 
         if not self.connector.column_exists(
@@ -365,5 +369,5 @@ class PostgresSink(SQLSink):
             bindparam("deletedate", value=deleted_at, type_=datetime_type),
             bindparam("version", value=new_version, type_=integer_type),
         )
-        with self.connector._connect() as connection:
+        with self.connector._connect() as connection, connection.begin():
             connection.execute(query)
