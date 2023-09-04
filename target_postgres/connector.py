@@ -375,7 +375,7 @@ class PostgresConnector(SQLConnector):
             sql_type: the SQLAlchemy type.
             schema_name: the schema name.
         """
-        if not self.column_exists(table.fullname, column_name):
+        if not self.column_exists(table.fullname, column_name, connection=connection):
             self._create_empty_column(
                 # We should migrate every function to use sqlalchemy.Table
                 # instead of having to know what the function wants
@@ -424,7 +424,6 @@ class PostgresConnector(SQLConnector):
             column_type=sql_type,
         )
         connection.execute(column_add_ddl)
-        connection.commit()
 
     def get_column_add_ddl(
         self,
@@ -481,6 +480,7 @@ class PostgresConnector(SQLConnector):
             schema_name=schema_name,
             table_name=table_name,
             column_name=column_name,
+            connection=connection,
         )
 
         # remove collation if present and save it
@@ -519,7 +519,6 @@ class PostgresConnector(SQLConnector):
             column_type=compatible_sql_type,
         )
         connection.execute(alter_column_ddl)
-        connection.commit()
 
     def get_column_alter_ddl(
         self,
@@ -692,6 +691,7 @@ class PostgresConnector(SQLConnector):
         schema_name: str,
         table_name: str,
         column_name: str,
+        connection: sqlalchemy.engine.Connection,
     ) -> sqlalchemy.types.TypeEngine:
         """Get the SQL type of the declared column.
 
@@ -709,6 +709,7 @@ class PostgresConnector(SQLConnector):
             column = self.get_table_columns(
                 schema_name=schema_name,
                 table_name=table_name,
+                connection=connection,
             )[column_name]
         except KeyError as ex:
             msg = (
@@ -723,6 +724,7 @@ class PostgresConnector(SQLConnector):
         self,
         schema_name: str,
         table_name: str,
+        connection: sqlalchemy.engine.Connection,
         column_names: list[str] | None = None,
     ) -> dict[str, sqlalchemy.Column]:
         """Return a list of table columns.
@@ -737,7 +739,7 @@ class PostgresConnector(SQLConnector):
         Returns:
             An ordered list of column objects.
         """
-        inspector = sqlalchemy.inspect(self._engine)
+        inspector = sqlalchemy.inspect(connection)
         columns = inspector.get_columns(table_name, schema_name)
 
         return {
@@ -751,7 +753,12 @@ class PostgresConnector(SQLConnector):
             or col_meta["name"].casefold() in {col.casefold() for col in column_names}
         }
 
-    def column_exists(self, full_table_name: str, column_name: str) -> bool:
+    def column_exists(
+        self,
+        full_table_name: str,
+        column_name: str,
+        connection: sqlalchemy.engine.Connection,
+    ) -> bool:
         """Determine if the target column already exists.
 
         Args:
@@ -765,7 +772,7 @@ class PostgresConnector(SQLConnector):
         assert schema_name is not None
         assert table_name is not None
         return column_name in self.get_table_columns(
-            schema_name=schema_name, table_name=table_name
+            schema_name=schema_name, table_name=table_name, connection=connection
         )
 
 
