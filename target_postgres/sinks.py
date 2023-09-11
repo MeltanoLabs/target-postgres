@@ -18,10 +18,9 @@ class PostgresSink(SQLSink):
 
     connector_class = PostgresConnector
 
-    def __init__(self, target, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         """Initialize SQL Sink. See super class for more details."""
-        connector = PostgresConnector(config=dict(target.config))
-        super().__init__(target=target, connector=connector, *args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.temp_table_name = self.generate_temp_table_name()
 
     @property
@@ -337,12 +336,13 @@ class PostgresSink(SQLSink):
 
         self.logger.info("Hard delete: %s", self.config.get("hard_delete"))
         if self.config["hard_delete"] is True:
-            self.connection.execute(
-                f'DELETE FROM "{self.schema_name}"."{self.table_name}" '
-                f"WHERE {self.version_column_name} <= {new_version} "
-                f"OR {self.version_column_name} IS NULL"
-            )
-            return
+            with self.connector._connect() as connection:
+                connection.execute(
+                    f'DELETE FROM "{self.schema_name}"."{self.table_name}" '
+                    f"WHERE {self.version_column_name} <= {new_version} "
+                    f"OR {self.version_column_name} IS NULL"
+                )
+                return
 
         if not self.connector.column_exists(
             full_table_name=self.full_table_name,
