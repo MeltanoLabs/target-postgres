@@ -5,12 +5,12 @@ from pathlib import PurePath
 
 import jsonschema
 from singer_sdk import typing as th
-from singer_sdk.target_base import Target
+from singer_sdk.target_base import SQLTarget
 
 from target_postgres.sinks import PostgresSink
 
 
-class TargetPostgres(Target):
+class TargetPostgres(SQLTarget):
     """Target for Postgres."""
 
     def __init__(
@@ -337,13 +337,3 @@ class TargetPostgres(Target):
                 f"Exception is being thrown for stream_name: {stream_name}"
             )
             raise e
-
-    def _process_schema_message(self, message_dict: dict) -> None:
-        """Process a SCHEMA messages.
-
-        Args:
-            message_dict: The newly received schema message.
-        """
-        self._assert_line_requires(message_dict, requires={"stream", "schema"})
-        self._assert_line_requires(message_dict["schema"], requires={"properties"})
-        super()._process_schema_message(message_dict)

@@ -18,10 +18,9 @@ class PostgresSink(SQLSink):
 
     connector_class = PostgresConnector
 
-    def __init__(self, target, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         """Initialize SQL Sink. See super class for more details."""
-        connector = PostgresConnector(config=dict(target.config))
-        super().__init__(target=target, connector=connector, *args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.temp_table_name = self.generate_temp_table_name()
 
     @property

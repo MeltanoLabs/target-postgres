@@ -5,7 +5,6 @@ smoke-test
 .vscode/**
 output/**
 .env
-plugins/**
 
 # Secrets and internal config files
 .secrets/*
