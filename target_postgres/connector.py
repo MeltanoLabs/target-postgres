@@ -293,6 +293,15 @@ class PostgresConnector(SQLConnector):
                     return obj
         return VARCHAR()
 
+    def create_schema(self, schema_name: str) -> None:
+        """Create target schema.
+
+        Args:
+            schema_name: The target schema to create.
+        """
+        with self._connect() as conn, conn.begin():
+            conn.execute(sqlalchemy.schema.CreateSchema(schema_name))
+
     def create_empty_table(
         self,
         table_name: str,
