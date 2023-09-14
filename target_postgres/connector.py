@@ -49,6 +49,8 @@ class PostgresConnector(SQLConnector):
         url: URL = make_url(self.get_sqlalchemy_url(config=config))
         ssh_config = config.get("ssh_tunnel", {})
         self.ssh_tunnel = None
+        self._table_cols_cache: dict[str, dict[str, sqlalchemy.Column]] = {}
+        self._schema_cache: list = []
 
         if ssh_config.get("enable", False):
             # Return a new URL with SSH tunnel parameters
@@ -705,6 +707,12 @@ class PostgresConnector(SQLConnector):
 
         return t.cast(sqlalchemy.types.TypeEngine, column.type)
 
+    def schema_exists(self, schema_name: str) -> bool:
+        if schema_name not in self._schema_cache:
+            self._schema_cache = sqlalchemy.inspect(self._engine).get_schema_names()
+
+        return schema_name in self._schema_cache
+
     def get_table_columns(
         self,
         schema_name: str,
@@ -723,19 +731,23 @@ class PostgresConnector(SQLConnector):
         Returns:
             An ordered list of column objects.
         """
-        inspector = sqlalchemy.inspect(self._engine)
-        columns = inspector.get_columns(table_name, schema_name)
+        full_table_name = f"{schema_name}.{table_name}"
+        if full_table_name not in self._table_cols_cache:
+            inspector = sqlalchemy.inspect(self._engine)
+            columns = inspector.get_columns(table_name, schema_name)
 
-        return {
-            col_meta["name"]: sqlalchemy.Column(
-                col_meta["name"],
-                col_meta["type"],
-                nullable=col_meta.get("nullable", False),
-            )
-            for col_meta in columns
-            if not column_names
-            or col_meta["name"].casefold() in {col.casefold() for col in column_names}
-        }
+            self._table_cols_cache[full_table_name] = {
+                col_meta["name"]: sqlalchemy.Column(
+                    col_meta["name"],
+                    col_meta["type"],
+                    nullable=col_meta.get("nullable", False),
+                )
+                for col_meta in columns
+                if not column_names
+                or col_meta["name"].casefold() in {col.casefold() for col in column_names}
+            }
+
+        return self._table_cols_cache[full_table_name]
 
     def column_exists(self, full_table_name: str, column_name: str) -> bool:
         """Determine if the target column already exists.
