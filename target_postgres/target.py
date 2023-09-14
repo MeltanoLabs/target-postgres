@@ -306,6 +306,18 @@ class TargetPostgres(SQLTarget):
             required=False,
             description="SSH Tunnel Configuration, this is a json object",
         ),
+        th.Property(
+            "validate_records",
+            th.BooleanType,
+            required=False,
+            default=False,
+            description=(
+                "Validate every single record message to the corresponding JSON schema. "
+                "This option is disabled by default and invalid RECORD messages will fail "
+                "only at load time by the destination system. Enabling this option will detect invalid "
+                "records earlier but could cause performance degradation."
+            ),
+        ),
     ).to_dict()
     default_sink_class = PostgresSink
 
@@ -337,3 +349,6 @@ class TargetPostgres(SQLTarget):
                 f"Exception is being thrown for stream_name: {stream_name}"
             )
             raise e
+
+if __name__ == "__main__":
+    TargetPostgres.cli()

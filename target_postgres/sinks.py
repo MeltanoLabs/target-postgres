@@ -367,3 +367,17 @@ class PostgresSink(SQLSink):
         )
         with self.connector._connect() as connection:
             connection.execute(query)
+
+    def _validate_and_parse(self, record: dict) -> dict:
+        """Validate or repair the record, parsing to python-native types as needed.
+
+        Args:
+            record: Individual record in the stream.
+
+        Returns:
+            TODO
+        """
+        if self.config["validate_records"]:
+            return super()._validate_and_parse(record)
+        else:
+            return record
