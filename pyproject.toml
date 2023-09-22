@@ -124,3 +124,6 @@ sqlalchemy = "sa"
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
+[tool.uv.sources]
+singer-sdk = { git = "https://github.com/meltano/sdk.git" }
