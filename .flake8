@@ -1,2 +1,5 @@
 [flake8]
+ignore = D105,D203,D213,W503
 docstring-convention = google
+max-line-length = 88
+max-complexity = 10

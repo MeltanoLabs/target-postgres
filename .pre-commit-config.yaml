@@ -37,10 +37,7 @@ repos:
   hooks:
   - id: flake8
     additional_dependencies:
-    - darglint==1.8.1
-    - flake8-annotations==2.9.0
     - flake8-docstrings==1.6.0
-    files: 'meltano/edk/.*'
 
 - repo: https://github.com/asottile/pyupgrade
   rev: v3.13.0

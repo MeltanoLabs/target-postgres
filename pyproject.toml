@@ -38,14 +38,9 @@ psycopg2-binary = "2.9.7"
 sqlalchemy = "<2"
 sshtunnel = "0.4.0"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = "^7.4.2"
-tox = "^3.24.4"
-flake8 = "^5.0.4"
-flake8-docstrings = "^1.7.0"
-black = "23.3.0"
 mypy = "^1.0"
-isort = "^5.11.5"
 remote-pdb="2.1.0"
 
 [tool.isort]
