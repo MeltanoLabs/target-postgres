@@ -33,19 +33,14 @@ packages = [
 [tool.poetry.dependencies]
 python = "<3.12,>=3.7.1"
 requests = "^2.25.1"
-singer-sdk = ">=0.28,<0.32"
-psycopg2-binary = "2.9.7"
+singer-sdk = ">=0.28,<0.33"
+psycopg2-binary = "2.9.8"
 sqlalchemy = ">=2.0,<3.0"
 sshtunnel = "0.4.0"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = "^7.4.2"
-tox = "^3.24.4"
-flake8 = "^5.0.4"
-flake8-docstrings = "^1.7.0"
-black = "23.3.0"
 mypy = "^1.0"
-isort = "^5.11.5"
 remote-pdb="2.1.0"
 
 [tool.isort]

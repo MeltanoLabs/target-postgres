@@ -179,10 +179,11 @@ class PostgresSink(SQLSink):
         """Merge upsert data from one table to another.
 
         Args:
-            from_table_name: The source table name.
-            to_table_name: The destination table name.
-            join_keys: The merge upsert keys, or `None` to append.
+            from_table: The source table.
+            to_table: The destination table.
             schema: Singer Schema message.
+            join_keys: The merge upsert keys, or `None` to append.
+            connection: The database connection.
 
         Return:
             The number of records copied, if detectable, or `None` if the API does not

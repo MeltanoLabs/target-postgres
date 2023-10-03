@@ -92,8 +92,12 @@ class PostgresConnector(SQLConnector):
             full_table_name: the target table name.
             schema: the JSON Schema for the table.
             primary_keys: list of key properties.
+            connection: the database connection.
             partition_keys: list of partition keys.
             as_temp_table: True to create a temp table.
+
+        Returns:
+            The table object.
         """
         _, schema_name, table_name = self.parse_full_table_name(full_table_name)
         meta = sqlalchemy.MetaData(schema=schema_name)
@@ -135,8 +139,12 @@ class PostgresConnector(SQLConnector):
 
         Args:
             full_table_name: the target table name potentially including schema
-            fromtable: the  source table
+            from_table: the  source table
+            connection: the database connection.
             as_temp_table: True to create a temp table.
+
+        Returns:
+            The new table object.
         """
         _, schema_name, table_name = self.parse_full_table_name(full_table_name)
         meta = sqlalchemy.MetaData(schema=schema_name)
@@ -366,10 +374,11 @@ class PostgresConnector(SQLConnector):
         """Adapt target table to provided schema if possible.
 
         Args:
-            full_table_name: the target table name.
+            schema_name: the schema name.
+            table: the target table.
             column_name: the target column name.
             sql_type: the SQLAlchemy type.
-            schema_name: the schema name.
+            connection: the database connection.
         """
         if not self.column_exists(table.fullname, column_name, connection=connection):
             self._create_empty_column(
