@@ -358,8 +358,8 @@ class PostgresSink(SQLSink):
         query = sqlalchemy.text(
             f'UPDATE "{self.schema_name}"."{self.table_name}"\n'
             f"SET {self.soft_delete_column_name} = :deletedate \n"
-            f"WHERE {self.version_column_name} < :version "
-            f"OR {self.version_column_name} IS NULL \n"
+            f"WHERE ({self.version_column_name} < :version "
+            f"OR {self.version_column_name} IS NULL) \n"
             f"  AND {self.soft_delete_column_name} IS NULL\n"
         )
         query = query.bindparams(
