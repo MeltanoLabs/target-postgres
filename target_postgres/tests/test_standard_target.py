@@ -9,6 +9,7 @@ from pathlib import Path
 import jsonschema
 import pytest
 import sqlalchemy
+from singer_sdk.exceptions import RecordsWithoutSchemaException
 from singer_sdk.testing import sync_end_to_end
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.types import TIMESTAMP, VARCHAR
@@ -198,7 +199,7 @@ def test_aapl_to_postgres(postgres_config):
 
 
 def test_record_before_schema(postgres_target):
-    with pytest.raises(Exception) as e:
+    with pytest.raises(RecordsWithoutSchemaException) as e:
         file_name = "record_before_schema.singer"
         singer_file_to_target(file_name, postgres_target)
 

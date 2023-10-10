@@ -5,6 +5,7 @@ from pathlib import PurePath
 
 import jsonschema
 from singer_sdk import typing as th
+from singer_sdk.exceptions import RecordsWithoutSchemaException
 from singer_sdk.target_base import SQLTarget
 
 from target_postgres.sinks import PostgresSink
@@ -329,7 +330,9 @@ class TargetPostgres(SQLTarget):
         """
         stream_name = message_dict["stream"]
         if self.mapper.stream_maps.get(stream_name) is None:
-            raise Exception(f"Schema message has not been sent for {stream_name}")
+            raise RecordsWithoutSchemaException(
+                f"Schema message has not been sent for {stream_name}"
+            )
         try:
             super()._process_record_message(message_dict)
         except jsonschema.exceptions.ValidationError as e:
