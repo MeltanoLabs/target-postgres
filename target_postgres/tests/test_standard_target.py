@@ -9,6 +9,7 @@ from pathlib import Path
 import jsonschema
 import pytest
 import sqlalchemy
+from singer_sdk.exceptions import MissingKeyPropertiesError
 from singer_sdk.testing import sync_end_to_end
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.types import TIMESTAMP, VARCHAR
@@ -217,7 +218,7 @@ def test_invalid_schema(postgres_target):
 
 
 def test_record_missing_key_property(postgres_target):
-    with pytest.raises(Exception) as e:
+    with pytest.raises(MissingKeyPropertiesError) as e:
         file_name = "record_missing_key_property.singer"
         singer_file_to_target(file_name, postgres_target)
     assert "Record is missing one or more key_properties." in str(e.value)
