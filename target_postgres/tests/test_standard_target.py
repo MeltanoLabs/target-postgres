@@ -12,7 +12,7 @@ import sqlalchemy
 from singer_sdk.exceptions import MissingKeyPropertiesError
 from singer_sdk.testing import sync_end_to_end
 from sqlalchemy.dialects.postgresql import ARRAY
-from sqlalchemy.types import TIMESTAMP, VARCHAR
+from sqlalchemy.types import TEXT, TIMESTAMP
 
 from target_postgres.connector import PostgresConnector
 from target_postgres.target import TargetPostgres
@@ -434,7 +434,7 @@ def test_anyof(postgres_target):
         for column in table.c:
             # {"type":"string"}
             if column.name == "id":
-                assert isinstance(column.type, VARCHAR)
+                assert isinstance(column.type, TEXT)
 
             # Any of nullable date-time.
             # Note that postgres timestamp is equivalent to jsonschema date-time.
@@ -450,12 +450,12 @@ def test_anyof(postgres_target):
             # Any of nullable string.
             # {"anyOf":[{"type":"string"},{"type":"null"}]}
             if column.name == "commit_message":
-                assert isinstance(column.type, VARCHAR)
+                assert isinstance(column.type, TEXT)
 
             # Any of nullable string or integer.
             # {"anyOf":[{"type":"string"},{"type":"integer"},{"type":"null"}]}
             if column.name == "legacy_id":
-                assert isinstance(column.type, VARCHAR)
+                assert isinstance(column.type, TEXT)
 
 
 def test_new_array_column(postgres_target):
