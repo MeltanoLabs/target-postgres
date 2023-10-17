@@ -1,7 +1,7 @@
 """Postgres target sink class, which handles writing streams."""
 
 import uuid
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Union, cast
 
 import sqlalchemy
 from pendulum import now
@@ -32,6 +32,15 @@ class PostgresSink(SQLSink):
     def append_only(self, value: bool) -> None:
         """Set the append_only attribute."""
         self._append_only = value
+
+    @property
+    def connector(self) -> PostgresConnector:
+        """Return the connector object.
+
+        Returns:
+            The connector object.
+        """
+        return cast(PostgresConnector, self._connector)
 
     def setup(self) -> None:
         """Set up Sink.
@@ -108,7 +117,7 @@ class PostgresSink(SQLSink):
         # in postgres, used a guid just in case we are using the same session
         return f"{str(uuid.uuid4()).replace('-','_')}"
 
-    def bulk_insert_records(
+    def bulk_insert_records(  # type: ignore[override]
         self,
         table: sqlalchemy.Table,
         schema: dict,
@@ -132,9 +141,12 @@ class PostgresSink(SQLSink):
             True if table exists, False if not, None if unsure or undetectable.
         """
         columns = self.column_representation(schema)
-        insert = self.generate_insert_statement(
-            table.name,
-            columns,
+        insert: str = cast(
+            str,
+            self.generate_insert_statement(
+                table.name,
+                columns,
+            ),
         )
         self.logger.info("Inserting with SQL: %s", insert)
         # Only one record per PK, we want to take the last one
@@ -165,7 +177,7 @@ class PostgresSink(SQLSink):
         from_table: sqlalchemy.Table,
         to_table: sqlalchemy.Table,
         schema: dict,
-        join_keys: List[Column],
+        join_keys: List[str],
         connection: sqlalchemy.engine.Connection,
     ) -> Optional[int]:
         """Merge upsert data from one table to another.
@@ -191,16 +203,17 @@ class PostgresSink(SQLSink):
             connection.execute(insert_stmt)
         else:
             join_predicates = []
+            to_table_key: sqlalchemy.Column
             for key in join_keys:
                 from_table_key: sqlalchemy.Column = from_table.columns[key]
-                to_table_key: sqlalchemy.Column = to_table.columns[key]
+                to_table_key = to_table.columns[key]
                 join_predicates.append(from_table_key == to_table_key)
 
             join_condition = sqlalchemy.and_(*join_predicates)
 
             where_predicates = []
             for key in join_keys:
-                to_table_key: sqlalchemy.Column = to_table.columns[key]
+                to_table_key = to_table.columns[key]
                 where_predicates.append(to_table_key.is_(None))
             where_condition = sqlalchemy.and_(*where_predicates)
 
@@ -246,7 +259,7 @@ class PostgresSink(SQLSink):
     def generate_insert_statement(
         self,
         full_table_name: str,
-        columns: List[Column],
+        columns: List[Column],  # type: ignore[override]
     ) -> Union[str, Executable]:
         """Generate an insert statement for the given records.
 
@@ -321,9 +334,9 @@ class PostgresSink(SQLSink):
             full_table_name=self.full_table_name,
             column_name=self.version_column_name,
         ):
-            self.connector.prepare_column(
+            self.connector.prepare_column(  # type: ignore[call-arg]
                 self.full_table_name,
-                self.version_column_name,
+                self.version_column_name,  # type: ignore[arg-type]
                 sql_type=integer_type,
             )
 
@@ -341,9 +354,9 @@ class PostgresSink(SQLSink):
             full_table_name=self.full_table_name,
             column_name=self.soft_delete_column_name,
         ):
-            self.connector.prepare_column(
+            self.connector.prepare_column(  # type: ignore[call-arg]
                 self.full_table_name,
-                self.soft_delete_column_name,
+                self.soft_delete_column_name,  # type: ignore[arg-type]
                 sql_type=datetime_type,
             )
         # Need to deal with the case where data doesn't exist for the version column

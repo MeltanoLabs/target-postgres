@@ -9,7 +9,7 @@ on:
     inputs: {}
 
 jobs:
-  pytest:
+  tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -37,9 +37,12 @@ jobs:
     - name: Install dependencies
       run: |
         poetry install
-    - name: Test with pytest
+    - name: Run pytest
       run: |
         poetry run pytest --capture=no
+    - name: Run lint
+      run: |
+        poetry run tox -e lint
 
   integration:
     runs-on: ubuntu-latest

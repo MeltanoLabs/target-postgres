@@ -29,6 +29,7 @@ class TargetPostgres(SQLTarget):
                 variables.
             validate_config: True to require validation of config settings.
         """
+        self.max_parallelism = 1
         super().__init__(
             config=config,
             parse_env_config=parse_env_config,
@@ -308,18 +309,6 @@ class TargetPostgres(SQLTarget):
         ),
     ).to_dict()
     default_sink_class = PostgresSink
-
-    @property
-    def max_parallelism(self) -> int:
-        """Get max parallel sinks.
-
-        The default is 8 if not overridden.
-
-        Returns:
-            Max number of sinks that can be drained in parallel.
-        """
-        # https://github.com/MeltanoLabs/target-postgres/issues/3
-        return 1
 
     def _process_record_message(self, message_dict: dict) -> None:
         """Process a RECORD message.
