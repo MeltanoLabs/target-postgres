@@ -40,6 +40,7 @@ def postgres_config():
         "add_record_metadata": True,
         "hard_delete": False,
         "default_target_schema": "melty",
+        "name_conforming_strategy": ["table", "column"],
     }
 
 
