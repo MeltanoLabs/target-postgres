@@ -51,10 +51,8 @@ A full list of supported settings and capabilities is available by running: `tar
 
 ## Installation
 
-- [ ] `Developer TODO:` Come back to this re [#5](https://github.com/MeltanoLabs/target-postgres/issues/5)
-
 ```bash
-pipx install -e .
+pipx install meltanolabs-target-postgres
 ```
 
 ## Configuration
