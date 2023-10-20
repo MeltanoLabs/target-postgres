@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from pathlib import PurePath
 
-import jsonschema
 from singer_sdk import typing as th
 from singer_sdk.target_base import SQLTarget
 
@@ -320,20 +319,3 @@ class TargetPostgres(SQLTarget):
         """
         # https://github.com/MeltanoLabs/target-postgres/issues/3
         return 1
-
-    def _process_record_message(self, message_dict: dict) -> None:
-        """Process a RECORD message.
-
-        Args:
-            message_dict: TODO
-        """
-        stream_name = message_dict["stream"]
-        if self.mapper.stream_maps.get(stream_name) is None:
-            raise Exception(f"Schema message has not been sent for {stream_name}")
-        try:
-            super()._process_record_message(message_dict)
-        except jsonschema.exceptions.ValidationError as e:
-            self.logger.error(
-                f"Exception is being thrown for stream_name: {stream_name}"
-            )
-            raise e

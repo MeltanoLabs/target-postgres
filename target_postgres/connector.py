@@ -23,6 +23,7 @@ from sqlalchemy.types import (
     DATETIME,
     DECIMAL,
     INTEGER,
+    TEXT,
     TIME,
     TIMESTAMP,
     VARCHAR,
@@ -269,7 +270,10 @@ class PostgresConnector(SQLConnector):
             return ARRAY(JSONB())
         if jsonschema_type.get("format") == "date-time":
             return TIMESTAMP()
-        return th.to_sql_type(jsonschema_type)
+        individual_type = th.to_sql_type(jsonschema_type)
+        if isinstance(individual_type, VARCHAR):
+            return TEXT()
+        return individual_type
 
     @staticmethod
     def pick_best_sql_type(sql_type_array: list):
@@ -284,7 +288,7 @@ class PostgresConnector(SQLConnector):
         precedence_order = [
             ARRAY,
             JSONB,
-            VARCHAR,
+            TEXT,
             TIMESTAMP,
             DATETIME,
             DATE,
@@ -300,7 +304,7 @@ class PostgresConnector(SQLConnector):
             for obj in sql_type_array:
                 if isinstance(obj, sql_type):
                     return obj
-        return VARCHAR()
+        return TEXT()
 
     def create_empty_table(
         self,
@@ -767,7 +771,7 @@ class PostgresConnector(SQLConnector):
 class NOTYPE(TypeDecorator):
     """Type to use when none is provided in the schema."""
 
-    impl = VARCHAR
+    impl = TEXT
     cache_ok = True
 
     def process_bind_param(self, value, dialect):
