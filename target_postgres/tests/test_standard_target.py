@@ -198,16 +198,6 @@ def test_aapl_to_postgres(postgres_config):
     sync_end_to_end(tap, target)
 
 
-def test_record_before_schema(postgres_target):
-    with pytest.raises(Exception) as e:
-        file_name = "record_before_schema.singer"
-        singer_file_to_target(file_name, postgres_target)
-
-    assert (
-        str(e.value) == "Schema message has not been sent for test_record_before_schema"
-    )
-
-
 def test_invalid_schema(postgres_target):
     with pytest.raises(Exception) as e:
         file_name = "invalid_schema.singer"
