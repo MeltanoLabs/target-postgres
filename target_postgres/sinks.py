@@ -45,7 +45,7 @@ class PostgresSink(SQLSink):
             self.append_only = False
         if self.schema_name:
             self.connector.prepare_schema(self.schema_name)
-        with self.connector._connect() as connection:
+        with self.connector._connect() as connection, connection.begin():
             self.connector.prepare_table(
                 full_table_name=self.full_table_name,
                 schema=self.schema,
@@ -64,7 +64,7 @@ class PostgresSink(SQLSink):
             context: Stream partition or context dictionary.
         """
         # Use one connection so we do this all in a single transaction
-        with self.connector._connect() as connection:
+        with self.connector._connect() as connection, connection.begin():
             # Check structure of table
             table: sqlalchemy.Table = self.connector.prepare_table(
                 full_table_name=self.full_table_name,
@@ -317,46 +317,51 @@ class PostgresSink(SQLSink):
         # same as SCHEMA messsages
         integer_type = self.connector.to_sql_type({"type": "integer"})
 
-        if not self.connector.column_exists(
-            full_table_name=self.full_table_name,
-            column_name=self.version_column_name,
-        ):
-            self.connector.prepare_column(
-                self.full_table_name,
-                self.version_column_name,
-                sql_type=integer_type,
-            )
+        with self.connector._connect() as connection, connection.begin():
+            if not self.connector.column_exists(
+                full_table_name=self.full_table_name,
+                column_name=self.version_column_name,
+                connection=connection,
+            ):
+                self.connector.prepare_column(
+                    self.full_table_name,
+                    self.version_column_name,
+                    sql_type=integer_type,
+                    connection=connection,
+                )
 
-        self.logger.info("Hard delete: %s", self.config.get("hard_delete"))
-        if self.config["hard_delete"] is True:
-            with self.connector._connect() as connection:
+            self.logger.info("Hard delete: %s", self.config.get("hard_delete"))
+            if self.config["hard_delete"] is True:
                 connection.execute(
-                    f'DELETE FROM "{self.schema_name}"."{self.table_name}" '
-                    f"WHERE {self.version_column_name} <= {new_version} "
-                    f"OR {self.version_column_name} IS NULL"
+                    sqlalchemy.text(
+                        f'DELETE FROM "{self.schema_name}"."{self.table_name}" '
+                        f"WHERE {self.version_column_name} <= {new_version} "
+                        f"OR {self.version_column_name} IS NULL"
+                    )
                 )
                 return
 
-        if not self.connector.column_exists(
-            full_table_name=self.full_table_name,
-            column_name=self.soft_delete_column_name,
-        ):
-            self.connector.prepare_column(
-                self.full_table_name,
-                self.soft_delete_column_name,
-                sql_type=datetime_type,
+            if not self.connector.column_exists(
+                full_table_name=self.full_table_name,
+                column_name=self.soft_delete_column_name,
+                connection=connection,
+            ):
+                self.connector.prepare_column(
+                    self.full_table_name,
+                    self.soft_delete_column_name,
+                    sql_type=datetime_type,
+                    connection=connection,
+                )
+            # Need to deal with the case where data doesn't exist for the version column
+            query = sqlalchemy.text(
+                f'UPDATE "{self.schema_name}"."{self.table_name}"\n'
+                f"SET {self.soft_delete_column_name} = :deletedate \n"
+                f"WHERE {self.version_column_name} < :version "
+                f"OR {self.version_column_name} IS NULL \n"
+                f"  AND {self.soft_delete_column_name} IS NULL\n"
             )
-        # Need to deal with the case where data doesn't exist for the version column
-        query = sqlalchemy.text(
-            f'UPDATE "{self.schema_name}"."{self.table_name}"\n'
-            f"SET {self.soft_delete_column_name} = :deletedate \n"
-            f"WHERE {self.version_column_name} < :version "
-            f"OR {self.version_column_name} IS NULL \n"
-            f"  AND {self.soft_delete_column_name} IS NULL\n"
-        )
-        query = query.bindparams(
-            bindparam("deletedate", value=deleted_at, type_=datetime_type),
-            bindparam("version", value=new_version, type_=integer_type),
-        )
-        with self.connector._connect() as connection:
+            query = query.bindparams(
+                bindparam("deletedate", value=deleted_at, type_=datetime_type),
+                bindparam("version", value=new_version, type_=integer_type),
+            )
             connection.execute(query)
