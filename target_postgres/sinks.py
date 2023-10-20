@@ -142,22 +142,14 @@ class PostgresSink(SQLSink):
 
         if self.append_only is False:
             insert_records: Dict[str, Dict] = {}  # pk : record
-            try:
-                for record in records:
-                    insert_record = {}
-                    for column in columns:
-                        insert_record[column.name] = record.get(column.name)
-                    primary_key_value = "".join(
-                        [str(record[key]) for key in primary_keys]
-                    )
-                    insert_records[primary_key_value] = insert_record
-            except KeyError:
-                raise RuntimeError(
-                    "Primary key not found in record. "
-                    f"full_table_name: {table.name}. "
-                    f"schema: {table.schema}.  "
-                    f"primary_keys: {primary_keys}."
-                )
+            for record in records:
+                insert_record = {}
+                for column in columns:
+                    insert_record[column.name] = record.get(column.name)
+                # No need to check for a KeyError here because the SDK already
+                # guaruntees that all key properties exist in the record.
+                primary_key_value = "".join([str(record[key]) for key in primary_keys])
+                insert_records[primary_key_value] = insert_record
             data_to_insert = list(insert_records.values())
         else:
             for record in records:

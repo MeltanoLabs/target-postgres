@@ -1,5 +1,10 @@
 # `target-postgres`
 
+![PyPI - Version](https://img.shields.io/pypi/v/meltanolabs-target-postgres)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/meltanolabs-target-postgres)
+![PyPI - License](https://img.shields.io/pypi/l/meltanolabs-target-postgres)
+![Test target-postgres](https://github.com/meltanolabs/target-postgres/actions/workflows/ci_workflow.yml/badge.svg)
+
 Target for Postgres.
 
 Built with the [Meltano SDK](https://sdk.meltano.com) for Singer Taps and Targets.
