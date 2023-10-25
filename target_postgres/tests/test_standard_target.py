@@ -254,6 +254,20 @@ def test_multiple_state_messages(postgres_target):
     singer_file_to_target(file_name, postgres_target)
 
 
+# TODO test that data is correct
+def test_multiple_schema_messages(postgres_target, caplog):
+    """Test multiple identical schema messages.
+
+    Multiple schema messages with the same schema should not cause 'schema has changed'
+    logging statements. See: https://github.com/MeltanoLabs/target-postgres/issues/124
+
+    Caplog docs: https://docs.pytest.org/en/latest/how-to/logging.html#caplog-fixture
+    """
+    file_name = "multiple_schema_messages.singer"
+    singer_file_to_target(file_name, postgres_target)
+    assert "Schema has changed for stream" not in caplog.text
+
+
 def test_relational_data(postgres_target):
     engine = create_engine(postgres_target)
     file_name = "user_location_data.singer"
