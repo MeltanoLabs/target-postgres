@@ -122,30 +122,45 @@ def verify_data(
     table_name: str,
     number_of_rows: int = 1,
     primary_key: str | None = None,
-    first_row: dict | None = None,
+    check_data: dict | list[dict] | None = None,
 ):
     """Checks whether the data in a table matches a provided data sample.
 
     Args:
         target: The target to obtain a database connection from.
         full_table_name: The schema and table name of the table to check data for.
-        primary_key: The primary key of the table table.
+        primary_key: The primary key of the table.
         number_of_rows: The expected number of rows that should be in the table.
-        first_row: A dictionary representing the full contents of the first row in the
-            table, as determined by lowest primary_key value.
+        check_data: A dictionary representing the full contents of the first row in the
+            table, as determined by lowest primary_key value, or else a list of
+            dictionaries representing every row in the table.
     """
     engine = create_engine(target)
     full_table_name = f"{target.config['default_target_schema']}.{table_name}"
     with engine.connect() as connection:
-        if primary_key is not None and first_row is not None:
-            result = connection.execute(
-                sqlalchemy.text(
-                    f"SELECT * FROM {full_table_name} ORDER BY {primary_key}"
+        if primary_key is not None and check_data is not None:
+            if isinstance(check_data, dict):
+                result = connection.execute(
+                    sqlalchemy.text(
+                        f"SELECT * FROM {full_table_name} ORDER BY {primary_key}"
+                    )
                 )
-            )
-            assert result.rowcount == number_of_rows
-            result_dict = remove_metadata_columns(result.first()._asdict())
-            assert result_dict == first_row
+                assert result.rowcount == number_of_rows
+                result_dict = remove_metadata_columns(result.first()._asdict())
+                assert result_dict == check_data
+            elif isinstance(check_data, list):
+                result = connection.execute(
+                    sqlalchemy.text(
+                        f"SELECT * FROM {full_table_name} ORDER BY {primary_key}"
+                    )
+                )
+                assert result.rowcount == number_of_rows
+                result_dict = [
+                    remove_metadata_columns(row._asdict()) for row in result.all()
+                ]
+                assert result_dict == check_data
+            else:
+                raise ValueError("Invalid check_data - not dict or list of dicts")
         else:
             result = connection.execute(
                 sqlalchemy.text(f"SELECT COUNT(*) FROM {full_table_name}")
@@ -311,17 +326,58 @@ def test_relational_data(postgres_target):
     file_name = "user_location_upsert_data.singer"
     singer_file_to_target(file_name, postgres_target)
 
-    user = {"id": 1, "name": "Johny"}
-    location = {"id": 1, "name": "Philly"}
-    user_in_location = {
-        "id": 1,
-        "user_id": 1,
-        "location_id": 4,
-        "info": {"weather": "rainy", "mood": "sad"},
-    }
+    users = [
+        {"id": 1, "name": "Johny"},
+        {"id": 2, "name": "George"},
+        {"id": 3, "name": "Jacob"},
+        {"id": 4, "name": "Josh"},
+        {"id": 5, "name": "Jim"},
+        {"id": 8, "name": "Thomas"},
+        {"id": 12, "name": "Paul"},
+        {"id": 13, "name": "Mary"},
+    ]
+    locations = [
+        {"id": 1, "name": "Philly"},
+        {"id": 2, "name": "NY"},
+        {"id": 3, "name": "San Francisco"},
+        {"id": 6, "name": "Colorado"},
+        {"id": 8, "name": "Boston"},
+    ]
+    user_in_location = [
+        {
+            "id": 1,
+            "user_id": 1,
+            "location_id": 4,
+            "info": {"weather": "rainy", "mood": "sad"},
+        },
+        {
+            "id": 2,
+            "user_id": 2,
+            "location_id": 3,
+            "info": {"weather": "sunny", "mood": "satisfied"},
+        },
+        {
+            "id": 3,
+            "user_id": 1,
+            "location_id": 3,
+            "info": {"weather": "sunny", "mood": "happy"},
+        },
+        {
+            "id": 6,
+            "user_id": 3,
+            "location_id": 2,
+            "info": {"weather": "sunny", "mood": "happy"},
+        },
+        {
+            "id": 14,
+            "user_id": 4,
+            "location_id": 1,
+            "info": {"weather": "cloudy", "mood": "ok"},
+        },
+    ]
 
-    verify_data(postgres_target, "test_users", 8, "id", user)
-    verify_data(postgres_target, "test_locations", 5, "id", location)
+    verify_data(postgres_target, "test_users", 8, "id", users)
+    verify_data(postgres_target, "test_locations", 5, "id", locations)
     verify_data(postgres_target, "test_user_in_location", 5, "id", user_in_location)
 
 
