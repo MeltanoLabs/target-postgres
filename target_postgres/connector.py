@@ -120,7 +120,9 @@ class PostgresConnector(SQLConnector):
         ]  # So we don't mess up the casing of the Table reference
 
         columns = self.get_table_columns(
-            schema_name=schema_name, table_name=table_name, connection=connection
+            schema_name=cast(str, schema_name),
+            table_name=table_name,
+            connection=connection,
         )
 
         for property_name, property_def in schema["properties"].items():
