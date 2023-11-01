@@ -243,6 +243,16 @@ def test_schema_no_properties(postgres_target):
 
 
 # TODO test that data is correct
+def test_large_numeric_primary_key(postgres_target):
+    """Check that large numeric (jsonschema: number) pkeys don't cause failure.
+
+    See: https://github.com/MeltanoLabs/target-postgres/issues/193
+    """
+    file_name = "large_numeric_primary_key.singer"
+    singer_file_to_target(file_name, postgres_target)
+
+
+# TODO test that data is correct
 def test_schema_updates(postgres_target):
     file_name = "schema_updates.singer"
     singer_file_to_target(file_name, postgres_target)
