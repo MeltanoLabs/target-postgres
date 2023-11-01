@@ -9,11 +9,11 @@ on:
     inputs: {}
 
 jobs:
-  pytest:
+  tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
     steps:
     - uses: actions/checkout@v4
     - name: Fix key permissions
@@ -37,9 +37,12 @@ jobs:
     - name: Install dependencies
       run: |
         poetry install
-    - name: Test with pytest
+    - name: Run pytest
       run: |
         poetry run pytest --capture=no
+    - name: Run lint
+      run: |
+        poetry run tox -e lint
 
   integration:
     runs-on: ubuntu-latest
