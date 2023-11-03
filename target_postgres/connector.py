@@ -41,19 +41,19 @@ class PostgresConnector(SQLConnector):
     allow_merge_upsert: bool = True  # Whether MERGE UPSERT is supported.
     allow_temp_tables: bool = True  # Whether temp tables are supported.
 
-    def __init__(self, config: dict | None = None) -> None:
+    def __init__(self, config: dict) -> None:
         """Initialize a connector to a Postgres database.
 
         Args:
-            config: Configuration for the connector. Defaults to None.
+            config: Configuration for the connector.
         """
         url: URL = make_url(self.get_sqlalchemy_url(config=config))
         ssh_config = config.get("ssh_tunnel", {})
-        self.ssh_tunnel = None
+        self.ssh_tunnel: SSHTunnelForwarder
 
         if ssh_config.get("enable", False):
             # Return a new URL with SSH tunnel parameters
-            self.ssh_tunnel: SSHTunnelForwarder = SSHTunnelForwarder(
+            self.ssh_tunnel = SSHTunnelForwarder(
                 ssh_address_or_host=(ssh_config["host"], ssh_config["port"]),
                 ssh_username=ssh_config["username"],
                 ssh_private_key=self.guess_key_type(ssh_config["private_key"]),
@@ -78,7 +78,7 @@ class PostgresConnector(SQLConnector):
             sqlalchemy_url=url.render_as_string(hide_password=False),
         )
 
-    def prepare_table(
+    def prepare_table(  # type: ignore[override]
         self,
         full_table_name: str,
         schema: dict,
@@ -102,7 +102,7 @@ class PostgresConnector(SQLConnector):
         """
         _, schema_name, table_name = self.parse_full_table_name(full_table_name)
         meta = sqlalchemy.MetaData(schema=schema_name)
-        table: sqlalchemy.Table = None
+        table: sqlalchemy.Table
         if not self.table_exists(full_table_name=full_table_name):
             table = self.create_empty_table(
                 table_name=table_name,
@@ -120,7 +120,7 @@ class PostgresConnector(SQLConnector):
         ]  # So we don't mess up the casing of the Table reference
         for property_name, property_def in schema["properties"].items():
             self.prepare_column(
-                schema_name=schema_name,
+                schema_name=cast(str, schema_name),
                 table=table,
                 column_name=property_name,
                 sql_type=self.to_sql_type(property_def),
@@ -149,7 +149,7 @@ class PostgresConnector(SQLConnector):
         """
         _, schema_name, table_name = self.parse_full_table_name(full_table_name)
         meta = sqlalchemy.MetaData(schema=schema_name)
-        new_table: sqlalchemy.Table = None
+        new_table: sqlalchemy.Table
         columns = []
         if self.table_exists(full_table_name=full_table_name):
             raise RuntimeError("Table already exists")
@@ -305,7 +305,7 @@ class PostgresConnector(SQLConnector):
                     return obj
         return TEXT()
 
-    def create_empty_table(
+    def create_empty_table(  # type: ignore[override]
         self,
         table_name: str,
         meta: sqlalchemy.MetaData,
@@ -345,6 +345,7 @@ class PostgresConnector(SQLConnector):
                     property_name,
                     self.to_sql_type(property_jsonschema),
                     primary_key=is_primary_key,
+                    autoincrement=False,  # See: https://github.com/MeltanoLabs/target-postgres/issues/193 # noqa: E501
                 )
             )
         if as_temp_table:
@@ -358,7 +359,7 @@ class PostgresConnector(SQLConnector):
         new_table.create(bind=connection)
         return new_table
 
-    def prepare_column(
+    def prepare_column(  # type: ignore[override]
         self,
         schema_name: str,
         table: sqlalchemy.Table,
@@ -395,7 +396,7 @@ class PostgresConnector(SQLConnector):
             connection=connection,
         )
 
-    def _create_empty_column(
+    def _create_empty_column(  # type: ignore[override]
         self,
         schema_name: str,
         table_name: str,
@@ -425,7 +426,7 @@ class PostgresConnector(SQLConnector):
         )
         connection.execute(column_add_ddl)
 
-    def get_column_add_ddl(
+    def get_column_add_ddl(  # type: ignore[override]
         self,
         table_name: str,
         schema_name: str,
@@ -458,7 +459,7 @@ class PostgresConnector(SQLConnector):
             },
         )
 
-    def _adapt_column_type(
+    def _adapt_column_type(  # type: ignore[override]
         self,
         schema_name: str,
         table_name: str,
@@ -520,7 +521,7 @@ class PostgresConnector(SQLConnector):
         )
         connection.execute(alter_column_ddl)
 
-    def get_column_alter_ddl(
+    def get_column_alter_ddl(  # type: ignore[override]
         self,
         schema_name: str,
         table_name: str,
@@ -686,7 +687,7 @@ class PostgresConnector(SQLConnector):
         """
         exit(1)  # Calling this to be sure atexit is called, so clean_up gets called
 
-    def _get_column_type(
+    def _get_column_type(  # type: ignore[override]
         self,
         schema_name: str,
         table_name: str,
@@ -720,7 +721,7 @@ class PostgresConnector(SQLConnector):
 
         return t.cast(sqlalchemy.types.TypeEngine, column.type)
 
-    def get_table_columns(
+    def get_table_columns(  # type: ignore[override]
         self,
         schema_name: str,
         table_name: str,
@@ -753,7 +754,7 @@ class PostgresConnector(SQLConnector):
             or col_meta["name"].casefold() in {col.casefold() for col in column_names}
         }
 
-    def column_exists(
+    def column_exists(  # type: ignore[override]
         self,
         full_table_name: str,
         column_name: str,
