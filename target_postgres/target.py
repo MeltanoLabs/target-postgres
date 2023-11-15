@@ -306,5 +306,15 @@ class TargetPostgres(SQLTarget):
             required=False,
             description="SSH Tunnel Configuration, this is a json object",
         ),
+        th.Property(
+            "name_conforming_strategy",
+            th.ArrayType(th.StringType),
+            default=[],
+            description=(
+                "If left as an empty array (the default), will not perform any name "
+                "conforming. Add `table` to the array to conform table names to snake "
+                "case. Add `column` to the array to conform column names to snake case."
+            ),
+        ),
     ).to_dict()
     default_sink_class = PostgresSink

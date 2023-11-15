@@ -1,5 +1,6 @@
 """Postgres target sink class, which handles writing streams."""
 
+import copy
 import uuid
 from typing import Any, Dict, Iterable, List, Optional, Union, cast
 
@@ -22,6 +23,29 @@ class PostgresSink(SQLSink):
         """Initialize SQL Sink. See super class for more details."""
         super().__init__(*args, **kwargs)
         self.temp_table_name = self.generate_temp_table_name()
+
+    def conform_schema(self, schema: dict) -> dict:
+        """Return schema dictionary with property names conformed.
+
+        Override from self.conform_name(key) to self.conform_name(key, "column")
+
+        Args:
+            schema: JSON schema dictionary.
+
+        Returns:
+            A schema dictionary with the property names conformed.
+        """
+        conformed_schema = copy.copy(schema)
+        conformed_property_names = {
+            key: self.conform_name(key, "column")
+            for key in conformed_schema["properties"]
+        }
+        self._check_conformed_names_not_duplicated(conformed_property_names)
+        conformed_schema["properties"] = {
+            conformed_property_names[key]: value
+            for key, value in conformed_schema["properties"].items()
+        }
+        return conformed_schema
 
     @property
     def append_only(self) -> bool:
@@ -57,7 +81,7 @@ class PostgresSink(SQLSink):
         with self.connector._connect() as connection, connection.begin():
             self.connector.prepare_table(
                 full_table_name=self.full_table_name,
-                schema=self.schema,
+                schema=self.conform_schema(self.schema),
                 primary_keys=self.key_properties,
                 connection=connection,
                 as_temp_table=False,
@@ -72,12 +96,20 @@ class PostgresSink(SQLSink):
         Args:
             context: Stream partition or context dictionary.
         """
+        records: list = []
+
+        for record in context["records"]:
+            new_record: dict = {}
+            for k, v in record.items():
+                new_record.update({self.conform_name(k, "column"): v})
+            records.append(new_record)
+
         # Use one connection so we do this all in a single transaction
         with self.connector._connect() as connection, connection.begin():
             # Check structure of table
             table: sqlalchemy.Table = self.connector.prepare_table(
                 full_table_name=self.full_table_name,
-                schema=self.schema,
+                schema=self.conform_schema(self.schema),
                 primary_keys=self.key_properties,
                 as_temp_table=False,
                 connection=connection,
@@ -92,16 +124,16 @@ class PostgresSink(SQLSink):
             # Insert into temp table
             self.bulk_insert_records(
                 table=temp_table,
-                schema=self.schema,
+                schema=self.conform_schema(self.schema),
                 primary_keys=self.key_properties,
-                records=context["records"],
+                records=records,
                 connection=connection,
             )
             # Merge data from Temp table to main table
             self.upsert(
                 from_table=temp_table,
                 to_table=table,
-                schema=self.schema,
+                schema=self.conform_schema(self.schema),
                 join_keys=self.key_properties,
                 connection=connection,
             )
@@ -231,7 +263,7 @@ class PostgresSink(SQLSink):
             # Update
             where_condition = join_condition
             update_columns = {}
-            for column_name in self.schema["properties"].keys():
+            for column_name in self.conform_schema(self.schema)["properties"].keys():
                 from_table_column: sqlalchemy.Column = from_table.columns[column_name]
                 to_table_column: sqlalchemy.Column = to_table.columns[column_name]
                 update_columns[to_table_column] = from_table_column
@@ -276,7 +308,10 @@ class PostgresSink(SQLSink):
 
     def conform_name(self, name: str, object_type: Optional[str] = None) -> str:
         """Conforming names of tables, schemas, column names."""
-        return name
+        if object_type in self.config["name_conforming_strategy"]:
+            return super().conform_name(name, object_type)
+        else:
+            return name
 
     @property
     def schema_name(self) -> Optional[str]:
