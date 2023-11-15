@@ -28,6 +28,7 @@ from .core import (
 )
 
 
+# The below syntax is documented at https://docs.pytest.org/en/stable/deprecations.html#calling-fixtures-directly
 @pytest.fixture(scope="session", name="postgres_config")
 def postgres_config_fixture():
     return postgres_config()
