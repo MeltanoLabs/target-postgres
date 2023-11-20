@@ -1663,13 +1663,13 @@ testing = ["build[virtualenv] (>=0.10)", "covdefaults (>=2.3)", "detect-test-pol
 
 [[package]]
 name = "types-jsonschema"
-version = "4.19.0.3"
+version = "4.20.0.0"
 description = "Typing stubs for jsonschema"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "types-jsonschema-4.19.0.3.tar.gz", hash = "sha256:e0fc0f5d51fd0988bf193be42174a5376b0096820ff79505d9c1b66de23f0581"},
-    {file = "types_jsonschema-4.19.0.3-py3-none-any.whl", hash = "sha256:5cedbb661e5ca88d95b94b79902423e3f97a389c245e5fe0ab384122f27d56b9"},
+    {file = "types-jsonschema-4.20.0.0.tar.gz", hash = "sha256:0de1032d243f1d3dba8b745ad84efe8c1af71665a9deb1827636ac535dcb79c1"},
+    {file = "types_jsonschema-4.20.0.0-py3-none-any.whl", hash = "sha256:e6d5df18aaca4412f0aae246a294761a92040e93d7bc840f002b7329a8b72d26"},
 ]
 
 [package.dependencies]
