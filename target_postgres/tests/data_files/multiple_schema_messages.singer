@@ -1,0 +1,12 @@
+{"type": "SCHEMA", "stream": "test_multiple_schema_messages", "key_properties": ["id"], "schema": {"required": ["id"], "type": "object", "properties": {"id": {"type": "integer"}, "metric": {"type": "integer"}}}}
+{"type": "SCHEMA", "stream": "test_multiple_schema_messages", "key_properties": ["id"], "schema": {"required": ["id"], "type": "object", "properties": {"id": {"type": "integer"}, "metric": {"type": "integer"}}}}
+{"type": "SCHEMA", "stream": "test_multiple_schema_messages", "key_properties": ["id"], "schema": {"required": ["id"], "type": "object", "properties": {"id": {"type": "integer"}, "metric": {"type": "integer"}}}}
+{"type": "SCHEMA", "stream": "test_multiple_schema_messages", "key_properties": ["id"], "schema": {"required": ["id"], "type": "object", "properties": {"id": {"type": "integer"}, "metric": {"type": "integer"}}}}
+{"type": "RECORD", "stream": "test_multiple_schema_messages", "record": {"id": 1, "metric": 100}}
+{"type": "RECORD", "stream": "test_multiple_schema_messages", "record": {"id": 2, "metric": 200}}
+{"type": "RECORD", "stream": "test_multiple_schema_messages", "record": {"id": 3, "metric": 300}}
+{"type": "SCHEMA", "stream": "test_multiple_schema_messages", "key_properties": ["id"], "schema": {"required": ["id"], "type": "object", "properties": {"id": {"type": "integer"}, "metric": {"type": "integer"}}}}
+{"type": "SCHEMA", "stream": "test_multiple_schema_messages", "key_properties": ["id"], "schema": {"required": ["id"], "type": "object", "properties": {"id": {"type": "integer"}, "metric": {"type": "integer"}}}}
+{"type": "RECORD", "stream": "test_multiple_schema_messages", "record": {"id": 4, "metric": 400}}
+{"type": "RECORD", "stream": "test_multiple_schema_messages", "record": {"id": 5, "metric": 500}}
+{"type": "RECORD", "stream": "test_multiple_schema_messages", "record": {"id": 6, "metric": 600}}
