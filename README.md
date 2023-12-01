@@ -25,16 +25,10 @@ Built with the [Meltano SDK](https://sdk.meltano.com) for Singer Taps and Target
 | database                     | False    | None    | Database name. Note if sqlalchemy_url is set this will be ignored. |
 | sqlalchemy_url               | False    | None    | SQLAlchemy connection string. This will override using host, user, password, port, dialect, and all ssl settings. Note that you must escape password special characters properly. See https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords |
 | dialect+driver               | False    | postgresql+psycopg2 | Dialect+driver see https://docs.sqlalchemy.org/en/20/core/engines.html. Generally just leave this alone. Note if sqlalchemy_url is set this will be ignored. |
-| default_target_schema        | False    | None    | Postgres schema to send data to, example: tap-clickup |
-| hard_delete                  | False    |       0 | When activate version is sent from a tap this specefies if we should delete the records that don't match, or mark them with a date in the `_sdc_deleted_at` column. |
+| default_target_schema        | False    | melty   | Postgres schema to send data to, example: tap-clickup |
+| activate_version             | False    |       1 | If set to false, the tap will ignore activate version messages. |
+| hard_delete                  | False    |       0 | When activate version is sent from a tap this specefies if we should delete the records that don't match, or mark them with a date in the `_sdc_deleted_at` column. This config option is ignored if `activate_version` is set to false. |
 | add_record_metadata          | False    |       1 | Note that this must be enabled for activate_version to work!This adds _sdc_extracted_at, _sdc_batched_at, and more to every table. See https://sdk.meltano.com/en/latest/implementation/record_metadata.html for more information. |
-| ssh_tunnel                   | False    | None    | SSH Tunnel Configuration, this is a json object |
-| ssh_tunnel.enable   | True (if ssh_tunnel set) | False   | Enable an ssh tunnel (also known as bastion host), see the other ssh_tunnel.* properties for more details.
-| ssh_tunnel.host | True (if ssh_tunnel set) | False   | Host of the bastion host, this is the host we'll connect to via ssh
-| ssh_tunnel.username | True (if ssh_tunnel set) | False   |Username to connect to bastion host
-| ssh_tunnel.port | True (if ssh_tunnel set) | 22 | Port to connect to bastion host
-| ssh_tunnel.private_key | True (if ssh_tunnel set) | None | Private Key for authentication to the bastion host
-| ssh_tunnel.private_key_password | False | None | Private Key Password, leave None if no password is set
 | ssl_enable                   | False    |       0 | Whether or not to use ssl to verify the server's identity. Use ssl_certificate_authority and ssl_mode for further customization. To use a client certificate to authenticate yourself to the server, use ssl_client_certificate_enable instead. Note if sqlalchemy_url is set this will be ignored. |
 | ssl_client_certificate_enable| False    |       0 | Whether or not to provide client-side certificates as a method of authentication to the server. Use ssl_client_certificate and ssl_client_private_key for further customization. To use SSL to verify the server's identity, use ssl_enable instead. Note if sqlalchemy_url is set this will be ignored. |
 | ssl_mode                     | False    | verify-full | SSL Protection method, see [postgres documentation](https://www.postgresql.org/docs/current/libpq-ssl.html#LIBPQ-SSL-PROTECTION) for more information. Must be one of disable, allow, prefer, require, verify-ca, or verify-full. Note if sqlalchemy_url is set this will be ignored. |
@@ -42,6 +36,8 @@ Built with the [Meltano SDK](https://sdk.meltano.com) for Singer Taps and Target
 | ssl_client_certificate       | False    | ~/.postgresql/postgresql.crt | The certificate that should be used to verify your identity to the server. Can be provided either as the certificate itself (in .env) or as a filepath to the certificate. Note if sqlalchemy_url is set this will be ignored. |
 | ssl_client_private_key       | False    | ~/.postgresql/postgresql.key | The private key for the certificate you provided. Can be provided either as the certificate itself (in .env) or as a filepath to the certificate. Note if sqlalchemy_url is set this will be ignored. |
 | ssl_storage_directory        | False    | .secrets | The folder in which to store SSL certificates provided as raw values. When a certificate/key is provided as a raw value instead of as a filepath, it must be written to a file before it can be used. This configuration option determines where that file is created. |
+| ssh_tunnel                   | False    | None    | SSH Tunnel Configuration, this is a json object |
+| load_method                  | False    | append-only | The method to use when loading data into the destination. `append-only` will always write all input records whether that records already exists or not. `upsert` will update existing records and insert new records. `overwrite` will delete all existing records and insert all input records. |
 | stream_maps                  | False    | None    | Config object for stream maps capability. For more information check out [Stream Maps](https://sdk.meltano.com/en/latest/stream_maps.html). |
 | stream_map_config            | False    | None    | User-defined config values to be used within map expressions. |
 | flattening_enabled           | False    | None    | 'True' to enable schema flattening and automatically expand nested properties. |
