@@ -162,7 +162,8 @@ class TargetPostgres(SQLTarget):
             th.BooleanType,
             default=True,
             description=(
-                "If set to false, the tap will ignore activate version messages."
+                "If set to false, the tap will ignore activate version messages. If "
+                + "set to true, add_record_metadata must be set to true as well."
             ),
         ),
         th.Property(
