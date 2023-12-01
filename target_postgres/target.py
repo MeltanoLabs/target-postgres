@@ -79,6 +79,13 @@ class TargetPostgres(SQLTarget):
             + " ssl_client_certificate or ssl_client_private_key are unset."
         )
 
+        assert self.config.get("add_record_metadata") or not self.config.get(
+            "activate_version"
+        ), (
+            "Activate version messages can't be processed unless add_record_metadata "
+            "is set to true."
+        )
+
     name = "target-postgres"
     config_jsonschema = th.PropertiesList(
         th.Property(
@@ -151,13 +158,22 @@ class TargetPostgres(SQLTarget):
             default="melty",
         ),
         th.Property(
+            "activate_version",
+            th.BooleanType,
+            default=True,
+            description=(
+                "If set to false, the tap will ignore activate version messages."
+            ),
+        ),
+        th.Property(
             "hard_delete",
             th.BooleanType,
             default=False,
             description=(
                 "When activate version is sent from a tap this specefies "
                 + "if we should delete the records that don't match, or mark "
-                + "them with a date in the `_sdc_deleted_at` column."
+                + "them with a date in the `_sdc_deleted_at` column. This config "
+                + "option is ignored if `activate_version` is set to false."
             ),
         ),
         th.Property(
