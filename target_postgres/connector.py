@@ -369,7 +369,7 @@ class PostgresConnector(SQLConnector):
         new_table.create(bind=connection)
         return new_table
 
-    def prepare_column(  # type: ignore[override]
+    def prepare_column(
         self,
         full_table_name: str,
         column_name: str,
