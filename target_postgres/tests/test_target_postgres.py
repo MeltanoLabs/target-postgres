@@ -585,6 +585,94 @@ def test_activate_version_soft_delete(postgres_target):
         assert result.rowcount == 2
 
 
+def test_activate_version_hard_delete_no_metadata(postgres_config_no_ssl):
+    """Activate Version Hard Delete Test"""
+    table_name = "test_activate_version_hard_no_metadata"
+    file_name = f"{table_name}.singer"
+    full_table_name = postgres_config_no_ssl["default_target_schema"] + "." + table_name
+    postgres_config_modified = copy.deepcopy(postgres_config_no_ssl)
+    postgres_config_modified["hard_delete"] = True
+    postgres_config_modified["add_record_metadata"] = False
+    pg_hard_delete_true = TargetPostgres(config=postgres_config_modified)
+    engine = create_engine(pg_hard_delete_true)
+    singer_file_to_target(file_name, pg_hard_delete_true)
+    with engine.connect() as connection:
+        result = connection.execute(sqlalchemy.text(f"SELECT * FROM {full_table_name}"))
+        assert result.rowcount == 7
+    with engine.connect() as connection, connection.begin():
+        # Add a record like someone would if they weren't using the tap target combo
+        result = connection.execute(
+            sqlalchemy.text(
+                f"INSERT INTO {full_table_name}(code, \"name\") VALUES('Manual1', 'Meltano')"
+            )
+        )
+        result = connection.execute(
+            sqlalchemy.text(
+                f"INSERT INTO {full_table_name}(code, \"name\") VALUES('Manual2', 'Meltano')"
+            )
+        )
+    with engine.connect() as connection:
+        result = connection.execute(sqlalchemy.text(f"SELECT * FROM {full_table_name}"))
+        assert result.rowcount == 9
+
+    singer_file_to_target(file_name, pg_hard_delete_true)
+
+    # Should remove the 2 records we added manually
+    with engine.connect() as connection:
+        result = connection.execute(sqlalchemy.text(f"SELECT * FROM {full_table_name}"))
+        assert result.rowcount == 7
+
+
+def test_activate_version_soft_delete_no_metadata(postgres_target):
+    """Activate Version Soft Delete Test with no metadata"""
+    engine = create_engine(postgres_target)
+    table_name = "test_activate_version_soft_no_metadata"
+    file_name = f"{table_name}.singer"
+    full_table_name = postgres_target.config["default_target_schema"] + "." + table_name
+    with engine.connect() as connection, connection.begin():
+        result = connection.execute(
+            sqlalchemy.text(f"DROP TABLE IF EXISTS {full_table_name}")
+        )
+    postgres_config_modified = copy.deepcopy(postgres_target._config)
+    postgres_config_modified["hard_delete"] = False
+    postgres_config_modified["add_record_metadata"] = False
+    pg_soft_delete = TargetPostgres(config=postgres_config_modified)
+    singer_file_to_target(file_name, pg_soft_delete)
+
+    with engine.connect() as connection:
+        result = connection.execute(sqlalchemy.text(f"SELECT * FROM {full_table_name}"))
+        assert result.rowcount == 7
+    with engine.connect() as connection, connection.begin():
+        # Add a record like someone would if they weren't using the tap target combo
+        result = connection.execute(
+            sqlalchemy.text(
+                f"INSERT INTO {full_table_name}(code, \"name\") VALUES('Manual1', 'Meltano')"
+            )
+        )
+        result = connection.execute(
+            sqlalchemy.text(
+                f"INSERT INTO {full_table_name}(code, \"name\") VALUES('Manual2', 'Meltano')"
+            )
+        )
+    with engine.connect() as connection:
+        result = connection.execute(sqlalchemy.text(f"SELECT * FROM {full_table_name}"))
+        assert result.rowcount == 9
+
+    singer_file_to_target(file_name, pg_soft_delete)
+
+    # Should have all records including the 2 we added manually
+    with engine.connect() as connection:
+        result = connection.execute(sqlalchemy.text(f"SELECT * FROM {full_table_name}"))
+        assert result.rowcount == 9
+
+        result = connection.execute(
+            sqlalchemy.text(
+                f"SELECT * FROM {full_table_name} where _sdc_deleted_at is NOT NULL"
+            )
+        )
+        assert result.rowcount == 2
+
+
 def test_activate_version_deletes_data_properly(postgres_target):
     """Activate Version should"""
     engine = create_engine(postgres_target)
