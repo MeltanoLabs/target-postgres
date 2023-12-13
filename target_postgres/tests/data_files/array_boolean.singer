@@ -1,0 +1,5 @@
+{"type": "SCHEMA", "stream": "array_boolean", "key_properties": ["id"], "schema": {"required": ["id"], "type": "object", "properties": {"id": {"type": "integer"}, "value": {"type": "array", "items": {"type": "boolean"}}}}}
+{"type": "RECORD", "stream": "array_boolean", "record": {"id": 1, "value": [ true, false ]}}
+{"type": "RECORD", "stream": "array_boolean", "record": {"id": 2, "value": [ false ]}}
+{"type": "RECORD", "stream": "array_boolean", "record": {"id": 3, "value": [ false, true, true, false ]}}
+{"type": "STATE", "value": {"array_boolean": 3}}
