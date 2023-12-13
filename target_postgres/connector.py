@@ -115,6 +115,14 @@ class PostgresConnector(SQLConnector):
                 connection=connection,
             )
             return table
+        # To make table reflection work properly with pgvector,
+        # the module needs to be imported beforehand.
+        try:
+            from pgvector.sqlalchemy import Vector  # noqa: F401
+        except ImportError:
+            self.logger.debug(
+                "Unable to handle pgvector's `Vector` type. Please install `pgvector`."
+            )
         meta.reflect(connection, only=[table_name])
         table = meta.tables[
             full_table_name
@@ -280,6 +288,51 @@ class PostgresConnector(SQLConnector):
         if "object" in jsonschema_type["type"]:
             return JSONB()
         if "array" in jsonschema_type["type"]:
+            # Select between different kinds of `ARRAY` data types.
+            #
+            # This currently leverages an unspecified definition for the Singer SCHEMA,
+            # using the `additionalProperties` attribute to convey additional type
+            # information, agnostic of the target database.
+            #
+            # In this case, it is about telling different kinds of `ARRAY` types apart:
+            # Either it is a vanilla `ARRAY`, to be stored into a `jsonb[]` type, or,
+            # alternatively, it can be a "vector" kind `ARRAY` of floating point
+            # numbers, effectively what pgvector is storing in its `VECTOR` type.
+            #
+            # Still, `type: "vector"` is only a surrogate label here, because other
+            # database systems may use different types for implementing the same thing,
+            # and need to translate accordingly.
+            """
+            Schema override rule in `meltano.yml`:
+
+            type: "array"
+            items:
+              type: "number"
+            additionalProperties:
+              storage:
+                type: "vector"
+                dim: 4
+
+            Produced schema annotation in `catalog.json`:
+
+            {"type": "array",
+             "items": {"type": "number"},
+             "additionalProperties": {"storage": {"type": "vector", "dim": 4}}}
+            """
+            if (
+                "additionalProperties" in jsonschema_type
+                and "storage" in jsonschema_type["additionalProperties"]
+            ):
+                storage_properties = jsonschema_type["additionalProperties"]["storage"]
+                if (
+                    "type" in storage_properties
+                    and storage_properties["type"] == "vector"
+                ):
+                    # On PostgreSQL/pgvector, use the corresponding type definition
+                    # from its SQLAlchemy dialect.
+                    from pgvector.sqlalchemy import Vector
+
+                    return Vector(storage_properties["dim"])
             return ARRAY(JSONB())
         if jsonschema_type.get("format") == "date-time":
             return TIMESTAMP()
@@ -312,6 +365,13 @@ class PostgresConnector(SQLConnector):
             BOOLEAN,
             NOTYPE,
         ]
+
+        try:
+            from pgvector.sqlalchemy import Vector
+
+            precedence_order.append(Vector)
+        except ImportError:
+            pass
 
         for sql_type in precedence_order:
             for obj in sql_type_array:
@@ -519,7 +579,7 @@ class PostgresConnector(SQLConnector):
             return
 
         # Not the same type, generic type or compatible types
-        # calling merge_sql_types for assistnace
+        # calling merge_sql_types for assistance.
         compatible_sql_type = self.merge_sql_types([current_type, sql_type])
 
         if str(compatible_sql_type) == str(current_type):

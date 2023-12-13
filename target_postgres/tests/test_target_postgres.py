@@ -473,6 +473,26 @@ def test_array_boolean(postgres_target, helper):
     )
 
 
+def test_array_float_vector(postgres_target, helper):
+    pgvector_sa = pytest.importorskip("pgvector.sqlalchemy")
+
+    file_name = "array_float_vector.singer"
+    singer_file_to_target(file_name, postgres_target)
+    row = {
+        "id": 1,
+        "value": "[1.1,2.1,1.1,1.3]",
+    }
+    helper.verify_data("array_float_vector", 3, "id", row)
+
+    helper.verify_schema(
+        "array_float_vector",
+        check_columns={
+            "id": {"type": BIGINT},
+            "value": {"type": pgvector_sa.Vector},
+        },
+    )
+
+
 def test_array_number(postgres_target, helper):
     file_name = "array_number.singer"
     singer_file_to_target(file_name, postgres_target)

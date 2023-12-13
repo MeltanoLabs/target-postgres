@@ -102,7 +102,7 @@ tap-carbon-intensity | target-postgres --config /path/to/target-postgres-config.
 
 ```bash
 pipx install poetry
-poetry install
+poetry install --all-extras
 pipx install pre-commit
 pre-commit install
 ```
@@ -151,6 +151,8 @@ See the [dev guide](https://sdk.meltano.com/en/latest/dev_guide.html) for more i
 develop your own Singer taps and targets.
 
 ## Data Types
+
+### Mapping
 
 The below table shows how this tap will map between jsonschema datatypes and Postgres datatypes.
 
@@ -202,7 +204,20 @@ The below table shows how this tap will map between jsonschema datatypes and Pos
 
 Note that while object types are mapped directly to jsonb, array types are mapped to a jsonb array.
 
-If a column has multiple jsonschema types, the following order is using to order Postgres types, from highest priority to lowest priority.
+When using [pgvector], this type mapping applies, additionally to the table above.
+
+| jsonschema                                     | Postgres |
+|------------------------------------------------|----------|
+| array (with additional SCHEMA annotations [1]) | vector   |
+
+[1] `"additionalProperties": {"storage": {"type": "vector", "dim": 4}}`
+
+### Resolution Order
+
+If a column has multiple jsonschema types, there is a priority list for
+resolving the best type candidate, from the highest priority to the
+lowest priority.
+
 - ARRAY(JSONB)
 - JSONB
 - TEXT
@@ -215,3 +230,9 @@ If a column has multiple jsonschema types, the following order is using to order
 - INTEGER
 - BOOLEAN
 - NOTYPE
+
+When using [pgvector], the `pgvector.sqlalchemy.Vector` type is added to the bottom
+of the list.
+
+
+[pgvector]: https://github.com/pgvector/pgvector
