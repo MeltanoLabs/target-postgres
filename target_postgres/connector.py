@@ -332,7 +332,7 @@ class PostgresConnector(SQLConnector):
         """Create an empty target table.
 
         Args:
-            full_table_name: the target table name.
+            table_name: the target table name.
             schema: the JSON schema for the new table.
             primary_keys: list of key properties.
             partition_keys: list of partition keys.
@@ -427,7 +427,7 @@ class PostgresConnector(SQLConnector):
         """Create a new column.
 
         Args:
-            full_table_name: The target table name.
+            table_name: The target table name.
             column_name: The name of the new column.
             sql_type: SQLAlchemy type engine to be used in creating the new column.
 
@@ -491,7 +491,7 @@ class PostgresConnector(SQLConnector):
         """Adapt table column type to support the new JSON schema type.
 
         Args:
-            full_table_name: The target table name.
+            table_name: The target table name.
             column_name: The target column name.
             sql_type: The new SQLAlchemy type.
 
@@ -722,7 +722,7 @@ class PostgresConnector(SQLConnector):
         """Get the SQL type of the declared column.
 
         Args:
-            full_table_name: The name of the table.
+            table_name: The name of the table.
             column_name: The name of the column.
 
         Returns:
