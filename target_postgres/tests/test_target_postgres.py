@@ -2,6 +2,7 @@
 # flake8: noqa
 import copy
 import io
+import typing as t
 from contextlib import redirect_stdout
 from decimal import Decimal
 from pathlib import Path
@@ -93,8 +94,8 @@ class AssertionHelper:
         self,
         table_name: str,
         number_of_rows: int = 1,
-        primary_key: str | None = None,
-        check_data: dict | list[dict] | None = None,
+        primary_key: t.Union[str, None] = None,
+        check_data: t.Union[t.Dict, t.List[t.Dict], None] = None,
     ):
         """Checks whether the data in a table matches a provided data sample.
 
