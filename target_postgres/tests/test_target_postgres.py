@@ -28,6 +28,8 @@ from .core import (
     postgres_config_ssh_tunnel,
 )
 
+METADATA_COLUMN_PREFIX = "_sdc"
+
 
 # The below syntax is documented at https://docs.pytest.org/en/stable/deprecations.html#calling-fixtures-directly
 @pytest.fixture(scope="session", name="postgres_config")
@@ -75,102 +77,114 @@ def singer_file_to_target(file_name, target) -> None:
 # TODO should set schemas for each tap individually so we don't collide
 
 
-def remove_metadata_columns(row: dict) -> dict:
-    new_row = {}
-    for column in row.keys():
-        if not column.startswith("_sdc"):
-            new_row[column] = row[column]
-    return new_row
+class AssertionHelper:
+    def __init__(self, target: TargetPostgres, metadata_column_prefix: str):
+        self.target = target
+        self.metadata_column_prefix = metadata_column_prefix
+        self.engine = create_engine(self.target)
 
+    def remove_metadata_columns(self, row: dict) -> dict:
+        new_row = {}
+        for column in row.keys():
+            if not column.startswith(self.metadata_column_prefix):
+                new_row[column] = row[column]
+        return new_row
 
-def verify_data(
-    target: TargetPostgres,
-    table_name: str,
-    number_of_rows: int = 1,
-    primary_key: str | None = None,
-    check_data: dict | list[dict] | None = None,
-):
-    """Checks whether the data in a table matches a provided data sample.
+    def verify_data(
+        self,
+        table_name: str,
+        number_of_rows: int = 1,
+        primary_key: str | None = None,
+        check_data: dict | list[dict] | None = None,
+    ):
+        """Checks whether the data in a table matches a provided data sample.
 
-    Args:
-        target: The target to obtain a database connection from.
-        table_name: The schema and table name of the table to check data for.
-        primary_key: The primary key of the table.
-        number_of_rows: The expected number of rows that should be in the table.
-        check_data: A dictionary representing the full contents of the first row in the
-            table, as determined by lowest primary_key value, or else a list of
-            dictionaries representing every row in the table.
-    """
-    engine = create_engine(target)
-    full_table_name = f"{target.config['default_target_schema']}.{table_name}"
-    with engine.connect() as connection:
-        if primary_key is not None and check_data is not None:
-            if isinstance(check_data, dict):
-                result = connection.execute(
-                    sqlalchemy.text(
-                        f"SELECT * FROM {full_table_name} ORDER BY {primary_key}"
+        Args:
+            target: The target to obtain a database connection from.
+            table_name: The schema and table name of the table to check data for.
+            primary_key: The primary key of the table.
+            number_of_rows: The expected number of rows that should be in the table.
+            check_data: A dictionary representing the full contents of the first row in the
+                table, as determined by lowest primary_key value, or else a list of
+                dictionaries representing every row in the table.
+        """
+        full_table_name = f"{self.target.config['default_target_schema']}.{table_name}"
+        with self.engine.connect() as connection:
+            if primary_key is not None and check_data is not None:
+                if isinstance(check_data, dict):
+                    result = connection.execute(
+                        sqlalchemy.text(
+                            f"SELECT * FROM {full_table_name} ORDER BY {primary_key}"
+                        )
                     )
-                )
-                assert result.rowcount == number_of_rows
-                result_dict = remove_metadata_columns(result.first()._asdict())
-                assert result_dict == check_data
-            elif isinstance(check_data, list):
-                result = connection.execute(
-                    sqlalchemy.text(
-                        f"SELECT * FROM {full_table_name} ORDER BY {primary_key}"
+                    assert result.rowcount == number_of_rows
+                    result_dict = self.remove_metadata_columns(result.first()._asdict())
+                    assert result_dict == check_data
+                elif isinstance(check_data, list):
+                    result = connection.execute(
+                        sqlalchemy.text(
+                            f"SELECT * FROM {full_table_name} ORDER BY {primary_key}"
+                        )
                     )
-                )
-                assert result.rowcount == number_of_rows
-                result_dict = [
-                    remove_metadata_columns(row._asdict()) for row in result.all()
-                ]
-                assert result_dict == check_data
+                    assert result.rowcount == number_of_rows
+                    result_dict = [
+                        self.remove_metadata_columns(row._asdict())
+                        for row in result.all()
+                    ]
+                    assert result_dict == check_data
+                else:
+                    raise ValueError("Invalid check_data - not dict or list of dicts")
             else:
-                raise ValueError("Invalid check_data - not dict or list of dicts")
-        else:
-            result = connection.execute(
-                sqlalchemy.text(f"SELECT COUNT(*) FROM {full_table_name}")
+                result = connection.execute(
+                    sqlalchemy.text(f"SELECT COUNT(*) FROM {full_table_name}")
+                )
+                assert result.first()[0] == number_of_rows
+
+    def verify_schema(
+        self,
+        table_name: str,
+        check_columns: dict = None,
+    ):
+        """Checks whether the schema of a database table matches the provided column definitions.
+
+        Args:
+            target: The target to obtain a database connection from.
+            table_name: The schema and table name of the table to check data for.
+            check_columns: A dictionary mapping column names to their definitions. Currently,
+                it is all about the `type` attribute which is compared.
+            metadata_column_prefix: The prefix string for metadata columns. Usually `_sdc`.
+        """
+        schema = self.target.config["default_target_schema"]
+        with self.engine.connect() as connection:
+            meta = sqlalchemy.MetaData()
+            table = sqlalchemy.Table(
+                table_name, meta, schema=schema, autoload_with=connection
             )
-            assert result.first()[0] == number_of_rows
-    engine.dispose()
+            for column in table.c:
+                # Ignore `_sdc` metadata columns when veriying table schema.
+                if column.name.startswith(self.metadata_column_prefix):
+                    continue
+                try:
+                    column_type_expected = check_columns[column.name]["type"]
+                except KeyError:
+                    raise ValueError(
+                        f"Invalid check_columns - missing definition for column: {column.name}"
+                    )
+                if not isinstance(column.type, column_type_expected):
+                    raise TypeError(
+                        f"Column '{column.name}' (with type '{column.type}') "
+                        f"does not match expected type: {column_type_expected}"
+                    )
+
+    def __del__(self):
+        self.engine.dispose()
 
 
-def verify_schema(
-    target: TargetPostgres,
-    table_name: str,
-    check_columns: dict = None,
-):
-    """Checks whether the schema of a database table matches the provided column definitions.
-
-    Args:
-        target: The target to obtain a database connection from.
-        table_name: The schema and table name of the table to check data for.
-        check_columns: A dictionary mapping column names to their definitions. Currently,
-            it is all about the `type` attribute which is compared.
-    """
-    engine = create_engine(target)
-    schema = target.config["default_target_schema"]
-    with engine.connect() as connection:
-        meta = sqlalchemy.MetaData()
-        table = sqlalchemy.Table(
-            table_name, meta, schema=schema, autoload_with=connection
-        )
-        for column in table.c:
-            # Ignore `_sdc` columns for now.
-            if column.name.startswith("_sdc"):
-                continue
-            try:
-                column_type_expected = check_columns[column.name]["type"]
-            except KeyError:
-                raise ValueError(
-                    f"Invalid check_columns - missing definition for column: {column.name}"
-                )
-            if not isinstance(column.type, column_type_expected):
-                raise TypeError(
-                    f"Column '{column.name}' (with type '{column.type}') "
-                    f"does not match expected type: {column_type_expected}"
-                )
-    engine.dispose()
+@pytest.fixture
+def helper(postgres_target) -> AssertionHelper:
+    return AssertionHelper(
+        target=postgres_target, metadata_column_prefix=METADATA_COLUMN_PREFIX
+    )
 
 
 def test_sqlalchemy_url_config(postgres_config_no_ssl):
@@ -287,11 +301,11 @@ def test_special_chars_in_attributes(postgres_target):
     singer_file_to_target(file_name, postgres_target)
 
 
-def test_optional_attributes(postgres_target):
+def test_optional_attributes(postgres_target, helper):
     file_name = "optional_attributes.singer"
     singer_file_to_target(file_name, postgres_target)
     row = {"id": 1, "optional": "This is optional"}
-    verify_data(postgres_target, "test_optional_attributes", 4, "id", row)
+    helper.verify_data("test_optional_attributes", 4, "id", row)
 
 
 def test_schema_no_properties(postgres_target):
@@ -311,7 +325,7 @@ def test_large_numeric_primary_key(postgres_target):
 
 
 # TODO test that data is correct
-def test_schema_updates(postgres_target):
+def test_schema_updates(postgres_target, helper):
     file_name = "schema_updates.singer"
     singer_file_to_target(file_name, postgres_target)
     row = {
@@ -323,16 +337,16 @@ def test_schema_updates(postgres_target):
         "a5": None,
         "a6": None,
     }
-    verify_data(postgres_target, "test_schema_updates", 6, "id", row)
+    helper.verify_data("test_schema_updates", 6, "id", row)
 
 
-def test_multiple_state_messages(postgres_target):
+def test_multiple_state_messages(postgres_target, helper):
     file_name = "multiple_state_messages.singer"
     singer_file_to_target(file_name, postgres_target)
     row = {"id": 1, "metric": 100}
-    verify_data(postgres_target, "test_multiple_state_messages_a", 6, "id", row)
+    helper.verify_data("test_multiple_state_messages_a", 6, "id", row)
     row = {"id": 1, "metric": 110}
-    verify_data(postgres_target, "test_multiple_state_messages_b", 6, "id", row)
+    helper.verify_data("test_multiple_state_messages_b", 6, "id", row)
 
 
 # TODO test that data is correct
@@ -349,7 +363,7 @@ def test_multiple_schema_messages(postgres_target, caplog):
     assert "Schema has changed for stream" not in caplog.text
 
 
-def test_relational_data(postgres_target):
+def test_relational_data(postgres_target, helper):
     file_name = "user_location_data.singer"
     singer_file_to_target(file_name, postgres_target)
 
@@ -406,12 +420,12 @@ def test_relational_data(postgres_target):
         },
     ]
 
-    verify_data(postgres_target, "test_users", 8, "id", users)
-    verify_data(postgres_target, "test_locations", 5, "id", locations)
-    verify_data(postgres_target, "test_user_in_location", 5, "id", user_in_location)
+    helper.verify_data("test_users", 8, "id", users)
+    helper.verify_data("test_locations", 5, "id", locations)
+    helper.verify_data("test_user_in_location", 5, "id", user_in_location)
 
 
-def test_no_primary_keys(postgres_target):
+def test_no_primary_keys(postgres_target, helper):
     """We run both of these tests twice just to ensure that no records are removed and append only works properly"""
     engine = create_engine(postgres_target)
     table_name = "test_no_pk"
@@ -430,7 +444,7 @@ def test_no_primary_keys(postgres_target):
     file_name = f"{table_name}_append.singer"
     singer_file_to_target(file_name, postgres_target)
 
-    verify_data(postgres_target, table_name, 16)
+    helper.verify_data(table_name, 16)
 
 
 def test_no_type(postgres_target):
@@ -438,20 +452,19 @@ def test_no_type(postgres_target):
     singer_file_to_target(file_name, postgres_target)
 
 
-def test_duplicate_records(postgres_target):
+def test_duplicate_records(postgres_target, helper):
     file_name = "duplicate_records.singer"
     singer_file_to_target(file_name, postgres_target)
     row = {"id": 1, "metric": 100}
-    verify_data(postgres_target, "test_duplicate_records", 2, "id", row)
+    helper.verify_data("test_duplicate_records", 2, "id", row)
 
 
-def test_array_boolean(postgres_target):
+def test_array_boolean(postgres_target, helper):
     file_name = "array_boolean.singer"
     singer_file_to_target(file_name, postgres_target)
     row = {"id": 1, "value": [True, False]}
-    verify_data(postgres_target, "array_boolean", 3, "id", row)
-    verify_schema(
-        postgres_target,
+    helper.verify_data("array_boolean", 3, "id", row)
+    helper.verify_schema(
         "array_boolean",
         check_columns={
             "id": {"type": BIGINT},
@@ -460,13 +473,12 @@ def test_array_boolean(postgres_target):
     )
 
 
-def test_array_number(postgres_target):
+def test_array_number(postgres_target, helper):
     file_name = "array_number.singer"
     singer_file_to_target(file_name, postgres_target)
     row = {"id": 1, "value": [Decimal("42.42"), Decimal("84.84"), 23]}
-    verify_data(postgres_target, "array_number", 3, "id", row)
-    verify_schema(
-        postgres_target,
+    helper.verify_data("array_number", 3, "id", row)
+    helper.verify_schema(
         "array_number",
         check_columns={
             "id": {"type": BIGINT},
@@ -475,13 +487,12 @@ def test_array_number(postgres_target):
     )
 
 
-def test_array_string(postgres_target):
+def test_array_string(postgres_target, helper):
     file_name = "array_string.singer"
     singer_file_to_target(file_name, postgres_target)
     row = {"id": 1, "value": ["apple", "orange", "pear"]}
-    verify_data(postgres_target, "array_string", 4, "id", row)
-    verify_schema(
-        postgres_target,
+    helper.verify_data("array_string", 4, "id", row)
+    helper.verify_schema(
         "array_string",
         check_columns={
             "id": {"type": BIGINT},
@@ -490,13 +501,12 @@ def test_array_string(postgres_target):
     )
 
 
-def test_array_timestamp(postgres_target):
+def test_array_timestamp(postgres_target, helper):
     file_name = "array_timestamp.singer"
     singer_file_to_target(file_name, postgres_target)
     row = {"id": 1, "value": ["2023-12-13T01:15:02", "2023-12-13T01:16:02"]}
-    verify_data(postgres_target, "array_timestamp", 3, "id", row)
-    verify_schema(
-        postgres_target,
+    helper.verify_data("array_timestamp", 3, "id", row)
+    helper.verify_schema(
         "array_timestamp",
         check_columns={
             "id": {"type": BIGINT},
@@ -505,7 +515,7 @@ def test_array_timestamp(postgres_target):
     )
 
 
-def test_object_mixed(postgres_target):
+def test_object_mixed(postgres_target, helper):
     file_name = "object_mixed.singer"
     singer_file_to_target(file_name, postgres_target)
     row = {
@@ -522,9 +532,8 @@ def test_object_mixed(postgres_target):
             "nested_object": {"foo": "bar"},
         },
     }
-    verify_data(postgres_target, "object_mixed", 1, "id", row)
-    verify_schema(
-        postgres_target,
+    helper.verify_data("object_mixed", 1, "id", row)
+    helper.verify_schema(
         "object_mixed",
         check_columns={
             "id": {"type": BIGINT},
@@ -533,7 +542,7 @@ def test_object_mixed(postgres_target):
     )
 
 
-def test_encoded_string_data(postgres_target):
+def test_encoded_string_data(postgres_target, helper):
     """
     We removed NUL characters from the original encoded_strings.singer as postgres doesn't allow them.
     https://www.postgresql.org/docs/current/functions-string.html#:~:text=chr(0)%20is%20disallowed%20because%20text%20data%20types%20cannot%20store%20that%20character.
@@ -546,11 +555,11 @@ def test_encoded_string_data(postgres_target):
     file_name = "encoded_strings.singer"
     singer_file_to_target(file_name, postgres_target)
     row = {"id": 1, "info": "simple string 2837"}
-    verify_data(postgres_target, "test_strings", 11, "id", row)
+    helper.verify_data("test_strings", 11, "id", row)
     row = {"id": 1, "info": {"name": "simple", "value": "simple string 2837"}}
-    verify_data(postgres_target, "test_strings_in_objects", 11, "id", row)
+    helper.verify_data("test_strings_in_objects", 11, "id", row)
     row = {"id": 1, "strings": ["simple string", "απλή συμβολοσειρά", "简单的字串"]}
-    verify_data(postgres_target, "test_strings_in_arrays", 6, "id", row)
+    helper.verify_data("test_strings_in_arrays", 6, "id", row)
 
 
 def test_tap_appl(postgres_target):
@@ -574,14 +583,13 @@ def test_large_int(postgres_target):
     singer_file_to_target(file_name, postgres_target)
 
 
-def test_anyof(postgres_target):
+def test_anyof(postgres_target, helper):
     """Test that anyOf is handled correctly"""
     table_name = "commits"
     file_name = f"{table_name}.singer"
     singer_file_to_target(file_name, postgres_target)
 
-    verify_schema(
-        postgres_target,
+    helper.verify_schema(
         table_name,
         check_columns={
             # {"type":"string"}
@@ -690,7 +698,7 @@ def test_activate_version_soft_delete(postgres_target):
 
         result = connection.execute(
             sqlalchemy.text(
-                f"SELECT * FROM {full_table_name} where _sdc_deleted_at is NOT NULL"
+                f"SELECT * FROM {full_table_name} where {METADATA_COLUMN_PREFIX}_deleted_at is NOT NULL"
             )
         )
         assert result.rowcount == 2
