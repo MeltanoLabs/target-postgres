@@ -8,11 +8,10 @@ from pathlib import Path
 
 import jsonschema
 import pytest
-import sqlalchemy
+import sqlalchemy as sa
 from singer_sdk.exceptions import MissingKeyPropertiesError
 from singer_sdk.testing import get_target_test_class, sync_end_to_end
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
-from sqlalchemy.types import BIGINT, TEXT, TIMESTAMP
 
 from target_postgres.connector import PostgresConnector
 from target_postgres.target import TargetPostgres
@@ -113,7 +112,7 @@ class AssertionHelper:
             if primary_key is not None and check_data is not None:
                 if isinstance(check_data, dict):
                     result = connection.execute(
-                        sqlalchemy.text(
+                        sa.text(
                             f"SELECT * FROM {full_table_name} ORDER BY {primary_key}"
                         )
                     )
@@ -122,7 +121,7 @@ class AssertionHelper:
                     assert result_dict == check_data
                 elif isinstance(check_data, list):
                     result = connection.execute(
-                        sqlalchemy.text(
+                        sa.text(
                             f"SELECT * FROM {full_table_name} ORDER BY {primary_key}"
                         )
                     )
@@ -136,7 +135,7 @@ class AssertionHelper:
                     raise ValueError("Invalid check_data - not dict or list of dicts")
             else:
                 result = connection.execute(
-                    sqlalchemy.text(f"SELECT COUNT(*) FROM {full_table_name}")
+                    sa.text(f"SELECT COUNT(*) FROM {full_table_name}")
                 )
                 assert result.first()[0] == number_of_rows
 
@@ -156,10 +155,8 @@ class AssertionHelper:
         """
         schema = self.target.config["default_target_schema"]
         with self.engine.connect() as connection:
-            meta = sqlalchemy.MetaData()
-            table = sqlalchemy.Table(
-                table_name, meta, schema=schema, autoload_with=connection
-            )
+            meta = sa.MetaData()
+            table = sa.Table(table_name, meta, schema=schema, autoload_with=connection)
             for column in table.c:
                 # Ignore `_sdc` metadata columns when veriying table schema.
                 if column.name.startswith(self.metadata_column_prefix):
@@ -224,7 +221,7 @@ def test_port_default_config():
     target_config = TargetPostgres(config=config).config
     connector = PostgresConnector(target_config)
 
-    engine: sqlalchemy.engine.Engine = connector._engine
+    engine: sa.engine.Engine = connector._engine
     assert (
         engine.url.render_as_string(hide_password=False)
         == f"{dialect_driver}://{user}:{password}@{host}:5432/{database}"
@@ -249,7 +246,7 @@ def test_port_config():
     target_config = TargetPostgres(config=config).config
     connector = PostgresConnector(target_config)
 
-    engine: sqlalchemy.engine.Engine = connector._engine
+    engine: sa.engine.Engine = connector._engine
     assert (
         engine.url.render_as_string(hide_password=False)
         == f"{dialect_driver}://{user}:{password}@{host}:5433/{database}"
@@ -431,7 +428,7 @@ def test_no_primary_keys(postgres_target, helper):
     table_name = "test_no_pk"
     full_table_name = postgres_target.config["default_target_schema"] + "." + table_name
     with engine.connect() as connection, connection.begin():
-        connection.execute(sqlalchemy.text(f"DROP TABLE IF EXISTS {full_table_name}"))
+        connection.execute(sa.text(f"DROP TABLE IF EXISTS {full_table_name}"))
     file_name = f"{table_name}.singer"
     singer_file_to_target(file_name, postgres_target)
 
@@ -467,7 +464,7 @@ def test_array_boolean(postgres_target, helper):
     helper.verify_schema(
         "array_boolean",
         check_columns={
-            "id": {"type": BIGINT},
+            "id": {"type": sa.BIGINT},
             "value": {"type": ARRAY},
         },
     )
@@ -481,7 +478,7 @@ def test_array_number(postgres_target, helper):
     helper.verify_schema(
         "array_number",
         check_columns={
-            "id": {"type": BIGINT},
+            "id": {"type": sa.BIGINT},
             "value": {"type": ARRAY},
         },
     )
@@ -495,7 +492,7 @@ def test_array_string(postgres_target, helper):
     helper.verify_schema(
         "array_string",
         check_columns={
-            "id": {"type": BIGINT},
+            "id": {"type": sa.BIGINT},
             "value": {"type": ARRAY},
         },
     )
@@ -509,7 +506,7 @@ def test_array_timestamp(postgres_target, helper):
     helper.verify_schema(
         "array_timestamp",
         check_columns={
-            "id": {"type": BIGINT},
+            "id": {"type": sa.BIGINT},
             "value": {"type": ARRAY},
         },
     )
@@ -536,7 +533,7 @@ def test_object_mixed(postgres_target, helper):
     helper.verify_schema(
         "object_mixed",
         check_columns={
-            "id": {"type": BIGINT},
+            "id": {"type": sa.BIGINT},
             "value": {"type": JSONB},
         },
     )
@@ -593,21 +590,21 @@ def test_anyof(postgres_target, helper):
         table_name,
         check_columns={
             # {"type":"string"}
-            "id": {"type": TEXT},
+            "id": {"type": sa.TEXT},
             # Any of nullable date-time.
             # Note that postgres timestamp is equivalent to jsonschema date-time.
             # {"anyOf":[{"type":"string","format":"date-time"},{"type":"null"}]}
-            "authored_date": {"type": TIMESTAMP},
-            "committed_date": {"type": TIMESTAMP},
+            "authored_date": {"type": sa.TIMESTAMP},
+            "committed_date": {"type": sa.TIMESTAMP},
             # Any of nullable array of strings or single string.
             # {"anyOf":[{"type":"array","items":{"type":["null","string"]}},{"type":"string"},{"type":"null"}]}
             "parent_ids": {"type": ARRAY},
             # Any of nullable string.
             # {"anyOf":[{"type":"string"},{"type":"null"}]}
-            "commit_message": {"type": TEXT},
+            "commit_message": {"type": sa.TEXT},
             # Any of nullable string or integer.
             # {"anyOf":[{"type":"string"},{"type":"integer"},{"type":"null"}]}
-            "legacy_id": {"type": TEXT},
+            "legacy_id": {"type": sa.TEXT},
         },
     )
 
@@ -629,29 +626,29 @@ def test_activate_version_hard_delete(postgres_config_no_ssl):
     engine = create_engine(pg_hard_delete_true)
     singer_file_to_target(file_name, pg_hard_delete_true)
     with engine.connect() as connection:
-        result = connection.execute(sqlalchemy.text(f"SELECT * FROM {full_table_name}"))
+        result = connection.execute(sa.text(f"SELECT * FROM {full_table_name}"))
         assert result.rowcount == 7
     with engine.connect() as connection, connection.begin():
         # Add a record like someone would if they weren't using the tap target combo
         result = connection.execute(
-            sqlalchemy.text(
+            sa.text(
                 f"INSERT INTO {full_table_name}(code, \"name\") VALUES('Manual1', 'Meltano')"
             )
         )
         result = connection.execute(
-            sqlalchemy.text(
+            sa.text(
                 f"INSERT INTO {full_table_name}(code, \"name\") VALUES('Manual2', 'Meltano')"
             )
         )
     with engine.connect() as connection:
-        result = connection.execute(sqlalchemy.text(f"SELECT * FROM {full_table_name}"))
+        result = connection.execute(sa.text(f"SELECT * FROM {full_table_name}"))
         assert result.rowcount == 9
 
     singer_file_to_target(file_name, pg_hard_delete_true)
 
     # Should remove the 2 records we added manually
     with engine.connect() as connection:
-        result = connection.execute(sqlalchemy.text(f"SELECT * FROM {full_table_name}"))
+        result = connection.execute(sa.text(f"SELECT * FROM {full_table_name}"))
         assert result.rowcount == 7
 
 
@@ -662,42 +659,40 @@ def test_activate_version_soft_delete(postgres_target):
     file_name = f"{table_name}.singer"
     full_table_name = postgres_target.config["default_target_schema"] + "." + table_name
     with engine.connect() as connection, connection.begin():
-        result = connection.execute(
-            sqlalchemy.text(f"DROP TABLE IF EXISTS {full_table_name}")
-        )
+        result = connection.execute(sa.text(f"DROP TABLE IF EXISTS {full_table_name}"))
     postgres_config_soft_delete = copy.deepcopy(postgres_target._config)
     postgres_config_soft_delete["hard_delete"] = False
     pg_soft_delete = TargetPostgres(config=postgres_config_soft_delete)
     singer_file_to_target(file_name, pg_soft_delete)
 
     with engine.connect() as connection:
-        result = connection.execute(sqlalchemy.text(f"SELECT * FROM {full_table_name}"))
+        result = connection.execute(sa.text(f"SELECT * FROM {full_table_name}"))
         assert result.rowcount == 7
     with engine.connect() as connection, connection.begin():
         # Add a record like someone would if they weren't using the tap target combo
         result = connection.execute(
-            sqlalchemy.text(
+            sa.text(
                 f"INSERT INTO {full_table_name}(code, \"name\") VALUES('Manual1', 'Meltano')"
             )
         )
         result = connection.execute(
-            sqlalchemy.text(
+            sa.text(
                 f"INSERT INTO {full_table_name}(code, \"name\") VALUES('Manual2', 'Meltano')"
             )
         )
     with engine.connect() as connection:
-        result = connection.execute(sqlalchemy.text(f"SELECT * FROM {full_table_name}"))
+        result = connection.execute(sa.text(f"SELECT * FROM {full_table_name}"))
         assert result.rowcount == 9
 
     singer_file_to_target(file_name, pg_soft_delete)
 
     # Should have all records including the 2 we added manually
     with engine.connect() as connection:
-        result = connection.execute(sqlalchemy.text(f"SELECT * FROM {full_table_name}"))
+        result = connection.execute(sa.text(f"SELECT * FROM {full_table_name}"))
         assert result.rowcount == 9
 
         result = connection.execute(
-            sqlalchemy.text(
+            sa.text(
                 f"SELECT * FROM {full_table_name} where {METADATA_COLUMN_PREFIX}_deleted_at is NOT NULL"
             )
         )
@@ -711,9 +706,7 @@ def test_activate_version_deletes_data_properly(postgres_target):
     file_name = f"{table_name}.singer"
     full_table_name = postgres_target.config["default_target_schema"] + "." + table_name
     with engine.connect() as connection, connection.begin():
-        result = connection.execute(
-            sqlalchemy.text(f"DROP TABLE IF EXISTS {full_table_name}")
-        )
+        result = connection.execute(sa.text(f"DROP TABLE IF EXISTS {full_table_name}"))
 
     postgres_config_soft_delete = copy.deepcopy(postgres_target._config)
     postgres_config_soft_delete["hard_delete"] = True
@@ -721,27 +714,27 @@ def test_activate_version_deletes_data_properly(postgres_target):
     singer_file_to_target(file_name, pg_hard_delete)
     # Will populate us with 7 records
     with engine.connect() as connection:
-        result = connection.execute(sqlalchemy.text(f"SELECT * FROM {full_table_name}"))
+        result = connection.execute(sa.text(f"SELECT * FROM {full_table_name}"))
         assert result.rowcount == 7
     with engine.connect() as connection, connection.begin():
         result = connection.execute(
-            sqlalchemy.text(
+            sa.text(
                 f"INSERT INTO {full_table_name} (code, \"name\") VALUES('Manual1', 'Meltano')"
             )
         )
         result = connection.execute(
-            sqlalchemy.text(
+            sa.text(
                 f"INSERT INTO {full_table_name} (code, \"name\") VALUES('Manual2', 'Meltano')"
             )
         )
     with engine.connect() as connection:
-        result = connection.execute(sqlalchemy.text(f"SELECT * FROM {full_table_name}"))
+        result = connection.execute(sa.text(f"SELECT * FROM {full_table_name}"))
         assert result.rowcount == 9
     # Only has a schema and one activate_version message, should delete all records as it's a higher version than what's currently in the table
     file_name = f"{table_name}_2.singer"
     singer_file_to_target(file_name, pg_hard_delete)
     with engine.connect() as connection:
-        result = connection.execute(sqlalchemy.text(f"SELECT * FROM {full_table_name}"))
+        result = connection.execute(sa.text(f"SELECT * FROM {full_table_name}"))
         assert result.rowcount == 0
 
 
@@ -782,7 +775,7 @@ def test_postgres_ssl_no_config(postgres_config_no_ssl):
     postgres_config_modified = copy.deepcopy(postgres_config_no_ssl)
     postgres_config_modified["port"] = 5432
 
-    with pytest.raises(sqlalchemy.exc.OperationalError):
+    with pytest.raises(sa.exc.OperationalError):
         target = TargetPostgres(config=postgres_config_modified)
         sync_end_to_end(tap, target)
 
@@ -808,8 +801,8 @@ def test_postgres_ssl_public_pkey(postgres_config):
     postgres_config_modified["ssl_client_private_key"] = "./ssl/public_pkey.key"
 
     # If the private key exists but access is too public, the target won't fail until
-    # the it attempts to establish a connection to the database.
-    with pytest.raises(sqlalchemy.exc.OperationalError):
+    # it attempts to establish a connection to the database.
+    with pytest.raises(sa.exc.OperationalError):
         target = TargetPostgres(config=postgres_config_modified)
         sync_end_to_end(tap, target)
 
@@ -838,7 +831,7 @@ def test_postgres_ssl_invalid_cn(postgres_config):
     postgres_config_modified["host"] = "127.0.0.1"
     postgres_config_modified["ssl_mode"] = "verify-full"
 
-    with pytest.raises(sqlalchemy.exc.OperationalError):
+    with pytest.raises(sa.exc.OperationalError):
         target = TargetPostgres(config=postgres_config_modified)
         sync_end_to_end(tap, target)
 
@@ -871,7 +864,7 @@ def test_postgres_ssl_unsupported(postgres_config):
     postgres_config_modified = copy.deepcopy(postgres_config)
     postgres_config_modified["port"] = 5433  # Alternate service: postgres_no_ssl
 
-    with pytest.raises(sqlalchemy.exc.OperationalError):
+    with pytest.raises(sa.exc.OperationalError):
         target = TargetPostgres(config=postgres_config_modified)
         sync_end_to_end(tap, target)
 
