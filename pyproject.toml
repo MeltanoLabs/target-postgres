@@ -37,7 +37,6 @@ singer-sdk = ">=0.28,<0.34"
 psycopg2-binary = "2.9.9"
 sqlalchemy = ">=2.0,<3.0"
 sshtunnel = "0.4.0"
-pendulum = { version = "3.0.0b1", markers = "python_version >= '3.12'" }
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.2"
