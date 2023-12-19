@@ -180,8 +180,10 @@ class PostgresConnector(SQLConnector):
 
     @contextmanager
     def _connect(self) -> t.Iterator[sqlalchemy.engine.Connection]:
-        with self._engine.connect().execution_options() as conn:
+        engine = self._engine
+        with engine.connect().execution_options() as conn:
             yield conn
+        engine.dispose()
 
     def drop_table(
         self, table: sqlalchemy.Table, connection: sqlalchemy.engine.Connection
