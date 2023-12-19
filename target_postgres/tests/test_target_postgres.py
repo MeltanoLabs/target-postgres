@@ -132,6 +132,7 @@ def verify_data(
                 sqlalchemy.text(f"SELECT COUNT(*) FROM {full_table_name}")
             )
             assert result.first()[0] == number_of_rows
+    engine.dispose()
 
 
 def verify_schema(
@@ -169,6 +170,7 @@ def verify_schema(
                     f"Column '{column.name}' (with type '{column.type}') "
                     f"does not match expected type: {column_type_expected}"
                 )
+    engine.dispose()
 
 
 def test_sqlalchemy_url_config(postgres_config_no_ssl):
