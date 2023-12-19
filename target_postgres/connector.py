@@ -1,4 +1,5 @@
 """Handles Postgres interactions."""
+
 from __future__ import annotations
 
 import atexit
@@ -813,3 +814,12 @@ class NOTYPE(TypeDecorator):
         if value is not None and isinstance(value, (dict, list)):
             value = simplejson.dumps(value, use_decimal=True)
         return value
+
+    @property
+    def python_type(self):
+        """Return the Python type for this column."""
+        return object
+
+    def as_generic(self, *args: t.Any, **kwargs: t.Any):
+        """Return the generic type for this column."""
+        return TEXT()
