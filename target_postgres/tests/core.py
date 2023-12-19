@@ -1,6 +1,6 @@
 """ Config and base values for target-postgres testing """
 # flake8: noqa
-import sqlalchemy
+import sqlalchemy as sa
 
 from target_postgres.target import TargetPostgres
 
@@ -53,7 +53,7 @@ def postgres_config_ssh_tunnel():
     }
 
 
-def create_engine(target_postgres: TargetPostgres) -> sqlalchemy.engine.Engine:
+def create_engine(target_postgres: TargetPostgres) -> sa.engine.Engine:
     return TargetPostgres.default_sink_class.connector_class(
         config=target_postgres.config
     )._engine

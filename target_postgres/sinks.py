@@ -3,12 +3,9 @@
 import uuid
 from typing import Any, Dict, Iterable, List, Optional, Union, cast
 
-import sqlalchemy
+import sqlalchemy as sa
 from pendulum import now
 from singer_sdk.sinks import SQLSink
-from sqlalchemy import Column, MetaData, Table, insert, select, update
-from sqlalchemy.sql import Executable
-from sqlalchemy.sql.expression import bindparam
 
 from target_postgres.connector import PostgresConnector
 
@@ -72,10 +69,10 @@ class PostgresSink(SQLSink):
         Args:
             context: Stream partition or context dictionary.
         """
-        # Use one connection so we do this all in a single transaction
+        # Use one connection, so we do this all in a single transaction
         with self.connector._connect() as connection, connection.begin():
             # Check structure of table
-            table: sqlalchemy.Table = self.connector.prepare_table(
+            table: sa.Table = self.connector.prepare_table(
                 full_table_name=self.full_table_name,
                 schema=self.schema,
                 primary_keys=self.key_properties,
@@ -83,7 +80,7 @@ class PostgresSink(SQLSink):
                 connection=connection,
             )
             # Create a temp table (Creates from the table above)
-            temp_table: sqlalchemy.Table = self.connector.copy_table_structure(
+            temp_table: sa.Table = self.connector.copy_table_structure(
                 full_table_name=self.temp_table_name,
                 from_table=table,
                 as_temp_table=True,
@@ -119,11 +116,11 @@ class PostgresSink(SQLSink):
 
     def bulk_insert_records(  # type: ignore[override]
         self,
-        table: sqlalchemy.Table,
+        table: sa.Table,
         schema: dict,
         records: Iterable[Dict[str, Any]],
         primary_keys: List[str],
-        connection: sqlalchemy.engine.Connection,
+        connection: sa.engine.Connection,
     ) -> Optional[int]:
         """Bulk insert records to an existing destination table.
 
@@ -174,11 +171,11 @@ class PostgresSink(SQLSink):
 
     def upsert(
         self,
-        from_table: sqlalchemy.Table,
-        to_table: sqlalchemy.Table,
+        from_table: sa.Table,
+        to_table: sa.Table,
         schema: dict,
         join_keys: List[str],
-        connection: sqlalchemy.engine.Connection,
+        connection: sa.engine.Connection,
     ) -> Optional[int]:
         """Merge upsert data from one table to another.
 
@@ -196,33 +193,33 @@ class PostgresSink(SQLSink):
         """
         if self.append_only is True:
             # Insert
-            select_stmt = select(from_table.columns).select_from(from_table)
+            select_stmt = sa.select(from_table.columns).select_from(from_table)
             insert_stmt = to_table.insert().from_select(
                 names=from_table.columns, select=select_stmt
             )
             connection.execute(insert_stmt)
         else:
             join_predicates = []
-            to_table_key: sqlalchemy.Column
+            to_table_key: sa.Column
             for key in join_keys:
-                from_table_key: sqlalchemy.Column = from_table.columns[key]
+                from_table_key: sa.Column = from_table.columns[key]
                 to_table_key = to_table.columns[key]
                 join_predicates.append(from_table_key == to_table_key)
 
-            join_condition = sqlalchemy.and_(*join_predicates)
+            join_condition = sa.and_(*join_predicates)
 
             where_predicates = []
             for key in join_keys:
                 to_table_key = to_table.columns[key]
                 where_predicates.append(to_table_key.is_(None))
-            where_condition = sqlalchemy.and_(*where_predicates)
+            where_condition = sa.and_(*where_predicates)
 
             select_stmt = (
-                select(from_table.columns)
+                sa.select(from_table.columns)
                 .select_from(from_table.outerjoin(to_table, join_condition))
                 .where(where_condition)
             )
-            insert_stmt = insert(to_table).from_select(
+            insert_stmt = sa.insert(to_table).from_select(
                 names=from_table.columns, select=select_stmt
             )
 
@@ -232,11 +229,13 @@ class PostgresSink(SQLSink):
             where_condition = join_condition
             update_columns = {}
             for column_name in self.schema["properties"].keys():
-                from_table_column: sqlalchemy.Column = from_table.columns[column_name]
-                to_table_column: sqlalchemy.Column = to_table.columns[column_name]
+                from_table_column: sa.Column = from_table.columns[column_name]
+                to_table_column: sa.Column = to_table.columns[column_name]
                 update_columns[to_table_column] = from_table_column
 
-            update_stmt = update(to_table).where(where_condition).values(update_columns)
+            update_stmt = (
+                sa.update(to_table).where(where_condition).values(update_columns)
+            )
             connection.execute(update_stmt)
 
         return None
@@ -244,12 +243,12 @@ class PostgresSink(SQLSink):
     def column_representation(
         self,
         schema: dict,
-    ) -> List[Column]:
+    ) -> List[sa.Column]:
         """Return a sqlalchemy table representation for the current schema."""
-        columns: list[Column] = []
+        columns: list[sa.Column] = []
         for property_name, property_jsonschema in schema["properties"].items():
             columns.append(
-                Column(
+                sa.Column(
                     property_name,
                     self.connector.to_sql_type(property_jsonschema),
                 )
@@ -259,8 +258,8 @@ class PostgresSink(SQLSink):
     def generate_insert_statement(
         self,
         full_table_name: str,
-        columns: List[Column],  # type: ignore[override]
-    ) -> Union[str, Executable]:
+        columns: List[sa.Column],  # type: ignore[override]
+    ) -> Union[str, sa.sql.Executable]:
         """Generate an insert statement for the given records.
 
         Args:
@@ -270,9 +269,9 @@ class PostgresSink(SQLSink):
         Returns:
             An insert statement.
         """
-        metadata = MetaData()
-        table = Table(full_table_name, metadata, *columns)
-        return insert(table)
+        metadata = sa.MetaData()
+        table = sa.Table(full_table_name, metadata, *columns)
+        return sa.insert(table)
 
     def conform_name(self, name: str, object_type: Optional[str] = None) -> str:
         """Conforming names of tables, schemas, column names."""
@@ -343,8 +342,8 @@ class PostgresSink(SQLSink):
                     connection=connection,
                 )
 
-            metadata = MetaData()
-            target_table = Table(
+            metadata = sa.MetaData()
+            target_table = sa.Table(
                 self.table_name,
                 metadata,
                 autoload_with=connection.engine,
@@ -353,8 +352,8 @@ class PostgresSink(SQLSink):
 
             self.logger.info("Hard delete: %s", self.config.get("hard_delete"))
             if self.config["hard_delete"] is True:
-                delete_stmt = sqlalchemy.delete(target_table).where(
-                    sqlalchemy.or_(
+                delete_stmt = sa.delete(target_table).where(
+                    sa.or_(
                         target_table.c[self.version_column_name].is_(None),
                         target_table.c[self.version_column_name] <= new_version,
                     )
@@ -375,19 +374,19 @@ class PostgresSink(SQLSink):
                 )
             # Need to deal with the case where data doesn't exist for the version column
             update_stmt = (
-                update(target_table)
+                sa.update(target_table)
                 .values(
                     {
-                        target_table.c[self.soft_delete_column_name]: bindparam(
+                        target_table.c[self.soft_delete_column_name]: sa.bindparam(
                             "deletedate"
                         )
                     }
                 )
                 .where(
-                    sqlalchemy.and_(
-                        sqlalchemy.or_(
+                    sa.and_(
+                        sa.or_(
                             target_table.c[self.version_column_name]
-                            < bindparam("version"),
+                            < sa.bindparam("version"),
                             target_table.c[self.version_column_name].is_(None),
                         ),
                         target_table.c[self.soft_delete_column_name].is_(None),
