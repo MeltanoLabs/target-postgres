@@ -1,6 +1,7 @@
 """ Postgres target tests """
 # flake8: noqa
 import copy
+import datetime
 import io
 from contextlib import redirect_stdout
 from decimal import Decimal
@@ -549,6 +550,21 @@ def test_activate_version_soft_delete(postgres_config_no_ssl):
     with engine.connect() as connection:
         result = connection.execute(sqlalchemy.text(f"SELECT * FROM {full_table_name}"))
         assert result.rowcount == 7
+
+    # Same file as above, but with South America (code=SA) record missing.
+    file_name = f"{table_name}_with_delete.singer"
+    south_america = {}
+
+    singer_file_to_target(file_name, pg_soft_delete)
+    with engine.connect() as connection:
+        result = connection.execute(sqlalchemy.text(f"SELECT * FROM {full_table_name}"))
+        assert result.rowcount == 7
+        result = connection.execute(
+            sqlalchemy.text(f"SELECT * FROM {full_table_name} WHERE code='SA'")
+        )
+        south_america = result.first()._asdict()
+
+    singer_file_to_target(file_name, pg_soft_delete)
     with engine.connect() as connection, connection.begin():
         # Add a record like someone would if they weren't using the tap target combo
         result = connection.execute(
@@ -577,7 +593,14 @@ def test_activate_version_soft_delete(postgres_config_no_ssl):
                 f"SELECT * FROM {full_table_name} where _sdc_deleted_at is NOT NULL"
             )
         )
-        assert result.rowcount == 2
+        assert result.rowcount == 3  # 2 manual + 1 deleted (south america)
+
+        result = connection.execute(
+            sqlalchemy.text(f"SELECT * FROM {full_table_name} WHERE code='SA'")
+        )
+        # South America row should not have been modified, but it would have been prior
+        # to the fix mentioned in #204 and implemented in #240.
+        assert south_america == result.first()._asdict()
 
 
 def test_activate_version_no_metadata(postgres_config_no_ssl):

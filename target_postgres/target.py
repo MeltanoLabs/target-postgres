@@ -83,7 +83,8 @@ class TargetPostgres(SQLTarget):
             "activate_version"
         ), (
             "Activate version messages can't be processed unless add_record_metadata "
-            "is set to true."
+            "is set to true. To ignore Activate version messages instead, Set the "
+            "`activate_version` configuration to False."
         )
 
     name = "target-postgres"
