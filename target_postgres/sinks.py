@@ -329,6 +329,9 @@ class PostgresSink(SQLSink):
         deleted_at = now()
 
         with self.connector._connect() as connection, connection.begin():
+            # Theoretically these errors should never appear because we always create
+            # the columns, but it's useful as a sanity check. If anything changes later,
+            # the error that would otherwise appear is not as intuitive.
             if not self.connector.column_exists(
                 full_table_name=self.full_table_name,
                 column_name=self.version_column_name,

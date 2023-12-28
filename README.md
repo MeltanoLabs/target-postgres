@@ -43,7 +43,6 @@ Built with the [Meltano SDK](https://sdk.meltano.com) for Singer Taps and Target
 | ssh_tunnel.port | True (if ssh_tunnel set) | 22 | Port to connect to bastion host
 | ssh_tunnel.private_key | True (if ssh_tunnel set) | None | Private Key for authentication to the bastion host
 | ssh_tunnel.private_key_password | False | None | Private Key Password, leave None if no password is set
-| load_method                  | False    | append-only | The method to use when loading data into the destination. `append-only` will always write all input records whether that records already exists or not. `upsert` will update existing records and insert new records. `overwrite` will delete all existing records and insert all input records. |
 | stream_maps                  | False    | None    | Config object for stream maps capability. For more information check out [Stream Maps](https://sdk.meltano.com/en/latest/stream_maps.html). |
 | stream_map_config            | False    | None    | User-defined config values to be used within map expressions. |
 | flattening_enabled           | False    | None    | 'True' to enable schema flattening and automatically expand nested properties. |
