@@ -131,8 +131,7 @@ class PostgresConnector(SQLConnector):
             if property_name in columns:
                 column_object = columns[property_name]
             self.prepare_column(
-                schema_name=cast(str, schema_name),
-                table=table,
+                full_table_name=table.fullname,
                 column_name=property_name,
                 sql_type=self.to_sql_type(property_def),
                 connection=connection,
@@ -371,43 +370,48 @@ class PostgresConnector(SQLConnector):
         new_table.create(bind=connection)
         return new_table
 
-    def prepare_column(  # type: ignore[override]
+    def prepare_column(
         self,
-        schema_name: str,
-        table: sqlalchemy.Table,
+        full_table_name: str,
         column_name: str,
         sql_type: sqlalchemy.types.TypeEngine,
-        connection: sqlalchemy.engine.Connection,
+        connection: sqlalchemy.engine.Connection | None = None,
         column_object: sqlalchemy.Column | None = None,
     ) -> None:
         """Adapt target table to provided schema if possible.
 
         Args:
-            schema_name: the schema name.
-            table: the target table.
+            full_table_name: the fully qualified table name.
             column_name: the target column name.
             sql_type: the SQLAlchemy type.
-            connection: the database connection.
+            connection: a database connection. optional.
+            column_object: a SQLAlchemy column. optional.
         """
+        if connection is None:
+            super().prepare_column(full_table_name, column_name, sql_type)
+            return
+
+        _, schema_name, table_name = self.parse_full_table_name(full_table_name)
+
         column_exists = column_object is not None or self.column_exists(
-            table.fullname, column_name, connection=connection
+            full_table_name, column_name, connection=connection
         )
 
         if not column_exists:
             self._create_empty_column(
                 # We should migrate every function to use sqlalchemy.Table
                 # instead of having to know what the function wants
-                table_name=table.name,
+                table_name=table_name,
                 column_name=column_name,
                 sql_type=sql_type,
-                schema_name=schema_name,
+                schema_name=cast(str, schema_name),
                 connection=connection,
             )
             return
 
         self._adapt_column_type(
-            schema_name=schema_name,
-            table_name=table.name,
+            schema_name=cast(str, schema_name),
+            table_name=table_name,
             column_name=column_name,
             sql_type=sql_type,
             connection=connection,

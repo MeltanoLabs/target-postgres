@@ -1,6 +1,7 @@
 """ Postgres target tests """
 # flake8: noqa
 import copy
+import datetime
 import io
 from contextlib import redirect_stdout
 from decimal import Decimal
@@ -536,24 +537,34 @@ def test_activate_version_hard_delete(postgres_config_no_ssl):
         assert result.rowcount == 7
 
 
-def test_activate_version_soft_delete(postgres_target):
+def test_activate_version_soft_delete(postgres_config_no_ssl):
     """Activate Version Soft Delete Test"""
-    engine = create_engine(postgres_target)
     table_name = "test_activate_version_soft"
     file_name = f"{table_name}.singer"
-    full_table_name = postgres_target.config["default_target_schema"] + "." + table_name
-    with engine.connect() as connection, connection.begin():
-        result = connection.execute(
-            sqlalchemy.text(f"DROP TABLE IF EXISTS {full_table_name}")
-        )
-    postgres_config_soft_delete = copy.deepcopy(postgres_target._config)
-    postgres_config_soft_delete["hard_delete"] = False
-    pg_soft_delete = TargetPostgres(config=postgres_config_soft_delete)
+    full_table_name = postgres_config_no_ssl["default_target_schema"] + "." + table_name
+    postgres_config_hard_delete_true = copy.deepcopy(postgres_config_no_ssl)
+    postgres_config_hard_delete_true["hard_delete"] = False
+    pg_soft_delete = TargetPostgres(config=postgres_config_hard_delete_true)
+    engine = create_engine(pg_soft_delete)
     singer_file_to_target(file_name, pg_soft_delete)
-
     with engine.connect() as connection:
         result = connection.execute(sqlalchemy.text(f"SELECT * FROM {full_table_name}"))
         assert result.rowcount == 7
+
+    # Same file as above, but with South America (code=SA) record missing.
+    file_name = f"{table_name}_with_delete.singer"
+    south_america = {}
+
+    singer_file_to_target(file_name, pg_soft_delete)
+    with engine.connect() as connection:
+        result = connection.execute(sqlalchemy.text(f"SELECT * FROM {full_table_name}"))
+        assert result.rowcount == 7
+        result = connection.execute(
+            sqlalchemy.text(f"SELECT * FROM {full_table_name} WHERE code='SA'")
+        )
+        south_america = result.first()._asdict()
+
+    singer_file_to_target(file_name, pg_soft_delete)
     with engine.connect() as connection, connection.begin():
         # Add a record like someone would if they weren't using the tap target combo
         result = connection.execute(
@@ -582,7 +593,23 @@ def test_activate_version_soft_delete(postgres_target):
                 f"SELECT * FROM {full_table_name} where _sdc_deleted_at is NOT NULL"
             )
         )
-        assert result.rowcount == 2
+        assert result.rowcount == 3  # 2 manual + 1 deleted (south america)
+
+        result = connection.execute(
+            sqlalchemy.text(f"SELECT * FROM {full_table_name} WHERE code='SA'")
+        )
+        # South America row should not have been modified, but it would have been prior
+        # to the fix mentioned in #204 and implemented in #240.
+        assert south_america == result.first()._asdict()
+
+
+def test_activate_version_no_metadata(postgres_config_no_ssl):
+    """Activate Version Test for if add_record_metadata is disabled"""
+    postgres_config_modified = copy.deepcopy(postgres_config_no_ssl)
+    postgres_config_modified["activate_version"] = True
+    postgres_config_modified["add_record_metadata"] = False
+    with pytest.raises(AssertionError):
+        TargetPostgres(config=postgres_config_modified)
 
 
 def test_activate_version_deletes_data_properly(postgres_target):

@@ -314,33 +314,44 @@ class PostgresSink(SQLSink):
         Args:
             new_version: The version number to activate.
         """
+        if self.config["activate_version"] is False:
+            self.logger.warning(
+                "An activate version message was received, but activate_version is set "
+                "to false so it was ignored."
+            )
+            return
+
         # There's nothing to do if the table doesn't exist yet
         # (which it won't the first time the stream is processed)
         if not self.connector.table_exists(self.full_table_name):
             return
 
         deleted_at = now()
-        # Different from SingerSDK as we need to handle types the
-        # same as SCHEMA messsages
-        datetime_type = self.connector.to_sql_type(
-            {"type": "string", "format": "date-time"}
-        )
-
-        # Different from SingerSDK as we need to handle types the
-        # same as SCHEMA messsages
-        integer_type = self.connector.to_sql_type({"type": "integer"})
 
         with self.connector._connect() as connection, connection.begin():
+            # Theoretically these errors should never appear because we always create
+            # the columns, but it's useful as a sanity check. If anything changes later,
+            # the error that would otherwise appear is not as intuitive.
             if not self.connector.column_exists(
                 full_table_name=self.full_table_name,
                 column_name=self.version_column_name,
                 connection=connection,
             ):
-                self.connector.prepare_column(  # type: ignore[call-arg]
-                    self.full_table_name,
-                    self.version_column_name,  # type: ignore[arg-type]
-                    sql_type=integer_type,
+                raise RuntimeError(
+                    f"{self.version_column_name} is required for activate version "
+                    "messages, but doesn't exist."
+                )
+            if not (
+                self.config["hard_delete"]
+                or self.connector.column_exists(
+                    full_table_name=self.full_table_name,
+                    column_name=self.soft_delete_column_name,
                     connection=connection,
+                )
+            ):
+                raise RuntimeError(
+                    f"{self.version_column_name} is required for soft deletion with "
+                    "activate version messages, but doesn't exist."
                 )
 
             metadata = MetaData()
@@ -362,17 +373,6 @@ class PostgresSink(SQLSink):
                 connection.execute(delete_stmt)
                 return
 
-            if not self.connector.column_exists(
-                full_table_name=self.full_table_name,
-                column_name=self.soft_delete_column_name,
-                connection=connection,
-            ):
-                self.connector.prepare_column(  # type: ignore[call-arg]
-                    self.full_table_name,
-                    self.soft_delete_column_name,  # type: ignore[arg-type]
-                    sql_type=datetime_type,
-                    connection=connection,
-                )
             # Need to deal with the case where data doesn't exist for the version column
             update_stmt = (
                 update(target_table)
