@@ -1,0 +1,5 @@
+{"type": "SCHEMA", "stream": "array_number", "key_properties": ["id"], "schema": {"required": ["id"], "type": "object", "properties": {"id": {"type": "integer"}, "value": {"type": "array", "items": {"type": "number"}}}}}
+{"type": "RECORD", "stream": "array_number", "record": {"id": 1, "value": [ 42.42, 84.84, 23 ]}}
+{"type": "RECORD", "stream": "array_number", "record": {"id": 2, "value": [ 1.0 ]}}
+{"type": "RECORD", "stream": "array_number", "record": {"id": 3, "value": [ 1.11, 2.22, 3, 4, 5.55 ]}}
+{"type": "STATE", "value": {"array_number": 3}}

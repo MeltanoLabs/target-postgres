@@ -1,0 +1,5 @@
+{"type": "SCHEMA", "stream": "array_float_vector", "key_properties": ["id"], "schema": {"required": ["id"], "type": "object", "properties": {"id": {"type": "integer"}, "value": {"type": "array", "items": {"type": "number"}, "additionalProperties": {"storage": {"type": "vector", "dim": 4}}}}}}
+{"type": "RECORD", "stream": "array_float_vector", "record": {"id": 1, "value": [ 1.1, 2.1, 1.1, 1.3 ]}}
+{"type": "RECORD", "stream": "array_float_vector", "record": {"id": 2, "value": [ 1.0, 1.0, 1.0, 2.3 ]}}
+{"type": "RECORD", "stream": "array_float_vector", "record": {"id": 3, "value": [ 2.0, 1.2, 1.0, 0.9 ]}}
+{"type": "STATE", "value": {"array_float_vector": 3}}

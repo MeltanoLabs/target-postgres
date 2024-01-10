@@ -34,6 +34,7 @@ packages = [
 python = "<3.13,>=3.8.1"
 requests = "^2.25.1"
 singer-sdk = ">=0.28,<0.34"
+pgvector = { version="^0.2.4", optional = true }
 psycopg2-binary = "2.9.9"
 sqlalchemy = ">=2.0,<3.0"
 sshtunnel = "0.4.0"
@@ -51,11 +52,17 @@ types-simplejson = "^3.19.0.2"
 types-sqlalchemy = "^1.4.53.38"
 types-jsonschema = "^4.19.0.3"
 
+[tool.poetry.extras]
+pgvector = ["pgvector"]
+
 [tool.mypy]
 exclude = "tests"
 
 [[tool.mypy.overrides]]
-module = ["sshtunnel"]
+module = [
+    "pgvector.sqlalchemy",
+    "sshtunnel",
+]
 ignore_missing_imports = true
 
 [tool.isort]
