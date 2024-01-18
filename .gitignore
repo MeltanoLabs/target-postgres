@@ -2,6 +2,7 @@ smoke-test
 .meltano/**
 .tox/**
 .secrets/**
+.idea
 .vscode/**
 output/**
 .env

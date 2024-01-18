@@ -12,8 +12,8 @@ import pytest
 import sqlalchemy
 from singer_sdk.exceptions import MissingKeyPropertiesError
 from singer_sdk.testing import get_target_test_class, sync_end_to_end
-from sqlalchemy.dialects.postgresql import ARRAY
-from sqlalchemy.types import TEXT, TIMESTAMP
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
+from sqlalchemy.types import BIGINT, TEXT, TIMESTAMP
 
 from target_postgres.connector import PostgresConnector
 from target_postgres.target import TargetPostgres
@@ -95,7 +95,7 @@ def verify_data(
 
     Args:
         target: The target to obtain a database connection from.
-        full_table_name: The schema and table name of the table to check data for.
+        table_name: The schema and table name of the table to check data for.
         primary_key: The primary key of the table.
         number_of_rows: The expected number of rows that should be in the table.
         check_data: A dictionary representing the full contents of the first row in the
@@ -133,6 +133,45 @@ def verify_data(
                 sqlalchemy.text(f"SELECT COUNT(*) FROM {full_table_name}")
             )
             assert result.first()[0] == number_of_rows
+    engine.dispose()
+
+
+def verify_schema(
+    target: TargetPostgres,
+    table_name: str,
+    check_columns: dict = None,
+):
+    """Checks whether the schema of a database table matches the provided column definitions.
+
+    Args:
+        target: The target to obtain a database connection from.
+        table_name: The schema and table name of the table to check data for.
+        check_columns: A dictionary mapping column names to their definitions. Currently,
+            it is all about the `type` attribute which is compared.
+    """
+    engine = create_engine(target)
+    schema = target.config["default_target_schema"]
+    with engine.connect() as connection:
+        meta = sqlalchemy.MetaData()
+        table = sqlalchemy.Table(
+            table_name, meta, schema=schema, autoload_with=connection
+        )
+        for column in table.c:
+            # Ignore `_sdc` columns for now.
+            if column.name.startswith("_sdc"):
+                continue
+            try:
+                column_type_expected = check_columns[column.name]["type"]
+            except KeyError:
+                raise ValueError(
+                    f"Invalid check_columns - missing definition for column: {column.name}"
+                )
+            if not isinstance(column.type, column_type_expected):
+                raise TypeError(
+                    f"Column '{column.name}' (with type '{column.type}') "
+                    f"does not match expected type: {column_type_expected}"
+                )
+    engine.dispose()
 
 
 def test_sqlalchemy_url_config(postgres_config_no_ssl):
@@ -407,11 +446,92 @@ def test_duplicate_records(postgres_target):
     verify_data(postgres_target, "test_duplicate_records", 2, "id", row)
 
 
-def test_array_data(postgres_target):
-    file_name = "array_data.singer"
+def test_array_boolean(postgres_target):
+    file_name = "array_boolean.singer"
     singer_file_to_target(file_name, postgres_target)
-    row = {"id": 1, "fruits": ["apple", "orange", "pear"]}
-    verify_data(postgres_target, "test_carts", 4, "id", row)
+    row = {"id": 1, "value": [True, False]}
+    verify_data(postgres_target, "array_boolean", 3, "id", row)
+    verify_schema(
+        postgres_target,
+        "array_boolean",
+        check_columns={
+            "id": {"type": BIGINT},
+            "value": {"type": ARRAY},
+        },
+    )
+
+
+def test_array_number(postgres_target):
+    file_name = "array_number.singer"
+    singer_file_to_target(file_name, postgres_target)
+    row = {"id": 1, "value": [Decimal("42.42"), Decimal("84.84"), 23]}
+    verify_data(postgres_target, "array_number", 3, "id", row)
+    verify_schema(
+        postgres_target,
+        "array_number",
+        check_columns={
+            "id": {"type": BIGINT},
+            "value": {"type": ARRAY},
+        },
+    )
+
+
+def test_array_string(postgres_target):
+    file_name = "array_string.singer"
+    singer_file_to_target(file_name, postgres_target)
+    row = {"id": 1, "value": ["apple", "orange", "pear"]}
+    verify_data(postgres_target, "array_string", 4, "id", row)
+    verify_schema(
+        postgres_target,
+        "array_string",
+        check_columns={
+            "id": {"type": BIGINT},
+            "value": {"type": ARRAY},
+        },
+    )
+
+
+def test_array_timestamp(postgres_target):
+    file_name = "array_timestamp.singer"
+    singer_file_to_target(file_name, postgres_target)
+    row = {"id": 1, "value": ["2023-12-13T01:15:02", "2023-12-13T01:16:02"]}
+    verify_data(postgres_target, "array_timestamp", 3, "id", row)
+    verify_schema(
+        postgres_target,
+        "array_timestamp",
+        check_columns={
+            "id": {"type": BIGINT},
+            "value": {"type": ARRAY},
+        },
+    )
+
+
+def test_object_mixed(postgres_target):
+    file_name = "object_mixed.singer"
+    singer_file_to_target(file_name, postgres_target)
+    row = {
+        "id": 1,
+        "value": {
+            "string": "foo",
+            "integer": 42,
+            "float": Decimal("42.42"),
+            "timestamp": "2023-12-13T01:15:02",
+            "array_boolean": [True, False],
+            "array_float": [Decimal("42.42"), Decimal("84.84")],
+            "array_integer": [42, 84],
+            "array_string": ["foo", "bar"],
+            "nested_object": {"foo": "bar"},
+        },
+    }
+    verify_data(postgres_target, "object_mixed", 1, "id", row)
+    verify_schema(
+        postgres_target,
+        "object_mixed",
+        check_columns={
+            "id": {"type": BIGINT},
+            "value": {"type": JSONB},
+        },
+    )
 
 
 def test_encoded_string_data(postgres_target):
@@ -457,41 +577,32 @@ def test_large_int(postgres_target):
 
 def test_anyof(postgres_target):
     """Test that anyOf is handled correctly"""
-    engine = create_engine(postgres_target)
     table_name = "commits"
     file_name = f"{table_name}.singer"
-    schema = postgres_target.config["default_target_schema"]
     singer_file_to_target(file_name, postgres_target)
-    with engine.connect() as connection:
-        meta = sqlalchemy.MetaData()
-        table = sqlalchemy.Table(
-            "commits", meta, schema=schema, autoload_with=connection
-        )
-        for column in table.c:
-            # {"type":"string"}
-            if column.name == "id":
-                assert isinstance(column.type, TEXT)
 
+    verify_schema(
+        postgres_target,
+        table_name,
+        check_columns={
+            # {"type":"string"}
+            "id": {"type": TEXT},
             # Any of nullable date-time.
             # Note that postgres timestamp is equivalent to jsonschema date-time.
             # {"anyOf":[{"type":"string","format":"date-time"},{"type":"null"}]}
-            if column.name in {"authored_date", "committed_date"}:
-                assert isinstance(column.type, TIMESTAMP)
-
+            "authored_date": {"type": TIMESTAMP},
+            "committed_date": {"type": TIMESTAMP},
             # Any of nullable array of strings or single string.
             # {"anyOf":[{"type":"array","items":{"type":["null","string"]}},{"type":"string"},{"type":"null"}]}
-            if column.name == "parent_ids":
-                assert isinstance(column.type, ARRAY)
-
+            "parent_ids": {"type": ARRAY},
             # Any of nullable string.
             # {"anyOf":[{"type":"string"},{"type":"null"}]}
-            if column.name == "commit_message":
-                assert isinstance(column.type, TEXT)
-
+            "commit_message": {"type": TEXT},
             # Any of nullable string or integer.
             # {"anyOf":[{"type":"string"},{"type":"integer"},{"type":"null"}]}
-            if column.name == "legacy_id":
-                assert isinstance(column.type, TEXT)
+            "legacy_id": {"type": TEXT},
+        },
+    )
 
 
 def test_new_array_column(postgres_target):
