@@ -1,7 +1,7 @@
 """Test custom types and the type hierarchy."""
 
 import pytest
-from sqlalchemy import Boolean, DateTime, Integer, String
+import sqlalchemy as sa
 
 from target_postgres.connector import NOTYPE, PostgresConnector
 
@@ -26,11 +26,11 @@ def connector():
 @pytest.mark.parametrize(
     ("types", "expected"),
     [
-        pytest.param([Integer(), String()], String, id="int+str=str"),
-        pytest.param([Boolean(), String()], String, id="bool+str=str"),
-        pytest.param([Integer(), DateTime()], Integer, id="int+datetime=int"),
-        pytest.param([NOTYPE(), String()], String, id="none+str=str"),
-        pytest.param([NOTYPE(), Integer()], NOTYPE, id="none+int=none"),
+        pytest.param([sa.Integer(), sa.String()], sa.String, id="int+str=str"),
+        pytest.param([sa.Boolean(), sa.String()], sa.String, id="bool+str=str"),
+        pytest.param([sa.Integer(), sa.DateTime()], sa.Integer, id="int+datetime=int"),
+        pytest.param([NOTYPE(), sa.String()], sa.String, id="none+str=str"),
+        pytest.param([NOTYPE(), sa.Integer()], NOTYPE, id="none+int=none"),
     ],
 )
 def test_type_hierarchy(connector, types, expected):
