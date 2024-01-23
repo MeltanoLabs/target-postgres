@@ -1,7 +1,7 @@
 """Postgres target sink class, which handles writing streams."""
 
 import uuid
-from typing import Any, Dict, Iterable, List, Optional, Union, cast
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Union, cast
 
 import sqlalchemy as sa
 from pendulum import now
@@ -121,7 +121,7 @@ class PostgresSink(SQLSink):
         table: sa.Table,
         schema: dict,
         records: Iterable[Dict[str, Any]],
-        primary_keys: List[str],
+        primary_keys: Sequence[str],
         connection: sa.engine.Connection,
     ) -> Optional[int]:
         """Bulk insert records to an existing destination table.
@@ -178,7 +178,7 @@ class PostgresSink(SQLSink):
         from_table: sa.Table,
         to_table: sa.Table,
         schema: dict,
-        join_keys: List[str],
+        join_keys: Sequence[str],
         connection: sa.engine.Connection,
     ) -> Optional[int]:
         """Merge upsert data from one table to another.

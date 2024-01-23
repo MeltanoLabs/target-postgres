@@ -33,7 +33,7 @@ packages = [
 [tool.poetry.dependencies]
 python = "<3.13,>=3.8"
 requests = "^2.25.1"
-singer-sdk = ">=0.28,<0.35"
+singer-sdk = {git = "https://github.com/meltano/sdk.git"}
 psycopg2-binary = "2.9.9"
 sqlalchemy = ">=2.0,<3.0"
 sshtunnel = "0.4.0"
