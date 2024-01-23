@@ -75,15 +75,24 @@ vcs = "git"
 style = "semver"
 
 [tool.ruff]
-select = [
-  "F",  # Pyflakes
-  "W",  # pycodestyle warnings
-  "E",  # pycodestyle errors
-  "I",  # isort
-  "N",  # pep8-naming
-  "D",  # pydocsyle
-]
 target-version = "py38"
 
-[tool.ruff.pydocstyle]
+[tool.ruff.lint]
+select = [
+  "F",   # Pyflakes
+  "W",   # pycodestyle warnings
+  "E",   # pycodestyle errors
+  "I",   # isort
+  "N",   # pep8-naming
+  "D",   # pydocsyle
+  "ICN", # flake8-import-conventions
+]
+
+[tool.ruff.lint.flake8-import-conventions]
+banned-from = ["sqlalchemy"]
+
+[tool.ruff.lint.flake8-import-conventions.extend-aliases]
+sqlalchemy = "sa"
+
+[tool.ruff.lint.pydocstyle]
 convention = "google"
