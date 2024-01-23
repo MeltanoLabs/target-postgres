@@ -31,7 +31,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "<3.13,>=3.8.1"
+python = "<3.13,>=3.8"
 requests = "^2.25.1"
 singer-sdk = ">=0.28,<0.35"
 psycopg2-binary = "2.9.9"
@@ -42,9 +42,7 @@ sshtunnel = "0.4.0"
 pytest = "^7.4.2"
 mypy = "^1.6.1"
 remote-pdb="2.1.0"
-black = "^23.1.0"
-flake8 = ">=6,<8"
-isort = "^5.10.1"
+ruff = "^0.1.14"
 tox = "^4"
 types-paramiko = "^3.3.0.0"
 types-simplejson = "^3.19.0.2"
@@ -58,13 +56,8 @@ exclude = "tests"
 module = ["sshtunnel"]
 ignore_missing_imports = true
 
-[tool.isort]
-profile = "black"
-multi_line_output = 3 # Vertical Hanging Indent
-src_paths = "target_postgres"
-
 [build-system]
-requires = ["poetry-core>=1.0.8", "poetry-dynamic-versioning"]
+requires = ["poetry-core==1.8.1", "poetry-dynamic-versioning==1.2.0"]
 build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.poetry.scripts]
@@ -80,3 +73,17 @@ pythonpath = [
 enable = true
 vcs = "git"
 style = "semver"
+
+[tool.ruff]
+select = [
+  "F",  # Pyflakes
+  "W",  # pycodestyle warnings
+  "E",  # pycodestyle errors
+  "I",  # isort
+  "N",  # pep8-naming
+  "D",  # pydocsyle
+]
+target-version = "py38"
+
+[tool.ruff.pydocstyle]
+convention = "google"

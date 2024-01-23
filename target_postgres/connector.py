@@ -229,12 +229,11 @@ class PostgresConnector(SQLConnector):
         json_type_array = []
 
         if jsonschema_type.get("type", False):
-            if type(jsonschema_type["type"]) is str:
+            if isinstance(jsonschema_type["type"], str):
                 json_type_array.append(jsonschema_type)
-            elif type(jsonschema_type["type"]) is list:
+            elif isinstance(jsonschema_type["type"], list):
                 for entry in jsonschema_type["type"]:
-                    json_type_dict = {}
-                    json_type_dict["type"] = entry
+                    json_type_dict = {"type": entry}
                     if jsonschema_type.get("format", False):
                         json_type_dict["format"] = jsonschema_type["format"]
                     json_type_array.append(json_type_dict)
@@ -242,8 +241,7 @@ class PostgresConnector(SQLConnector):
                 msg = "Invalid format for jsonschema type: not str or list."
                 raise RuntimeError(msg)
         elif jsonschema_type.get("anyOf", False):
-            for entry in jsonschema_type["anyOf"]:
-                json_type_array.append(entry)
+            json_type_array.extend(iter(jsonschema_type["anyOf"]))
         else:
             msg = (
                 "Neither type nor anyOf are present. Unable to determine type. "
@@ -329,11 +327,16 @@ class PostgresConnector(SQLConnector):
         """Create an empty target table.
 
         Args:
-            full_table_name: the target table name.
+            table_name: the target table name.
+            meta: the SQLAchemy metadata object.
             schema: the JSON schema for the new table.
+            connection: the database connection.
             primary_keys: list of key properties.
             partition_keys: list of partition keys.
             as_temp_table: True to create a temp table.
+
+        Returns:
+            The new table object.
 
         Raises:
             NotImplementedError: if temp tables are unsupported and as_temp_table=True.
@@ -429,9 +432,11 @@ class PostgresConnector(SQLConnector):
         """Create a new column.
 
         Args:
-            full_table_name: The target table name.
+            schema_name: The schema name.
+            table_name: The table name.
             column_name: The name of the new column.
             sql_type: SQLAlchemy type engine to be used in creating the new column.
+            connection: The database connection.
 
         Raises:
             NotImplementedError: if adding columns is not supported.
@@ -493,9 +498,12 @@ class PostgresConnector(SQLConnector):
         """Adapt table column type to support the new JSON schema type.
 
         Args:
-            full_table_name: The target table name.
+            schema_name: The schema name.
+            table_name: The table name.
             column_name: The target column name.
             sql_type: The new SQLAlchemy type.
+            connection: The database connection.
+            column_object: The existing column object.
 
         Raises:
             NotImplementedError: if altering columns is not supported.
@@ -560,6 +568,7 @@ class PostgresConnector(SQLConnector):
         Override this if your database uses a different syntax for altering columns.
 
         Args:
+            schema_name: Schema name.
             table_name: Fully qualified table name of column to alter.
             column_name: Column name to alter.
             column_type: New column type string.
@@ -724,8 +733,10 @@ class PostgresConnector(SQLConnector):
         """Get the SQL type of the declared column.
 
         Args:
-            full_table_name: The name of the table.
+            schema_name: The schema name.
+            table_name: The table name.
             column_name: The name of the column.
+            connection: The database connection.
 
         Returns:
             The type of the column.
@@ -762,6 +773,7 @@ class PostgresConnector(SQLConnector):
         Args:
             schema_name: schema name.
             table_name: table name to get columns for.
+            connection: database connection.
             column_names: A list of column names to filter to.
 
         Returns:
@@ -792,6 +804,7 @@ class PostgresConnector(SQLConnector):
         Args:
             full_table_name: the target table name.
             column_name: the target column name.
+            connection: the database connection.
 
         Returns:
             True if table exists, False if not.
