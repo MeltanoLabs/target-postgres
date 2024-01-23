@@ -86,6 +86,7 @@ select = [
   "N",   # pep8-naming
   "D",   # pydocsyle
   "ICN", # flake8-import-conventions
+  "RUF", # ruff
 ]
 
 [tool.ruff.lint.flake8-import-conventions]

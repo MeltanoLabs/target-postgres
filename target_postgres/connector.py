@@ -167,9 +167,7 @@ class PostgresConnector(SQLConnector):
         for column in from_table.columns:
             columns.append(column._copy())
         if as_temp_table:
-            new_table = sa.Table(
-                table_name, meta, *columns, prefixes=["TEMPORARY"]
-            )
+            new_table = sa.Table(table_name, meta, *columns, prefixes=["TEMPORARY"])
             new_table.create(bind=connection)
             return new_table
         else:
@@ -182,9 +180,7 @@ class PostgresConnector(SQLConnector):
         with self._engine.connect().execution_options() as conn:
             yield conn
 
-    def drop_table(
-        self, table: sa.Table, connection: sa.engine.Connection
-    ):
+    def drop_table(self, table: sa.Table, connection: sa.engine.Connection):
         """Drop table data."""
         table.drop(bind=connection)
 
@@ -363,9 +359,7 @@ class PostgresConnector(SQLConnector):
                 )
             )
         if as_temp_table:
-            new_table = sa.Table(
-                table_name, meta, *columns, prefixes=["TEMPORARY"]
-            )
+            new_table = sa.Table(table_name, meta, *columns, prefixes=["TEMPORARY"])
             new_table.create(bind=connection)
             return new_table
 
@@ -700,7 +694,7 @@ class PostgresConnector(SQLConnector):
             paramiko.Ed25519Key,
         ):
             try:
-                key = key_class.from_private_key(io.StringIO(key_data))  # type: ignore[attr-defined]  # noqa: E501
+                key = key_class.from_private_key(io.StringIO(key_data))  # type: ignore[attr-defined]
             except paramiko.SSHException:
                 continue
             else:

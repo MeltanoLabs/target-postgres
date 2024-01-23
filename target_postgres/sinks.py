@@ -237,7 +237,9 @@ class PostgresSink(SQLSink):
                 to_table_column: sa.Column = to_table.columns[column_name]
                 update_columns[to_table_column] = from_table_column
 
-            update_stmt = sa.update(to_table).where(where_condition).values(update_columns)  # noqa: E501
+            update_stmt = (
+                sa.update(to_table).where(where_condition).values(update_columns)
+            )
             connection.execute(update_stmt)
 
         return None

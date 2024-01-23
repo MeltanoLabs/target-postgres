@@ -138,7 +138,7 @@ class TargetPostgres(SQLTarget):
                 + "This will override using host, user, password, port, "
                 + "dialect, and all ssl settings. Note that you must escape password "
                 + "special characters properly. See "
-                + "https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords"  # noqa: E501
+                + "https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords"
             ),
         ),
         th.Property(
@@ -218,7 +218,7 @@ class TargetPostgres(SQLTarget):
             th.StringType,
             default="verify-full",
             description=(
-                "SSL Protection method, see [postgres documentation](https://www.postgresql.org/docs/current/libpq-ssl.html#LIBPQ-SSL-PROTECTION)"  # noqa: E501
+                "SSL Protection method, see [postgres documentation](https://www.postgresql.org/docs/current/libpq-ssl.html#LIBPQ-SSL-PROTECTION)"
                 + " for more information. Must be one of disable, allow, prefer,"
                 + " require, verify-ca, or verify-full."
                 + " Note if sqlalchemy_url is set this will be ignored."
