@@ -132,10 +132,12 @@ class PostgresSink(SQLSink):
         faster, native bulk uploads.
 
         Args:
-            full_table_name: the target table name.
+            table: the target table object.
             schema: the JSON schema for the new table, to be used when inferring column
                 names.
             records: the input records.
+            primary_keys: the primary key columns for the table.
+            connection: the database connection.
 
         Returns:
             True if table exists, False if not, None if unsure or undetectable.
@@ -265,7 +267,7 @@ class PostgresSink(SQLSink):
 
         Args:
             full_table_name: the target table name.
-            schema: the JSON schema for the new table.
+            columns: the target table columns.
 
         Returns:
             An insert statement.
