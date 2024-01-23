@@ -64,7 +64,7 @@ multi_line_output = 3 # Vertical Hanging Indent
 src_paths = "target_postgres"
 
 [build-system]
-requires = ["poetry-core>=1.0.8", "poetry-dynamic-versioning"]
+requires = ["poetry-core==1.8.1", "poetry-dynamic-versioning==1.2.0"]
 build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.poetry.scripts]
