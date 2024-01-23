@@ -47,10 +47,7 @@ class PostgresSink(SQLSink):
         This method is called on Sink creation, and creates the required Schema and
         Table entities in the target database.
         """
-        if self.key_properties is None or self.key_properties == []:
-            self.append_only = True
-        else:
-            self.append_only = False
+        self.append_only = self.key_properties is None or self.key_properties == []
         if self.schema_name:
             self.connector.prepare_schema(self.schema_name)
         with self.connector._connect() as connection, connection.begin():
@@ -109,14 +106,14 @@ class PostgresSink(SQLSink):
 
     def generate_temp_table_name(self):
         """Uuid temp table name."""
-        # sa.exc.IdentifierError: Identifier
+        # sa.exc.IdentifierError: Identifier  # noqa: ERA001
         # 'temp_test_optional_attributes_388470e9_fbd0_47b7_a52f_d32a2ee3f5f6'
         # exceeds maximum length of 63 characters
         # Is hit if we have a long table name, there is no limit on Temporary tables
         # in postgres, used a guid just in case we are using the same session
         return f"{str(uuid.uuid4()).replace('-', '_')}"
 
-    def bulk_insert_records(  # type: ignore[override]
+    def bulk_insert_records(  # type: ignore[override]  # noqa: PLR0913
         self,
         table: sa.Table,
         schema: dict,
@@ -156,24 +153,24 @@ class PostgresSink(SQLSink):
         if self.append_only is False:
             insert_records: Dict[str, Dict] = {}  # pk : record
             for record in records:
-                insert_record = {}
-                for column in columns:
-                    insert_record[column.name] = record.get(column.name)
+                insert_record = {
+                    column.name: record.get(column.name) for column in columns
+                }
                 # No need to check for a KeyError here because the SDK already
-                # guaruntees that all key properties exist in the record.
+                # guarantees that all key properties exist in the record.
                 primary_key_value = "".join([str(record[key]) for key in primary_keys])
                 insert_records[primary_key_value] = insert_record
             data_to_insert = list(insert_records.values())
         else:
             for record in records:
-                insert_record = {}
-                for column in columns:
-                    insert_record[column.name] = record.get(column.name)
+                insert_record = {
+                    column.name: record.get(column.name) for column in columns
+                }
                 data_to_insert.append(insert_record)
         connection.execute(insert, data_to_insert)
         return True
 
-    def upsert(
+    def upsert(  # noqa: PLR0913
         self,
         from_table: sa.Table,
         to_table: sa.Table,
@@ -232,7 +229,7 @@ class PostgresSink(SQLSink):
             # Update
             where_condition = join_condition
             update_columns = {}
-            for column_name in self.schema["properties"].keys():
+            for column_name in self.schema["properties"]:
                 from_table_column: sa.Column = from_table.columns[column_name]
                 to_table_column: sa.Column = to_table.columns[column_name]
                 update_columns[to_table_column] = from_table_column
@@ -249,14 +246,13 @@ class PostgresSink(SQLSink):
         schema: dict,
     ) -> List[sa.Column]:
         """Return a sqlalchemy table representation for the current schema."""
-        columns: list[sa.Column] = []
-        for property_name, property_jsonschema in schema["properties"].items():
-            columns.append(
-                sa.Column(
-                    property_name,
-                    self.connector.to_sql_type(property_jsonschema),
-                )
+        columns: list[sa.Column] = [
+            sa.Column(
+                property_name,
+                self.connector.to_sql_type(property_jsonschema),
             )
+            for property_name, property_jsonschema in schema["properties"].items()
+        ]
         return columns
 
     def generate_insert_statement(
@@ -286,12 +282,12 @@ class PostgresSink(SQLSink):
         """Return the schema name or `None` if using names with no schema part.
 
                 Note that after the next SDK release (after 0.14.0) we can remove this
-                as it's already upstreamed.
+                as it's already up-streamed.
 
         Returns:
             The target schema name.
         """
-        # Look for a default_target_scheme in the configuraion fle
+        # Look for a default_target_scheme in the configuration file
         default_target_schema: str = self.config.get("default_target_schema", None)
         parts = self.stream_name.split("-")
 
@@ -302,14 +298,7 @@ class PostgresSink(SQLSink):
         if default_target_schema:
             return default_target_schema
 
-        if len(parts) in {2, 3}:
-            # Stream name is a two-part or three-part identifier.
-            # Use the second-to-last part as the schema name.
-            stream_schema = self.conform_name(parts[-2], "schema")
-            return stream_schema
-
-        # Schema name not detected.
-        return None
+        return self.conform_name(parts[-2], "schema") if len(parts) in {2, 3} else None
 
     def activate_version(self, new_version: int) -> None:
         """Bump the active version of the target table.

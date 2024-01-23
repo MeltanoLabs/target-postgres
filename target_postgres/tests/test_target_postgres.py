@@ -77,11 +77,7 @@ def singer_file_to_target(file_name, target) -> None:
 
 
 def remove_metadata_columns(row: dict) -> dict:
-    new_row = {}
-    for column in row.keys():
-        if not column.startswith("_sdc"):
-            new_row[column] = row[column]
-    return new_row
+    return {column: row[column] for column in row if not column.startswith("_sdc")}
 
 
 def verify_data(
@@ -105,42 +101,42 @@ def verify_data(
     engine = create_engine(target)
     full_table_name = f"{target.config['default_target_schema']}.{table_name}"
     with engine.connect() as connection:
-        if primary_key is not None and check_data is not None:
-            if isinstance(check_data, dict):
-                result = connection.execute(
-                    sqlalchemy.text(
-                        f"SELECT * FROM {full_table_name} ORDER BY {primary_key}"
-                    )
-                )
-                assert result.rowcount == number_of_rows
-                result_dict = remove_metadata_columns(result.first()._asdict())
-                assert result_dict == check_data
-            elif isinstance(check_data, list):
-                result = connection.execute(
-                    sqlalchemy.text(
-                        f"SELECT * FROM {full_table_name} ORDER BY {primary_key}"
-                    )
-                )
-                assert result.rowcount == number_of_rows
-                result_dict = [
-                    remove_metadata_columns(row._asdict()) for row in result.all()
-                ]
-
-                # bytea columns are returned as memoryview objects
-                # we need to convert them to bytes to allow comparison with check_data
-                for row in result_dict:
-                    for col in row:
-                        if isinstance(row[col], memoryview):
-                            row[col] = bytes(row[col])
-
-                assert result_dict == check_data
-            else:
-                raise ValueError("Invalid check_data - not dict or list of dicts")
-        else:
+        if primary_key is None or check_data is None:
             result = connection.execute(
                 sqlalchemy.text(f"SELECT COUNT(*) FROM {full_table_name}")
             )
             assert result.first()[0] == number_of_rows
+
+        elif isinstance(check_data, dict):
+            result = connection.execute(
+                sqlalchemy.text(
+                    f"SELECT * FROM {full_table_name} ORDER BY {primary_key}"
+                )
+            )
+            assert result.rowcount == number_of_rows
+            result_dict = remove_metadata_columns(result.first()._asdict())
+            assert result_dict == check_data
+        elif isinstance(check_data, list):
+            result = connection.execute(
+                sqlalchemy.text(
+                    f"SELECT * FROM {full_table_name} ORDER BY {primary_key}"
+                )
+            )
+            assert result.rowcount == number_of_rows
+            result_dict = [
+                remove_metadata_columns(row) for row in result.mappings().all()
+            ]
+
+            # bytea columns are returned as memoryview objects
+            # we need to convert them to bytes to allow comparison with check_data
+            for row in result_dict:
+                for col in row:
+                    if isinstance(row[col], memoryview):
+                        row[col] = bytes(row[col])
+
+            assert result_dict == check_data
+        else:
+            raise ValueError("Invalid check_data - not dict or list of dicts")
 
 
 def test_sqlalchemy_url_config(postgres_config_no_ssl):
@@ -428,7 +424,7 @@ def test_encoded_string_data(postgres_target):
     https://www.postgresql.org/docs/current/functions-string.html#:~:text=chr(0)%20is%20disallowed%20because%20text%20data%20types%20cannot%20store%20that%20character.
     chr(0) is disallowed because text data types cannot store that character.
 
-    Note you will recieve a  ValueError: A string literal cannot contain NUL (0x00) characters. Which seems like a reasonable error.
+    Note you will receive a  ValueError: A string literal cannot contain NUL (0x00) characters. Which seems like a reasonable error.
     See issue https://github.com/MeltanoLabs/target-postgres/issues/60 for more details.
     """
 
@@ -488,18 +484,11 @@ def test_anyof(postgres_target):
 
             # Any of nullable array of strings or single string.
             # {"anyOf":[{"type":"array","items":{"type":["null","string"]}},{"type":"string"},{"type":"null"}]}
-            if column.name == "parent_ids":
+            if column.name in ["commit_message", "legacy_id"]:
+                assert isinstance(column.type, TEXT)
+
+            elif column.name == "parent_ids":
                 assert isinstance(column.type, ARRAY)
-
-            # Any of nullable string.
-            # {"anyOf":[{"type":"string"},{"type":"null"}]}
-            if column.name == "commit_message":
-                assert isinstance(column.type, TEXT)
-
-            # Any of nullable string or integer.
-            # {"anyOf":[{"type":"string"},{"type":"integer"},{"type":"null"}]}
-            if column.name == "legacy_id":
-                assert isinstance(column.type, TEXT)
 
 
 def test_new_array_column(postgres_target):
@@ -736,7 +725,7 @@ def test_activate_version_deletes_data_properly(postgres_target):
 def test_reserved_keywords(postgres_target):
     """Target should work regardless of column names
 
-    Postgres has a number of resereved keywords listed here https://www.postgresql.org/docs/current/sql-keywords-appendix.html.
+    Postgres has a number of reserved keywords listed here https://www.postgresql.org/docs/current/sql-keywords-appendix.html.
     """
     file_name = "reserved_keywords.singer"
     singer_file_to_target(file_name, postgres_target)
