@@ -31,23 +31,24 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "<3.13,>=3.8"
-requests = "^2.25.1"
-singer-sdk = ">=0.28,<0.35"
+python = ">=3.8"
 psycopg2-binary = "2.9.9"
-sqlalchemy = ">=2.0,<3.0"
+sqlalchemy = "~=2.0"
 sshtunnel = "0.4.0"
 
+[tool.poetry.dependencies.singer-sdk]
+version = "~=0.34.0"
+
 [tool.poetry.group.dev.dependencies]
-pytest = ">=7.4.2,<9.0.0"
-mypy = "^1.6.1"
-remote-pdb="2.1.0"
-ruff = "^0.1.14"
-tox = "^4"
-types-paramiko = "^3.3.0.0"
-types-simplejson = "^3.19.0.2"
-types-sqlalchemy = "^1.4.53.38"
-types-jsonschema = "^4.19.0.3"
+pytest = ">=7.4.2"
+mypy = ">=1.6.1"
+remote-pdb = ">=2.1.0"
+ruff = ">=0.1.14"
+tox = ">=4"
+types-paramiko = ">=3.3.0.0"
+types-simplejson = ">=3.19.0.2"
+types-sqlalchemy = ">=1.4.53.38"
+types-jsonschema = ">=4.19.0.3"
 
 [tool.mypy]
 exclude = "tests"
