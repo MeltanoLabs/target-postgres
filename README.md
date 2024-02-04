@@ -110,6 +110,17 @@ pre-commit install
 
 ### Create and Run Tests
 
+Set up the SSL files permissions:
+
+```bash
+chmod 0600 .ssl/*.key
+```
+
+Start the test databases using Docker Compose:
+```bash
+docker-compose up -d
+```
+
 Create tests within the `target_postgres/tests` subfolder and
   then run:
 
