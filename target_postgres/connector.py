@@ -15,7 +15,7 @@ import simplejson
 import sqlalchemy as sa
 from singer_sdk import SQLConnector
 from singer_sdk import typing as th
-from sqlalchemy.dialects.postgresql import ARRAY, BIGINT, JSONB
+from sqlalchemy.dialects.postgresql import ARRAY, BIGINT, BYTEA, JSONB
 from sqlalchemy.engine import URL
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.types import (
@@ -232,6 +232,9 @@ class PostgresConnector(SQLConnector):
                     json_type_dict = {"type": entry}
                     if jsonschema_type.get("format", False):
                         json_type_dict["format"] = jsonschema_type["format"]
+                    content_encoding = jsonschema_type.get("contentEncoding", False)
+                    if content_encoding:
+                        json_type_dict["contentEncoding"] = content_encoding
                     json_type_array.append(json_type_dict)
             else:
                 msg = "Invalid format for jsonschema type: not str or list."
@@ -272,8 +275,12 @@ class PostgresConnector(SQLConnector):
             return JSONB()
         if "array" in jsonschema_type["type"]:
             return ARRAY(JSONB())
+
+        # string formats
         if jsonschema_type.get("format") == "date-time":
             return TIMESTAMP()
+        if jsonschema_type.get("contentEncoding") == "base16":
+            return HexByteString()
         individual_type = th.to_sql_type(jsonschema_type)
         if isinstance(individual_type, VARCHAR):
             return TEXT()
@@ -290,6 +297,7 @@ class PostgresConnector(SQLConnector):
             An instance of the best SQL type class based on defined precedence order.
         """
         precedence_order = [
+            HexByteString,
             ARRAY,
             JSONB,
             TEXT,
@@ -834,3 +842,39 @@ class NOTYPE(TypeDecorator):
     def as_generic(self, *args: t.Any, **kwargs: t.Any):
         """Return the generic type for this column."""
         return TEXT()
+
+
+class HexByteString(TypeDecorator):
+    """Convert Python string representing Hex data to bytes and vice versa.
+
+    This is used to store binary data in more efficiend format in the database.
+    """
+
+    impl = BYTEA
+
+    def process_bind_param(self, value, dialect):
+        """Convert bytes to hex string."""
+        if value is None:
+            return None
+
+        if isinstance(value, str):
+            if value.startswith("\\x") or value.startswith("0x"):
+                value = value[2:]
+
+            if len(value) % 2:
+                value = "0" + value
+
+            try:
+                value = bytes.fromhex(value)
+            except ValueError as ex:
+                raise ValueError(
+                    "Invalid hexadecimal string for HexByteString: %s" % value
+                ) from ex
+
+        if not isinstance(value, bytearray | memoryview | bytes):
+            raise TypeError(
+                "HexByteString columns support only bytes or string values."
+                + " %s is not supported" % type(value)
+            )
+
+        return value

@@ -153,12 +153,26 @@ class PostgresSink(SQLSink):
         # Only one record per PK, we want to take the last one
         data_to_insert: List[Dict[str, Any]] = []
 
+        def _get_record_value(column: sa.Column, record: Dict[str, Any]) -> Any:
+            value = record.get(column.name)
+
+            if value is None:
+                return None
+
+            # apply the type's process_bind_param method if it exists
+            if hasattr(column.type.__class__, "process_bind_param") and callable(
+                getattr(column.type.__class__, "process_bind_param")
+            ):
+                value = column.type.process_bind_param(value, None)
+
+            return value
+
         if self.append_only is False:
             insert_records: Dict[str, Dict] = {}  # pk : record
             for record in records:
                 insert_record = {}
                 for column in columns:
-                    insert_record[column.name] = record.get(column.name)
+                    insert_record[column.name] = _get_record_value(column, record)
                 # No need to check for a KeyError here because the SDK already
                 # guaruntees that all key properties exist in the record.
                 primary_key_value = "".join([str(record[key]) for key in primary_keys])
@@ -168,7 +182,7 @@ class PostgresSink(SQLSink):
             for record in records:
                 insert_record = {}
                 for column in columns:
-                    insert_record[column.name] = record.get(column.name)
+                    insert_record[column.name] = _get_record_value(column, record)
                 data_to_insert.append(insert_record)
         connection.execute(insert, data_to_insert)
         return True

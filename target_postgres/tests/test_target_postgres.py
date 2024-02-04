@@ -125,6 +125,12 @@ def verify_data(
                 result_dict = [
                     remove_metadata_columns(row._asdict()) for row in result.all()
                 ]
+
+                for row in result_dict:
+                    for col in row:
+                        if isinstance(row[col], memoryview):
+                            row[col] = bytes(row[col])
+
                 assert result_dict == check_data
             else:
                 raise ValueError("Invalid check_data - not dict or list of dicts")
@@ -498,6 +504,42 @@ def test_new_array_column(postgres_target):
     """Create a new Array column with an existing table"""
     file_name = "new_array_column.singer"
     singer_file_to_target(file_name, postgres_target)
+
+
+def test_base16_content_encoding(postgres_config_no_ssl):
+    """Test that base16 content encoding is handled correctly"""
+    postgres_config_modified = copy.deepcopy(postgres_config_no_ssl)
+    postgres_config_modified["interpret_content_encoding"] = True
+    target = TargetPostgres(config=postgres_config_modified)
+
+    file_name = "base16_content_encoding.singer"
+    singer_file_to_target(file_name, target)
+    rows = [
+        {"id": "empty_0x_str", "contract_address": b"", "raw_event_data": b""},
+        {"id": "empty_str", "contract_address": b"", "raw_event_data": b""},
+        {
+            "id": "test_handle_an_hex_str",
+            "contract_address": b"\xa1\xb2\xc3\xd4\xe5\xf6\x07\x08\x09\x10",
+            "raw_event_data": b"\xa1\xb2\xc3\xd4\xe5\xf6\x07\x08\x09\x10\x01\x02\x03\x04\x05\x06\x07\x08\x09\x10\x01\x02\x03\x04\x05\x06\x07\x08\x09\x10\x01\x02\x03\x04\x05\x06\x07\x08\x09\x10\x01\x02\x03\x04\x05\x06\x07\x08\x09\x10",
+        },
+        {
+            "id": "test_handle_hex_without_the_0x_prefix",
+            "contract_address": b"\xa1\xb2\xc3\xd4\xe5\xf6\x07\x08\x09\x10",
+            "raw_event_data": b"\x0a\x1b\x2c\x3d\x4e\x5f\x60\x70\x80\x91\x00\x10\x20\x30\x40\x50\x60",
+        },
+        {
+            "id": "test_handle_odd_and_even_number_of_chars",
+            "contract_address": b"\xa1",
+            "raw_event_data": b"\x0a\x12",
+        },
+        {
+            "id": "test_handle_upper_and_lowercase_hex",
+            "contract_address": b"\xa1",
+            "raw_event_data": b"\xa1\x2b",
+        },
+        {"id": "test_nullable_field", "contract_address": b"", "raw_event_data": None},
+    ]
+    verify_data(target, "test_base_16_encoding", 7, "id", rows)
 
 
 def test_activate_version_hard_delete(postgres_config_no_ssl):
