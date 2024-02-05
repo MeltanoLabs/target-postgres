@@ -42,6 +42,11 @@ class PostgresConnector(SQLConnector):
     allow_merge_upsert: bool = True  # Whether MERGE UPSERT is supported.
     allow_temp_tables: bool = True  # Whether temp tables are supported.
 
+    # Whether to interpret schema contentEncoding to set the column type
+    # it is an opt-in feature because it might result in data loss if the
+    # actual data does not match the schema's advertised encoding
+    interpret_content_encoding: bool = False
+
     def __init__(self, config: dict) -> None:
         """Initialize a connector to a Postgres database.
 
@@ -78,6 +83,9 @@ class PostgresConnector(SQLConnector):
             config,
             sqlalchemy_url=url.render_as_string(hide_password=False),
         )
+
+        if interpret_ce := config.get("interpret_content_encoding", False):
+            self.interpret_content_encoding = interpret_ce
 
     def prepare_table(  # type: ignore[override]
         self,
@@ -205,8 +213,7 @@ class PostgresConnector(SQLConnector):
         new_table.create(bind=connection)
         return new_table
 
-    @staticmethod
-    def to_sql_type(jsonschema_type: dict) -> sa.types.TypeEngine:
+    def to_sql_type(self, jsonschema_type: dict) -> sa.types.TypeEngine:  # type: ignore[override]
         """Return a JSON Schema representation of the provided type.
 
         By default will call `typing.to_sql_type()`.
@@ -232,9 +239,8 @@ class PostgresConnector(SQLConnector):
                     json_type_dict = {"type": entry}
                     if jsonschema_type.get("format", False):
                         json_type_dict["format"] = jsonschema_type["format"]
-                    content_encoding = jsonschema_type.get("contentEncoding", False)
-                    if content_encoding:
-                        json_type_dict["contentEncoding"] = content_encoding
+                    if encoding := jsonschema_type.get("contentEncoding", False):
+                        json_type_dict["contentEncoding"] = encoding
                     json_type_array.append(json_type_dict)
             else:
                 msg = "Invalid format for jsonschema type: not str or list."
@@ -249,16 +255,13 @@ class PostgresConnector(SQLConnector):
             return NOTYPE()
         sql_type_array = []
         for json_type in json_type_array:
-            picked_type = PostgresConnector.pick_individual_type(
-                jsonschema_type=json_type
-            )
+            picked_type = self.pick_individual_type(jsonschema_type=json_type)
             if picked_type is not None:
                 sql_type_array.append(picked_type)
 
         return PostgresConnector.pick_best_sql_type(sql_type_array=sql_type_array)
 
-    @staticmethod
-    def pick_individual_type(jsonschema_type: dict):
+    def pick_individual_type(self, jsonschema_type: dict):
         """Select the correct sql type assuming jsonschema_type has only a single type.
 
         Args:
@@ -279,8 +282,9 @@ class PostgresConnector(SQLConnector):
         # string formats
         if jsonschema_type.get("format") == "date-time":
             return TIMESTAMP()
-        if jsonschema_type.get("contentEncoding") == "base16":
-            return HexByteString()
+        if self.interpret_content_encoding:
+            if jsonschema_type.get("contentEncoding") == "base16":
+                return HexByteString()
         individual_type = th.to_sql_type(jsonschema_type)
         if isinstance(individual_type, VARCHAR):
             return TEXT()

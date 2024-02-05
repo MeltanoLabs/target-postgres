@@ -506,14 +506,50 @@ def test_new_array_column(postgres_target):
     singer_file_to_target(file_name, postgres_target)
 
 
-def test_base16_content_encoding(postgres_config_no_ssl):
-    """Test that base16 content encoding is handled correctly"""
+def test_base16_content_encoding_not_interpreted(postgres_config_no_ssl):
+    """Make sure we can insert base16 encoded data into the database without interpretation"""
+    postgres_config_modified = copy.deepcopy(postgres_config_no_ssl)
+    postgres_config_modified["interpret_content_encoding"] = False
+    target = TargetPostgres(config=postgres_config_modified)
+
+    singer_file_to_target("base16_content_encoding_not_interpreted.singer", target)
+
+    rows = [
+        {"id": "empty_0x_str", "contract_address": "0x", "raw_event_data": "0x"},
+        {"id": "empty_str", "contract_address": "", "raw_event_data": ""},
+        {
+            "id": "test_handle_an_hex_str",
+            "contract_address": "0xA1B2C3D4E5F607080910",
+            "raw_event_data": "0xA1B2C3D4E5F60708091001020304050607080910010203040506070809100102030405060708091001020304050607080910",
+        },
+        {
+            "id": "test_handle_hex_without_the_0x_prefix",
+            "contract_address": "A1B2C3D4E5F607080910",
+            "raw_event_data": "A1B2C3D4E5F6070809100102030405060",
+        },
+        {
+            "id": "test_handle_odd_and_even_number_of_chars",
+            "contract_address": "0xA1",
+            "raw_event_data": "A12",
+        },
+        {
+            "id": "test_handle_upper_and_lowercase_hex",
+            "contract_address": "0xa1",
+            "raw_event_data": "A12b",
+        },
+        {"id": "test_nullable_field", "contract_address": "", "raw_event_data": None},
+    ]
+    verify_data(target, "test_base_16_encoding_not_interpreted", 7, "id", rows)
+
+
+def test_base16_content_encoding_interpreted(postgres_config_no_ssl):
+    """Make sure we can insert base16 encoded data into the database with interpretation"""
     postgres_config_modified = copy.deepcopy(postgres_config_no_ssl)
     postgres_config_modified["interpret_content_encoding"] = True
     target = TargetPostgres(config=postgres_config_modified)
 
-    file_name = "base16_content_encoding.singer"
-    singer_file_to_target(file_name, target)
+    singer_file_to_target("base16_content_encoding_interpreted.singer", target)
+
     rows = [
         {"id": "empty_0x_str", "contract_address": b"", "raw_event_data": b""},
         {"id": "empty_str", "contract_address": b"", "raw_event_data": b""},
@@ -539,7 +575,7 @@ def test_base16_content_encoding(postgres_config_no_ssl):
         },
         {"id": "test_nullable_field", "contract_address": b"", "raw_event_data": None},
     ]
-    verify_data(target, "test_base_16_encoding", 7, "id", rows)
+    verify_data(target, "test_base_16_encoding_interpreted", 7, "id", rows)
 
 
 def test_activate_version_hard_delete(postgres_config_no_ssl):
