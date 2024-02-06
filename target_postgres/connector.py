@@ -91,7 +91,7 @@ class PostgresConnector(SQLConnector):
         self,
         full_table_name: str,
         schema: dict,
-        primary_keys: list[str],
+        primary_keys: t.Sequence[str],
         connection: sa.engine.Connection,
         partition_keys: list[str] | None = None,
         as_temp_table: bool = False,
@@ -328,7 +328,7 @@ class PostgresConnector(SQLConnector):
         meta: sa.MetaData,
         schema: dict,
         connection: sa.engine.Connection,
-        primary_keys: list[str] | None = None,
+        primary_keys: t.Sequence[str] | None = None,
         partition_keys: list[str] | None = None,
         as_temp_table: bool = False,
     ) -> sa.Table:
