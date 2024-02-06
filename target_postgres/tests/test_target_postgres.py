@@ -126,6 +126,8 @@ def verify_data(
                     remove_metadata_columns(row._asdict()) for row in result.all()
                 ]
 
+                # bytea columns are returned as memoryview objects
+                # we need to convert them to bytes to allow comparison with check_data
                 for row in result_dict:
                     for col in row:
                         if isinstance(row[col], memoryview):
