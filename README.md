@@ -174,7 +174,7 @@ The below table shows how this tap will map between jsonschema datatypes and Pos
 | UNSUPPORTED                    | bit varying [ (n) ]                     |
 | boolean                        | boolean                                 |
 | UNSUPPORTED                    | box                                     |
-| UNSUPPORTED                    | bytea                                   |
+| string with contentEncoding="base16" ([opt-in feature](#content-encoding-support)) | bytea                                   |
 | UNSUPPORTED                    | character [ (n) ]                       |
 | UNSUPPORTED                    | character varying [ (n) ]               |
 | UNSUPPORTED                    | cidr                                    |
@@ -215,6 +215,7 @@ The below table shows how this tap will map between jsonschema datatypes and Pos
 Note that while object types are mapped directly to jsonb, array types are mapped to a jsonb array.
 
 If a column has multiple jsonschema types, the following order is using to order Postgres types, from highest priority to lowest priority.
+- BYTEA
 - ARRAY(JSONB)
 - JSONB
 - TEXT
@@ -227,3 +228,50 @@ If a column has multiple jsonschema types, the following order is using to order
 - INTEGER
 - BOOLEAN
 - NOTYPE
+
+## Content Encoding Support
+
+Json Schema supports the [`contentEncoding` keyword](https://datatracker.ietf.org/doc/html/rfc4648#section-8), which can be used to specify the encoding of input string types.
+
+This target can detect content encoding clues in the schema to determine how to store the data in the postgres in a more efficient way.
+
+Content encoding interpretation is disabled by default. This is because the default config is meant to be as permissive as possible, and do not make any assumptions about the data that could lead to data loss.
+
+However if you know your data respects the advertised content encoding way, you can enable this feature to get better performance and storage efficiency.
+
+To enable it, set the `interpret_content_encoding` option to `True`.
+
+### base16
+
+The string is encoded using the base16 encoding, as defined in [RFC 4648](https://json-schema.org/draft/2020-12/draft-bhutton-json-schema-validation-00#rfc.section.8.3
+).
+
+Example schema:
+```json
+{
+  "type": "object",
+  "properties": {
+    "my_hex": {
+      "type": "string",
+      "contentEncoding": "base16"
+    }
+  }
+}
+```
+
+Data will be stored as a `bytea` in the database.
+
+Example data:
+```json
+# valid data
+{ "my_hex": "01AF" }
+{ "my_hex": "01af" }
+{ "my_hex": "1af" }
+{ "my_hex": "0x1234" }
+
+# invalid data
+{ "my_hex": " 0x1234 " }
+{ "my_hex": "House" }
+```
+
+For convenience, data prefixed with `0x` or containing an odd number of characters is supported although it's not part of the standard.

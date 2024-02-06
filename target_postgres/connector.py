@@ -7,6 +7,7 @@ import io
 import signal
 import typing as t
 from contextlib import contextmanager
+from functools import cached_property
 from os import chmod, path
 from typing import cast
 
@@ -15,7 +16,7 @@ import simplejson
 import sqlalchemy as sa
 from singer_sdk import SQLConnector
 from singer_sdk import typing as th
-from sqlalchemy.dialects.postgresql import ARRAY, BIGINT, JSONB
+from sqlalchemy.dialects.postgresql import ARRAY, BIGINT, BYTEA, JSONB
 from sqlalchemy.engine import URL
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.types import (
@@ -78,6 +79,18 @@ class PostgresConnector(SQLConnector):
             config,
             sqlalchemy_url=url.render_as_string(hide_password=False),
         )
+
+    @cached_property
+    def interpret_content_encoding(self) -> bool:
+        """Whether to interpret schema contentEncoding to set the column type.
+
+        It is an opt-in feature because it might result in data loss if the
+        actual data does not match the schema's advertised encoding.
+
+        Returns:
+            True if the feature is enabled, False otherwise.
+        """
+        return self.config.get("interpret_content_encoding", False)
 
     def prepare_table(  # type: ignore[override]
         self,
@@ -205,8 +218,7 @@ class PostgresConnector(SQLConnector):
         new_table.create(bind=connection)
         return new_table
 
-    @staticmethod
-    def to_sql_type(jsonschema_type: dict) -> sa.types.TypeEngine:
+    def to_sql_type(self, jsonschema_type: dict) -> sa.types.TypeEngine:  # type: ignore[override]
         """Return a JSON Schema representation of the provided type.
 
         By default will call `typing.to_sql_type()`.
@@ -232,6 +244,8 @@ class PostgresConnector(SQLConnector):
                     json_type_dict = {"type": entry}
                     if jsonschema_type.get("format", False):
                         json_type_dict["format"] = jsonschema_type["format"]
+                    if encoding := jsonschema_type.get("contentEncoding", False):
+                        json_type_dict["contentEncoding"] = encoding
                     json_type_array.append(json_type_dict)
             else:
                 msg = "Invalid format for jsonschema type: not str or list."
@@ -246,16 +260,13 @@ class PostgresConnector(SQLConnector):
             return NOTYPE()
         sql_type_array = []
         for json_type in json_type_array:
-            picked_type = PostgresConnector.pick_individual_type(
-                jsonschema_type=json_type
-            )
+            picked_type = self.pick_individual_type(jsonschema_type=json_type)
             if picked_type is not None:
                 sql_type_array.append(picked_type)
 
         return PostgresConnector.pick_best_sql_type(sql_type_array=sql_type_array)
 
-    @staticmethod
-    def pick_individual_type(jsonschema_type: dict):
+    def pick_individual_type(self, jsonschema_type: dict):
         """Select the correct sql type assuming jsonschema_type has only a single type.
 
         Args:
@@ -272,8 +283,15 @@ class PostgresConnector(SQLConnector):
             return JSONB()
         if "array" in jsonschema_type["type"]:
             return ARRAY(JSONB())
+
+        # string formats
         if jsonschema_type.get("format") == "date-time":
             return TIMESTAMP()
+        if (
+            self.interpret_content_encoding
+            and jsonschema_type.get("contentEncoding") == "base16"
+        ):
+            return HexByteString()
         individual_type = th.to_sql_type(jsonschema_type)
         if isinstance(individual_type, VARCHAR):
             return TEXT()
@@ -290,6 +308,7 @@ class PostgresConnector(SQLConnector):
             An instance of the best SQL type class based on defined precedence order.
         """
         precedence_order = [
+            HexByteString,
             ARRAY,
             JSONB,
             TEXT,
@@ -834,3 +853,41 @@ class NOTYPE(TypeDecorator):
     def as_generic(self, *args: t.Any, **kwargs: t.Any):
         """Return the generic type for this column."""
         return TEXT()
+
+
+class HexByteString(TypeDecorator):
+    """Convert Python string representing Hex data to bytes and vice versa.
+
+    This is used to store binary data in more efficient format in the database.
+    The string is encoded using the base16 encoding, as defined in RFC 4648
+    https://json-schema.org/draft/2020-12/draft-bhutton-json-schema-validation-00#rfc.section.8.3
+    For convenience, data prefixed with `0x` or containing an odd number of characters
+    is supported although it's not part of the standard.
+    """
+
+    impl = BYTEA
+
+    def process_bind_param(self, value, dialect):
+        """Convert hex string to bytes."""
+        if value is None:
+            return None
+
+        if isinstance(value, str):
+            if value.startswith("\\x") or value.startswith("0x"):
+                value = value[2:]
+
+            if len(value) % 2:
+                value = f"0{value}"
+
+            try:
+                value = bytes.fromhex(value)
+            except ValueError as ex:
+                raise ValueError(f"Invalid hexadecimal string: {value}") from ex
+
+        if not isinstance(value, bytearray | memoryview | bytes):
+            raise TypeError(
+                "HexByteString columns support only bytes or hex string values. "
+                f"{type(value)} is not supported"
+            )
+
+        return value
