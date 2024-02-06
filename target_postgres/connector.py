@@ -1,6 +1,5 @@
 """Handles Postgres interactions."""
 
-
 from __future__ import annotations
 
 import atexit
@@ -267,7 +266,7 @@ class PostgresConnector(SQLConnector):
 
         return PostgresConnector.pick_best_sql_type(sql_type_array=sql_type_array)
 
-    def pick_individual_type(self, jsonschema_type: dict):
+    def pick_individual_type(self, jsonschema_type: dict):  # noqa: PLR0911
         """Select the correct sql type assuming jsonschema_type has only a single type.
 
         Args:
