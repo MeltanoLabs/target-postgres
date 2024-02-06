@@ -858,13 +858,17 @@ class NOTYPE(TypeDecorator):
 class HexByteString(TypeDecorator):
     """Convert Python string representing Hex data to bytes and vice versa.
 
-    This is used to store binary data in more efficiend format in the database.
+    This is used to store binary data in more efficient format in the database.
+    The string is encoded using the base16 encoding, as defined in RFC 4648
+    https://json-schema.org/draft/2020-12/draft-bhutton-json-schema-validation-00#rfc.section.8.3
+    For convenience, data prefixed with `0x` or containing an odd number of characters
+    is supported although it's not part of the standard.
     """
 
     impl = BYTEA
 
     def process_bind_param(self, value, dialect):
-        """Convert bytes to hex string."""
+        """Convert hex string to bytes."""
         if value is None:
             return None
 
@@ -873,19 +877,17 @@ class HexByteString(TypeDecorator):
                 value = value[2:]
 
             if len(value) % 2:
-                value = "0" + value
+                value = f"0{value}"
 
             try:
                 value = bytes.fromhex(value)
             except ValueError as ex:
-                raise ValueError(
-                    "Invalid hexadecimal string for HexByteString: %s" % value
-                ) from ex
+                raise ValueError(f"Invalid hexadecimal string: {value}") from ex
 
         if not isinstance(value, bytearray | memoryview | bytes):
             raise TypeError(
-                "HexByteString columns support only bytes or string values."
-                + " %s is not supported" % type(value)
+                "HexByteString columns support only bytes or hex string values. "
+                f"{type(value)} is not supported"
             )
 
         return value
