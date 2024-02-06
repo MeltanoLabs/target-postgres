@@ -195,9 +195,9 @@ class TargetPostgres(SQLTarget):
             default=False,
             description=(
                 "If set to true, the target will interpret the content encoding of the "
-                + "schema to determine how to store the data. Using this option may "
-                + "result in a more efficient storage of the data but may also result "
-                + "in an error if the data is not encoded as expected."
+                "schema to determine how to store the data. Using this option may "
+                "result in a more efficient storage of the data but may also result "
+                "in an error if the data is not encoded as expected."
             ),
         ),
         th.Property(
