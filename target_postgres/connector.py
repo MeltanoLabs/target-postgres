@@ -7,6 +7,7 @@ import io
 import signal
 import typing as t
 from contextlib import contextmanager
+from functools import cached_property
 from os import chmod, path
 from typing import cast
 
@@ -41,11 +42,6 @@ class PostgresConnector(SQLConnector):
     allow_column_alter: bool = False  # Whether altering column types is supported.
     allow_merge_upsert: bool = True  # Whether MERGE UPSERT is supported.
     allow_temp_tables: bool = True  # Whether temp tables are supported.
-
-    # Whether to interpret schema contentEncoding to set the column type
-    # it is an opt-in feature because it might result in data loss if the
-    # actual data does not match the schema's advertised encoding
-    interpret_content_encoding: bool = False
 
     def __init__(self, config: dict) -> None:
         """Initialize a connector to a Postgres database.
@@ -84,8 +80,17 @@ class PostgresConnector(SQLConnector):
             sqlalchemy_url=url.render_as_string(hide_password=False),
         )
 
-        if interpret_ce := config.get("interpret_content_encoding", False):
-            self.interpret_content_encoding = interpret_ce
+    @cached_property
+    def interpret_content_encoding(self) -> bool:
+        """Whether to interpret schema contentEncoding to set the column type.
+
+        It is an opt-in feature because it might result in data loss if the
+        actual data does not match the schema's advertised encoding.
+
+        Returns:
+            True if the feature is enabled, False otherwise.
+        """
+        return self.config.get("interpret_content_encoding", False)
 
     def prepare_table(  # type: ignore[override]
         self,
@@ -282,9 +287,11 @@ class PostgresConnector(SQLConnector):
         # string formats
         if jsonschema_type.get("format") == "date-time":
             return TIMESTAMP()
-        if self.interpret_content_encoding:
-            if jsonschema_type.get("contentEncoding") == "base16":
-                return HexByteString()
+        if (
+            self.interpret_content_encoding
+            and jsonschema_type.get("contentEncoding") == "base16"
+        ):
+            return HexByteString()
         individual_type = th.to_sql_type(jsonschema_type)
         if isinstance(individual_type, VARCHAR):
             return TEXT()
