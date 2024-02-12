@@ -1,0 +1,8 @@
+{"type":"SCHEMA","stream":"test_storage_optimized_enum_on","schema":{"type":"object","properties":{"id":{"type":"string"},"chain":{"type":"string","enum":["avalanche","ethereum","optimism","polygon"]},"chain_edge_cases":{"type":"string","enum":["AvAlAnChE"," EtH ","a\u005Cb","PŒLŸﬂôÑ","_éèàÀÇÉ","_-.*$@#%","ù€/\\\n\r\t","'"]}},"required":["id","chain","chain_edge_cases"]},"key_properties":["id"]}
+{"type":"RECORD","stream":"test_storage_optimized_enum_on","record":{"id":"test_valid_1","chain":"avalanche","chain_edge_cases":"AvAlAnChE"},"time_extracted":"2023-09-15T19:33:01.841018+00:00"}
+{"type":"RECORD","stream":"test_storage_optimized_enum_on","record":{"id":"test_valid_2","chain":"ethereum","chain_edge_cases":" EtH "},"time_extracted":"2023-09-15T19:33:01.841018+00:00"}
+{"type":"RECORD","stream":"test_storage_optimized_enum_on","record":{"id":"test_valid_3","chain":"optimism","chain_edge_cases":"a\\b"},"time_extracted":"2023-09-15T19:33:01.841018+00:00"}
+{"type":"RECORD","stream":"test_storage_optimized_enum_on","record":{"id":"test_valid_4","chain":"polygon","chain_edge_cases":"PŒLŸﬂôÑ"},"time_extracted":"2023-09-15T19:33:01.841018+00:00"}
+{"type":"RECORD","stream":"test_storage_optimized_enum_on","record":{"id":"test_valid_5","chain":"avalanche","chain_edge_cases":"_éèàÀÇÉ"},"time_extracted":"2023-09-15T19:33:01.841018+00:00"}
+{"type":"RECORD","stream":"test_storage_optimized_enum_on","record":{"id":"test_valid_7","chain":"optimism","chain_edge_cases":"ù€/\\\n\r\t"},"time_extracted":"2023-09-15T19:33:01.841018+00:00"}
+{"type":"RECORD","stream":"test_storage_optimized_enum_on","record":{"id":"test_valid_8","chain":"polygon","chain_edge_cases":"'"},"time_extracted":"2023-09-15T19:33:01.841018+00:00"}

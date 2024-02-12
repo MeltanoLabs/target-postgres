@@ -133,6 +133,9 @@ def verify_data(
                         if isinstance(row[col], memoryview):
                             row[col] = bytes(row[col])
 
+                # sort by primary key to compare with the actual db data
+                check_data.sort(key=lambda x: x[primary_key])
+
                 assert result_dict == check_data
             else:
                 raise ValueError("Invalid check_data - not dict or list of dicts")
@@ -578,6 +581,66 @@ def test_base16_content_encoding_interpreted(postgres_config_no_ssl):
         {"id": "test_nullable_field", "contract_address": b"", "raw_event_data": None},
     ]
     verify_data(target, "test_base_16_encoding_interpreted", 7, "id", rows)
+
+
+def test_data_is_always_inserted_when_storage_optimized_enum_is_off(
+    postgres_config_no_ssl,
+):
+    """Make sure we can insert enum data into the database when storage_optimized_enum is off"""
+    postgres_config_modified = copy.deepcopy(postgres_config_no_ssl)
+    postgres_config_modified["storage_optimized_enum"] = False
+    target = TargetPostgres(config=postgres_config_modified)
+    target.target_connector.allow_column_alter = True
+
+    # we can insert valid enum data
+    singer_file_to_target("storage_optimized_enum_off.singer", target)
+    rows = [
+        {"id": "test_valid_1", "chain": "avalanche", "chain_edge_cases": "AvAlAnChE"},
+        {"id": "test_valid_2", "chain": "ethereum", "chain_edge_cases": " EtH "},
+        {"id": "test_valid_3", "chain": "optimism", "chain_edge_cases": "a\\b"},
+        {"id": "test_valid_4", "chain": "polygon", "chain_edge_cases": "PŒLŸﬂôÑ"},
+        {"id": "test_valid_5", "chain": "avalanche", "chain_edge_cases": "_éèàÀÇÉ"},
+        {"id": "test_valid_7", "chain": "optimism", "chain_edge_cases": "ù€/\\\n\r\t"},
+        {"id": "test_valid_8", "chain": "polygon", "chain_edge_cases": "'"},
+    ]
+    verify_data(target, "test_storage_optimized_enum_off", 7, "id", rows)
+
+    # we allow shema updates when storage_optimized_enum is off
+    singer_file_to_target("storage_optimized_enum_off_schema_update.singer", target)
+    rows = rows + [
+        {
+            "id": "test_not_in_original_schema",
+            "chain": "base",
+            "chain_edge_cases": "New Base Chain",
+        },
+        {
+            "id": "test_still_in_current_schema",
+            "chain": "avalanche",
+            "chain_edge_cases": "AvAlAnChE",
+        },
+    ]
+    verify_data(target, "test_storage_optimized_enum_off", 9, "id", rows)
+
+
+def test_storage_optimized_enum_on(postgres_config_no_ssl):
+    """Make sure we can insert valid enum data into the database when storage_optimized_enum is on"""
+    postgres_config_modified = copy.deepcopy(postgres_config_no_ssl)
+    postgres_config_modified["storage_optimized_enum"] = True
+    target = TargetPostgres(config=postgres_config_modified)
+    target.target_connector.allow_column_alter = False
+
+    singer_file_to_target("storage_optimized_enum_on.singer", target)
+
+    rows = [
+        {"id": "test_valid_1", "chain": "avalanche", "chain_edge_cases": "AvAlAnChE"},
+        {"id": "test_valid_2", "chain": "ethereum", "chain_edge_cases": " EtH "},
+        {"id": "test_valid_3", "chain": "optimism", "chain_edge_cases": "a\\b"},
+        {"id": "test_valid_4", "chain": "polygon", "chain_edge_cases": "PŒLŸﬂôÑ"},
+        {"id": "test_valid_5", "chain": "avalanche", "chain_edge_cases": "_éèàÀÇÉ"},
+        {"id": "test_valid_7", "chain": "optimism", "chain_edge_cases": "ù€/\\\n\r\t"},
+        {"id": "test_valid_8", "chain": "polygon", "chain_edge_cases": "'"},
+    ]
+    verify_data(target, "test_storage_optimized_enum_on", 7, "id", rows)
 
 
 def test_activate_version_hard_delete(postgres_config_no_ssl):
