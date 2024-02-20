@@ -278,7 +278,7 @@ For convenience, data prefixed with `0x` or containing an odd number of characte
 
 ## String enum support
 
-This target can store columns with the json-schema "enum" type as a pg DOMAIN type instead of a TEXT column. This can save space and improve performance.
+This target can store columns with the json-schema "enum" type as a custom pg [TYPE](https://www.postgresql.org/docs/current/datatype-enum.html) type instead of a TEXT column. This can save space as enums are stored as 4 bytes on disk, potentially improving performance and indexing.
 
 It is an opt-in feature because it might result in data loss if the actual data does not match the schema's advertised encoding.
 
@@ -286,7 +286,7 @@ Please consider these several downsides to take into consideration before activa
 - it changes the sort behavior of the resulting column
 - string operations will not be available
 - portability of the data is reduced
-- it is not possible to add remove or modify the enum values
+- it is not possible to add, remove or modify the enum values
 - enums are not shared accross tables, each column get his own custom type
 
 To enable it, set the `storage_optimized_enum` option to `True`.
