@@ -7,7 +7,6 @@ from contextlib import redirect_stdout
 from decimal import Decimal
 from pathlib import Path
 
-import jsonschema
 import pytest
 import sqlalchemy
 from singer_sdk.exceptions import InvalidRecord, MissingKeyPropertiesError
