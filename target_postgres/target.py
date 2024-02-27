@@ -1,12 +1,15 @@
 """Postgres target class."""
 from __future__ import annotations
 
-from pathlib import PurePath
+import typing as t
 
 from singer_sdk import typing as th
 from singer_sdk.target_base import SQLTarget
 
 from target_postgres.sinks import PostgresSink
+
+if t.TYPE_CHECKING:
+    from pathlib import PurePath
 
 
 class TargetPostgres(SQLTarget):
@@ -172,7 +175,7 @@ class TargetPostgres(SQLTarget):
             th.BooleanType,
             default=False,
             description=(
-                "When activate version is sent from a tap this specefies "
+                "When activate version is sent from a tap this specifies "
                 + "if we should delete the records that don't match, or mark "
                 + "them with a date in the `_sdc_deleted_at` column. This config "
                 + "option is ignored if `activate_version` is set to false."
