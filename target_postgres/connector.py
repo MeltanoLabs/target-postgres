@@ -31,6 +31,7 @@ from sqlalchemy.types import (
     VARCHAR,
     TypeDecorator,
 )
+from singer_sdk.helpers.capabilities import TargetLoadMethods
 from sshtunnel import SSHTunnelForwarder
 
 
@@ -117,6 +118,10 @@ class PostgresConnector(SQLConnector):
         _, schema_name, table_name = self.parse_full_table_name(full_table_name)
         meta = sa.MetaData(schema=schema_name)
         table: sa.Table
+        
+        if self.config["load_method"] == TargetLoadMethods.OVERWRITE:
+            self.get_table(full_table_name=full_table_name).drop(self._engine)
+
         if not self.table_exists(full_table_name=full_table_name):
             table = self.create_empty_table(
                 table_name=table_name,
