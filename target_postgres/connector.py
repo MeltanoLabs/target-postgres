@@ -141,8 +141,7 @@ class PostgresConnector(SQLConnector):
         ]  # So we don't mess up the casing of the Table reference
 
         columns = self.get_table_columns(
-            schema_name=cast(str, schema_name),
-            table_name=table_name,
+            full_table_name=full_table_name,
             connection=connection,
         )
 
@@ -837,7 +836,8 @@ class PostgresConnector(SQLConnector):
         assert schema_name is not None
         assert table_name is not None
         return column_name in self.get_table_columns(
-            schema_name=schema_name, table_name=table_name, connection=connection
+            full_table_name=full_table_name,
+            connection=connection
         )
 
 
