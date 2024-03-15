@@ -42,6 +42,7 @@ class PostgresConnector(SQLConnector):
     allow_column_rename: bool = True  # Whether RENAME COLUMN is supported.
     allow_column_alter: bool = False  # Whether altering column types is supported.
     allow_merge_upsert: bool = True  # Whether MERGE UPSERT is supported.
+    allow_overwrite: bool = True  # Whether overwrite load method is supported.
     allow_temp_tables: bool = True  # Whether temp tables are supported.
 
     def __init__(self, config: dict) -> None:
@@ -120,7 +121,8 @@ class PostgresConnector(SQLConnector):
         table: sa.Table
         
         if self.config["load_method"] == TargetLoadMethods.OVERWRITE:
-            self.get_table(full_table_name=full_table_name).drop(self._engine)
+            if self.table_exists(full_table_name=full_table_name):
+                self.get_table(full_table_name=full_table_name).drop(self._engine)
 
         if not self.table_exists(full_table_name=full_table_name):
             table = self.create_empty_table(
@@ -779,10 +781,9 @@ class PostgresConnector(SQLConnector):
 
     def get_table_columns(  # type: ignore[override]
         self,
-        schema_name: str,
-        table_name: str,
-        connection: sa.engine.Connection,
+        full_table_name: str,
         column_names: list[str] | None = None,
+        connection: sa.engine.Connection | None = None,
     ) -> dict[str, sa.Column]:
         """Return a list of table columns.
 
@@ -797,6 +798,11 @@ class PostgresConnector(SQLConnector):
         Returns:
             An ordered list of column objects.
         """
+
+        if not connection:
+            return super().get_table_columns(full_table_name, column_names)
+
+        _, schema_name, table_name = self.parse_full_table_name(full_table_name)
         inspector = sa.inspect(connection)
         columns = inspector.get_columns(table_name, schema_name)
 
