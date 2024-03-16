@@ -184,8 +184,6 @@ class PostgresConnector(SQLConnector):
                 column_object=column_object,
             )
 
-        return meta.tables[full_table_name]
-
     def copy_table_structure(
         self,
         full_table_name: str,
