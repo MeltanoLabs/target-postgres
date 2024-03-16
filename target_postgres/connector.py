@@ -94,6 +94,33 @@ class PostgresConnector(SQLConnector):
         """
         return self.config.get("interpret_content_encoding", False)
 
+    # def get_table(self, full_table_name: str, connection: sa.engine.Connection) -> sa.Table:
+    #     """Return the table object.
+
+    #     Args:
+    #         full_table_name: the fully qualified table name.
+
+    #     Returns:
+    #         The table object.
+    #     """
+    #     _, schema_name, table_name = self.parse_full_table_name(full_table_name)
+    #     meta = sa.MetaData(schema=schema_name)
+    #     meta.reflect(connection, only=[table_name])
+
+    def get_table_v2(self, full_table_name: str, connection: sa.engine.Connection) -> sa.Table:
+        """Return the table object.
+
+        Args:
+            full_table_name: the fully qualified table name.
+
+        Returns:
+            The table object.
+        """
+        _, schema_name, table_name = self.parse_full_table_name(full_table_name)
+        meta = sa.MetaData(schema=schema_name)
+        meta.reflect(connection, only=[table_name])
+        return meta.tables[full_table_name]
+
     def prepare_table(  # type: ignore[override]
         self,
         full_table_name: str,
@@ -119,13 +146,24 @@ class PostgresConnector(SQLConnector):
         _, schema_name, table_name = self.parse_full_table_name(full_table_name)
         meta = sa.MetaData(schema=schema_name)
         table: sa.Table
-        
-        if self.config["load_method"] == TargetLoadMethods.OVERWRITE:
-            if self.table_exists(full_table_name=full_table_name):
-                self.get_table(full_table_name=full_table_name).drop(self._engine)
 
         if not self.table_exists(full_table_name=full_table_name):
-            table = self.create_empty_table(
+            self.create_empty_table(
+                full_table_name=full_table_name,
+                schema=schema,
+                primary_keys=primary_keys,
+                partition_keys=partition_keys,
+                as_temp_table=as_temp_table,
+            )
+            return
+        
+        if self.config["load_method"] == TargetLoadMethods.OVERWRITE:
+            self.logger.info("I ENTERED MORE THAN ONCE")
+            self.get_table(full_table_name=full_table_name).drop(self._engine)
+                # meta.reflect(connection, only=[table_name])
+                # meta.tables[full_table_name].drop(self._enigne)
+                # self.get_table(full_table_name=full_table_name).drop(self._engine)
+            self.create_empty_table(
                 table_name=table_name,
                 meta=meta,
                 schema=schema,
@@ -134,7 +172,8 @@ class PostgresConnector(SQLConnector):
                 as_temp_table=as_temp_table,
                 connection=connection,
             )
-            return table
+            return
+
         meta.reflect(connection, only=[table_name])
         table = meta.tables[
             full_table_name
@@ -778,44 +817,48 @@ class PostgresConnector(SQLConnector):
 
         return t.cast(sa.types.TypeEngine, column.type)
 
-    def get_table_columns(  # type: ignore[override]
-        self,
-        full_table_name: str,
-        column_names: list[str] | None = None,
-        connection: sa.engine.Connection | None = None,
-    ) -> dict[str, sa.Column]:
-        """Return a list of table columns.
+    # def get_table_columns(  # type: ignore[override]
+    #     self,
+    #     full_table_name: str,
+    #     column_names: list[str] | None = None,
+    #     connection: sa.engine.Connection | None = None,
+    # ) -> dict[str, sa.Column]:
+    #     """Return a list of table columns.
 
-        Overrode to support schema_name
+    #     Overrode to support schema_name
 
-        Args:
-            schema_name: schema name.
-            table_name: table name to get columns for.
-            connection: database connection.
-            column_names: A list of column names to filter to.
+    #     Args:
+    #         schema_name: schema name.
+    #         table_name: table name to get columns for.
+    #         connection: database connection.
+    #         column_names: A list of column names to filter to.
 
-        Returns:
-            An ordered list of column objects.
-        """
+    #     Returns:
+    #         An ordered list of column objects.
+    #     """
+    #     self.logger.info("THIS IS ANOTHER TEEEST")
 
-        if not connection:
-            return super().get_table_columns(full_table_name, column_names)
+    #     if not connection:
+    #         return super().get_table_columns(full_table_name, column_names)
+        
+    #     if full_table_name not in self._table_cols_cache:
+    #         _, schema_name, table_name = self.parse_full_table_name(full_table_name)
+    #         inspector = sa.inspect(connection)
+    #         columns = inspector.get_columns(table_name, schema_name)
 
-        _, schema_name, table_name = self.parse_full_table_name(full_table_name)
-        inspector = sa.inspect(connection)
-        columns = inspector.get_columns(table_name, schema_name)
+    #         self._table_cols_cache[full_table_name] = {
+    #             col_meta["name"]: sa.Column(
+    #                 col_meta["name"],
+    #                 col_meta["type"],
+    #                 nullable=col_meta.get("nullable", False),
+    #             )
+    #             for col_meta in columns
+    #             if not column_names
+    #             or col_meta["name"].casefold()
+    #             in {col.casefold() for col in column_names}
+    #         }
 
-        return {
-            col_meta["name"]: sa.Column(
-                col_meta["name"],
-                col_meta["type"],
-                nullable=col_meta.get("nullable", False),
-            )
-            for col_meta in columns
-            if not column_names
-            or col_meta["name"].casefold() in {col.casefold() for col in column_names}
-        }
-
+    #     return self._table_cols_cache[full_table_name]
     def column_exists(  # type: ignore[override]
         self,
         full_table_name: str,
