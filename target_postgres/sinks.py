@@ -335,7 +335,6 @@ class PostgresSink(SQLSink):
             if not self.connector.column_exists(
                 full_table_name=self.full_table_name,
                 column_name=self.version_column_name,
-                connection=connection,
             ):
                 raise RuntimeError(
                     f"{self.version_column_name} is required for activate version "
@@ -346,7 +345,6 @@ class PostgresSink(SQLSink):
                 or self.connector.column_exists(
                     full_table_name=self.full_table_name,
                     column_name=self.soft_delete_column_name,
-                    connection=connection,
                 )
             ):
                 raise RuntimeError(
