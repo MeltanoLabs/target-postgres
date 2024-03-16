@@ -94,21 +94,12 @@ class PostgresConnector(SQLConnector):
         """
         return self.config.get("interpret_content_encoding", False)
 
-    # def get_table(self, full_table_name: str, connection: sa.engine.Connection) -> sa.Table:
-    #     """Return the table object.
-
-    #     Args:
-    #         full_table_name: the fully qualified table name.
-
-    #     Returns:
-    #         The table object.
-    #     """
-    #     _, schema_name, table_name = self.parse_full_table_name(full_table_name)
-    #     meta = sa.MetaData(schema=schema_name)
-    #     meta.reflect(connection, only=[table_name])
-
-    def get_table_v2(self, full_table_name: str, connection: sa.engine.Connection) -> sa.Table:
-        """Return the table object.
+    def get_table_from_metadata(
+            self, 
+            full_table_name: str, 
+            connection: sa.engine.Connection
+    ) -> sa.Table:
+        """Returns an existing table object from the database
 
         Args:
             full_table_name: the fully qualified table name.
@@ -160,9 +151,6 @@ class PostgresConnector(SQLConnector):
         if self.config["load_method"] == TargetLoadMethods.OVERWRITE:
             self.logger.info("I ENTERED MORE THAN ONCE")
             self.get_table(full_table_name=full_table_name).drop(self._engine)
-                # meta.reflect(connection, only=[table_name])
-                # meta.tables[full_table_name].drop(self._enigne)
-                # self.get_table(full_table_name=full_table_name).drop(self._engine)
             self.create_empty_table(
                 table_name=table_name,
                 meta=meta,
