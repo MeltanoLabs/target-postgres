@@ -149,7 +149,6 @@ class PostgresConnector(SQLConnector):
             return
         
         if self.config["load_method"] == TargetLoadMethods.OVERWRITE:
-            self.logger.info("I ENTERED MORE THAN ONCE")
             self.get_table(full_table_name=full_table_name).drop(self._engine)
             self.create_empty_table(
                 table_name=table_name,
@@ -803,48 +802,7 @@ class PostgresConnector(SQLConnector):
 
         return t.cast(sa.types.TypeEngine, column.type)
 
-    # def get_table_columns(  # type: ignore[override]
-    #     self,
-    #     full_table_name: str,
-    #     column_names: list[str] | None = None,
-    #     connection: sa.engine.Connection | None = None,
-    # ) -> dict[str, sa.Column]:
-    #     """Return a list of table columns.
-
-    #     Overrode to support schema_name
-
-    #     Args:
-    #         schema_name: schema name.
-    #         table_name: table name to get columns for.
-    #         connection: database connection.
-    #         column_names: A list of column names to filter to.
-
-    #     Returns:
-    #         An ordered list of column objects.
-    #     """
-    #     self.logger.info("THIS IS ANOTHER TEEEST")
-
-    #     if not connection:
-    #         return super().get_table_columns(full_table_name, column_names)
-        
-    #     if full_table_name not in self._table_cols_cache:
-    #         _, schema_name, table_name = self.parse_full_table_name(full_table_name)
-    #         inspector = sa.inspect(connection)
-    #         columns = inspector.get_columns(table_name, schema_name)
-
-    #         self._table_cols_cache[full_table_name] = {
-    #             col_meta["name"]: sa.Column(
-    #                 col_meta["name"],
-    #                 col_meta["type"],
-    #                 nullable=col_meta.get("nullable", False),
-    #             )
-    #             for col_meta in columns
-    #             if not column_names
-    #             or col_meta["name"].casefold()
-    #             in {col.casefold() for col in column_names}
-    #         }
-
-    #     return self._table_cols_cache[full_table_name]
+    
     def column_exists(  # type: ignore[override]
         self,
         full_table_name: str,
