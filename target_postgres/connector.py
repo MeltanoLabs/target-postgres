@@ -143,7 +143,7 @@ class PostgresConnector(SQLConnector):
             column_object = None
             if property_name in columns:
                 column_object = columns[property_name]
-                
+
             self.prepare_column(
                 full_table_name=table.fullname,
                 column_name=property_name,
@@ -248,8 +248,12 @@ class PostgresConnector(SQLConnector):
                     if encoding := jsonschema_type.get("contentEncoding", False):
                         json_type_dict["contentEncoding"] = encoding
                     # Figure out array type, but only if there's a single type (no array union types)
-                    if 'items' in jsonschema_type and 'type' in jsonschema_type['items'] and isinstance(jsonschema_type['items']['type'], str):
-                        json_type_dict['items'] = jsonschema_type['items']['type']
+                    if (
+                        "items" in jsonschema_type
+                        and "type" in jsonschema_type["items"]
+                        and isinstance(jsonschema_type["items"]["type"], str)
+                    ):
+                        json_type_dict["items"] = jsonschema_type["items"]["type"]
                     json_type_array.append(json_type_dict)
             else:
                 msg = "Invalid format for jsonschema type: not str or list."
