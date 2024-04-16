@@ -1,4 +1,5 @@
 """Postgres target class."""
+
 from __future__ import annotations
 
 from pathlib import PurePath
