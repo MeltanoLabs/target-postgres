@@ -1,4 +1,5 @@
-""" SDK tests for target postgres """
+"""SDK tests for target postgres"""
+
 # flake8: noqa
 import pytest
 from singer_sdk.testing import get_target_test_class
