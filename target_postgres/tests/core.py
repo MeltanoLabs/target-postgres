@@ -1,4 +1,5 @@
-""" Config and base values for target-postgres testing """
+"""Config and base values for target-postgres testing"""
+
 # flake8: noqa
 import sqlalchemy
 
