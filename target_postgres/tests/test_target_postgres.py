@@ -1,4 +1,5 @@
-""" Postgres target tests """
+"""Postgres target tests"""
+
 # flake8: noqa
 import copy
 import datetime
