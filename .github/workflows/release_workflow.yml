@@ -1,41 +1,40 @@
-name: Upload Python Package
+name: Build and publish
 
 on:
-  release:
-    types: [created]
+  push:
 
 jobs:
-  build_deploy:
-
+  build:
+    name: Build wheel and sdist
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - name: Set up Python
-      uses: actions/setup-python@v5
+        ref: ${{ github.ref }}
+    - uses: hynek/build-and-inspect-python-package@v2
+
+  publish:
+    name: Publish to PyPI
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    environment:
+      name: publishing
+      url: https://pypi.org/p/meltanolabs-target-postgres
+    needs: build
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+    - uses: actions/download-artifact@v4
       with:
-        python-version: '3.10'
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install poetry
-    - name: Build package
-      run: |
-        poetry self add "poetry-dynamic-versioning[plugin]"
-        poetry config repositories.testpypi https://test.pypi.org/legacy/
-        poetry dynamic-versioning --no-cache
-        poetry build
-    - name: Upload wheel to release
-      uses: svenstaro/upload-release-action@v2
+        name: Packages
+        path: dist
+    - uses: svenstaro/upload-release-action@v2
       with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
         file: dist/*.whl
         tag: ${{ github.ref }}
         overwrite: true
         file_glob: true
-    - name: Deploy to PyPI
-      run: |
-        poetry publish -r testpypi -u "__token__" -p "${{ secrets.TEST_PYPI_TOKEN }}"
-        poetry publish -u "__token__" -p "${{ secrets.POSTGRES_PYPI_TOKEN }}"
+    - uses: pypa/gh-action-pypi-publish@v1.8.11
