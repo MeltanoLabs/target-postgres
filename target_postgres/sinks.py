@@ -20,6 +20,7 @@ class PostgresSink(SQLSink):
     def __init__(self, *args, **kwargs):
         """Initialize SQL Sink. See super class for more details."""
         super().__init__(*args, **kwargs)
+        raise Exception(self.config)
         self.temp_table_name = self.generate_temp_table_name()
 
     @property
