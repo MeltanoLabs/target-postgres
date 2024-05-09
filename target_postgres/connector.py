@@ -247,7 +247,8 @@ class PostgresConnector(SQLConnector):
                         json_type_dict["format"] = jsonschema_type["format"]
                     if encoding := jsonschema_type.get("contentEncoding", False):
                         json_type_dict["contentEncoding"] = encoding
-                    # Figure out array type, but only if there's a single type (no array union types)
+                    # Figure out array type, but only if there's a single type
+                    # (no array union types)
                     if (
                         "items" in jsonschema_type
                         and "type" in jsonschema_type["items"]
