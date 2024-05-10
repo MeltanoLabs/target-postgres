@@ -1,6 +1,9 @@
 """Postgres target sink class, which handles writing streams."""
 
+import csv
+import pathlib
 import uuid
+from tempfile import mkstemp
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Union, cast
 
 import sqlalchemy as sa
@@ -16,9 +19,11 @@ class PostgresSink(SQLSink):
     """Postgres target sink class."""
 
     connector_class = PostgresConnector
+    MAX_SIZE_DEFAULT = 100000
 
     def __init__(self, *args, **kwargs):
         """Initialize SQL Sink. See super class for more details."""
+        kwargs["key_properties"] = []
         super().__init__(*args, **kwargs)
         self.temp_table_name = self.generate_temp_table_name()
 
@@ -142,35 +147,27 @@ class PostgresSink(SQLSink):
             True if table exists, False if not, None if unsure or undetectable.
         """
         columns = self.column_representation(schema)
-        insert: str = cast(
-            str,
-            self.generate_insert_statement(
-                table.name,
-                columns,
-            ),
+        temp_dir = "./output"
+        columns_str = ','.join(
+            [
+                f'"{column.name}"' for column in columns
+            ]
         )
-        self.logger.info("Inserting with SQL: %s", insert)
-        # Only one record per PK, we want to take the last one
-        data_to_insert: List[Dict[str, Any]] = []
+        csv_fd, csv_file = mkstemp(suffix='.csv', prefix=f'{table}_', dir=temp_dir)
+        with open(csv_fd, 'w') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=[column.name for column in columns])
+            for record in records:
+                writer.writerow(record)
 
-        if self.append_only is False:
-            insert_records: Dict[str, Dict] = {}  # pk : record
-            for record in records:
-                insert_record = {}
-                for column in columns:
-                    insert_record[column.name] = record.get(column.name)
-                # No need to check for a KeyError here because the SDK already
-                # guaruntees that all key properties exist in the record.
-                primary_key_value = "".join([str(record[key]) for key in primary_keys])
-                insert_records[primary_key_value] = insert_record
-            data_to_insert = list(insert_records.values())
-        else:
-            for record in records:
-                insert_record = {}
-                for column in columns:
-                    insert_record[column.name] = record.get(column.name)
-                data_to_insert.append(insert_record)
-        connection.execute(insert, data_to_insert)
+        copy_sql = "COPY {} ({}) FROM STDIN WITH (FORMAT CSV, ESCAPE '\\')".format(
+            table.name,
+            columns_str,
+        )
+        self.logger.info("Inserting with SQL: %s", copy_sql)
+        with open(csv_file, "r") as f:
+            with connection.connection.cursor() as cur:
+                cur.copy_expert(copy_sql, f)
+        pathlib.Path.unlink(csv_file)
         return True
 
     def upsert(
