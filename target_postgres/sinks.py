@@ -2,8 +2,8 @@
 
 import csv
 import pathlib
+import tempfile
 import uuid
-from tempfile import mkstemp
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Union, cast
 
 import sqlalchemy as sa
@@ -147,27 +147,28 @@ class PostgresSink(SQLSink):
             True if table exists, False if not, None if unsure or undetectable.
         """
         columns = self.column_representation(schema)
-        temp_dir = "./output"
         columns_str = ','.join(
             [
                 f'"{column.name}"' for column in columns
             ]
         )
-        csv_fd, csv_file = mkstemp(suffix='.csv', prefix=f'{table}_', dir=temp_dir)
-        with open(csv_fd, 'w') as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=[column.name for column in columns])
-            for record in records:
-                writer.writerow(record)
+        script_dir = pathlib.Path(__file__).parent
+        with tempfile.TemporaryDirectory(dir=script_dir) as temp_dir:
+            csv_fd, csv_file = tempfile.mkstemp(suffix='.csv', prefix=f'{table}_', dir=temp_dir)
+            with open(csv_fd, 'w') as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=[column.name for column in columns])
+                for record in records:
+                    writer.writerow(record)
 
-        copy_sql = "COPY {} ({}) FROM STDIN WITH (FORMAT CSV, ESCAPE '\\')".format(
-            table.name,
-            columns_str,
-        )
-        self.logger.info("Inserting with SQL: %s", copy_sql)
-        with open(csv_file, "r") as f:
-            with connection.connection.cursor() as cur:
-                cur.copy_expert(copy_sql, f)
-        pathlib.Path.unlink(csv_file)
+            copy_sql = "COPY {} ({}) FROM STDIN WITH (FORMAT CSV, ESCAPE '\\')".format(
+                table.name,
+                columns_str,
+            )
+            self.logger.info("Inserting with SQL: %s", copy_sql)
+            with open(csv_file, "r") as f:
+                with connection.connection.cursor() as cur:
+                    cur.copy_expert(copy_sql, f)
+            pathlib.Path.unlink(csv_file)
         return True
 
     def upsert(
