@@ -168,7 +168,6 @@ class PostgresSink(SQLSink):
             with open(csv_file, "r") as f:
                 with connection.connection.cursor() as cur:
                     cur.copy_expert(copy_sql, f)
-            pathlib.Path.unlink(csv_file)
         return True
 
     def upsert(
