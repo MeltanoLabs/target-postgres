@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import atexit
+import hashlib
 import io
 import signal
 import typing as t
@@ -16,7 +17,7 @@ import simplejson
 import sqlalchemy as sa
 from singer_sdk import SQLConnector
 from singer_sdk import typing as th
-from sqlalchemy.dialects.postgresql import ARRAY, BIGINT, BYTEA, JSONB
+from sqlalchemy.dialects.postgresql import ARRAY, BIGINT, BYTEA, ENUM, JSONB
 from sqlalchemy.engine import URL
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.types import (
@@ -92,6 +93,29 @@ class PostgresConnector(SQLConnector):
         """
         return self.config.get("interpret_content_encoding", False)
 
+    @cached_property
+    def storage_optimized_enum(self) -> bool:
+        """Whether to use storage optimized enum.
+
+        Stores columns with the json-schema "enum" type as a pg DOMAIN type
+        instead of a TEXT column. This can save space and improve performance.
+
+        It is an opt-in feature because it might result in data loss if the
+        actual data does not match the schema's advertised encoding.
+
+        Please consider these several downsides to take into consideration
+        before activating:
+        - it changes the sort behavior of the resulting column
+        - string operations will not be available
+        - portability of the data is reduced
+        - it is not possible to add remove or modify the enum values
+        - enums are not shared accross tables, each column get his own custom type
+
+        Returns:
+            True if the feature is enabled, False otherwise.
+        """
+        return self.config.get("storage_optimized_enum", False)
+
     def prepare_table(  # type: ignore[override]
         self,
         full_table_name: str,
@@ -146,7 +170,12 @@ class PostgresConnector(SQLConnector):
             self.prepare_column(
                 full_table_name=table.fullname,
                 column_name=property_name,
-                sql_type=self.to_sql_type(property_def),
+                sql_type=self.to_sql_type(
+                    schema_name=schema_name,
+                    table_name=table_name,
+                    property_name=property_name,
+                    jsonschema_type=property_def,
+                ),
                 connection=connection,
                 column_object=column_object,
             )
@@ -171,22 +200,38 @@ class PostgresConnector(SQLConnector):
         Returns:
             The new table object.
         """
-        _, schema_name, table_name = self.parse_full_table_name(full_table_name)
-        meta = sa.MetaData(schema=schema_name)
-        new_table: sa.Table
-        columns = []
+        _, to_table_schema_name, to_table_name = self.parse_full_table_name(
+            full_table_name
+        )
         if self.table_exists(full_table_name=full_table_name):
             raise RuntimeError("Table already exists")
-        for column in from_table.columns:
-            columns.append(column._copy())
-        if as_temp_table:
-            new_table = sa.Table(table_name, meta, *columns, prefixes=["TEMPORARY"])
-            new_table.create(bind=connection)
-            return new_table
-        else:
-            new_table = sa.Table(table_name, meta, *columns)
-            new_table.create(bind=connection)
-            return new_table
+
+        from_table_meta = sa.MetaData(schema=from_table.schema)
+        to_table_meta = sa.MetaData(schema=to_table_schema_name)
+        columns = [
+            # Make sure this temporary table do not issue a CREATE TYPE
+            # or DROP TYPE statement for custom enums
+            sa.Column(
+                c.name,
+                ENUM(
+                    *c.type.enums,
+                    name=c.type.name,
+                    metadata=from_table_meta,
+                    create_type=False,
+                ),
+            )
+            if isinstance(c.type, ENUM) and hasattr(c.type, "enums")
+            else c.copy()
+            for c in from_table.columns
+        ]
+        new_table = sa.Table(
+            to_table_name,
+            to_table_meta,
+            *columns,
+            prefixes=["TEMPORARY"] if as_temp_table else [],
+        )
+        new_table.create(bind=connection, checkfirst=True)
+        return new_table
 
     @contextmanager
     def _connect(self) -> t.Iterator[sa.engine.Connection]:
@@ -195,7 +240,7 @@ class PostgresConnector(SQLConnector):
 
     def drop_table(self, table: sa.Table, connection: sa.engine.Connection):
         """Drop table data."""
-        table.drop(bind=connection)
+        table.drop(bind=connection, checkfirst=True)
 
     def clone_table(
         self, new_table_name, table, metadata, connection, temp_table
@@ -218,7 +263,13 @@ class PostgresConnector(SQLConnector):
         new_table.create(bind=connection)
         return new_table
 
-    def to_sql_type(self, jsonschema_type: dict) -> sa.types.TypeEngine:  # type: ignore[override]
+    def to_sql_type(  # type: ignore[override]
+        self,
+        schema_name: str | None,
+        table_name: str,
+        property_name: str,
+        jsonschema_type: dict,
+    ) -> sa.types.TypeEngine:
         """Return a JSON Schema representation of the provided type.
 
         By default will call `typing.to_sql_type()`.
@@ -229,6 +280,9 @@ class PostgresConnector(SQLConnector):
         from the base class for all unhandled cases.
 
         Args:
+            schema_name: The name of the target table schema.
+            table_name: The name of the target table.
+            property_name: The name of the property.
             jsonschema_type: The JSON Schema representation of the source type.
 
         Returns:
@@ -242,10 +296,12 @@ class PostgresConnector(SQLConnector):
             elif isinstance(jsonschema_type["type"], list):
                 for entry in jsonschema_type["type"]:
                     json_type_dict = {"type": entry}
-                    if jsonschema_type.get("format", False):
-                        json_type_dict["format"] = jsonschema_type["format"]
+                    if fmt := jsonschema_type.get("format", False):
+                        json_type_dict["format"] = fmt
                     if encoding := jsonschema_type.get("contentEncoding", False):
                         json_type_dict["contentEncoding"] = encoding
+                    if enum := jsonschema_type.get("enum", False):
+                        json_type_dict["enum"] = enum
                     json_type_array.append(json_type_dict)
             else:
                 msg = "Invalid format for jsonschema type: not str or list."
@@ -260,16 +316,30 @@ class PostgresConnector(SQLConnector):
             return NOTYPE()
         sql_type_array = []
         for json_type in json_type_array:
-            picked_type = self.pick_individual_type(jsonschema_type=json_type)
+            picked_type = self.pick_individual_type(
+                schema_name=schema_name,
+                table_name=table_name,
+                property_name=property_name,
+                jsonschema_type=json_type,
+            )
             if picked_type is not None:
                 sql_type_array.append(picked_type)
 
         return PostgresConnector.pick_best_sql_type(sql_type_array=sql_type_array)
 
-    def pick_individual_type(self, jsonschema_type: dict):
+    def pick_individual_type(
+        self,
+        schema_name: str | None,
+        table_name: str,
+        property_name: str,
+        jsonschema_type: dict,
+    ):
         """Select the correct sql type assuming jsonschema_type has only a single type.
 
         Args:
+            schema_name: The name of the target table schema.
+            table_name: The name of the target table.
+            property_name: The name of the property.
             jsonschema_type: A jsonschema_type array containing only a single type.
 
         Returns:
@@ -292,6 +362,20 @@ class PostgresConnector(SQLConnector):
             and jsonschema_type.get("contentEncoding") == "base16"
         ):
             return HexByteString()
+        if self.storage_optimized_enum and jsonschema_type.get("enum"):
+            # make sure that the enum name is unique and that the uniqueness part
+            # can be determined using the first 71 characters of the enum name
+            # this is a limitation of postgres type names
+            hasher = hashlib.md5(usedforsecurity=False)
+            hasher.update(f"{schema_name}__{table_name}__{property_name}".encode())
+            hash_str = hasher.hexdigest()
+            name_hash = hash_str[0:15]
+            unique_enum_name = f"enum_{name_hash}_{property_name}"
+
+            # ensure our enum is created in the correct schema
+            meta = sa.MetaData(schema=schema_name)
+            return ENUM(*jsonschema_type["enum"], name=unique_enum_name, metadata=meta)
+
         individual_type = th.to_sql_type(jsonschema_type)
         if isinstance(individual_type, VARCHAR):
             return TEXT()
@@ -308,6 +392,7 @@ class PostgresConnector(SQLConnector):
             An instance of the best SQL type class based on defined precedence order.
         """
         precedence_order = [
+            ENUM,
             HexByteString,
             ARRAY,
             JSONB,
@@ -372,18 +457,21 @@ class PostgresConnector(SQLConnector):
             columns.append(
                 sa.Column(
                     property_name,
-                    self.to_sql_type(property_jsonschema),
+                    self.to_sql_type(
+                        schema_name=meta.schema,
+                        table_name=table_name,
+                        property_name=property_name,
+                        jsonschema_type=property_jsonschema,
+                    ),
                     primary_key=is_primary_key,
                     autoincrement=False,  # See: https://github.com/MeltanoLabs/target-postgres/issues/193 # noqa: E501
                 )
             )
-        if as_temp_table:
-            new_table = sa.Table(table_name, meta, *columns, prefixes=["TEMPORARY"])
-            new_table.create(bind=connection)
-            return new_table
 
-        new_table = sa.Table(table_name, meta, *columns)
-        new_table.create(bind=connection)
+        new_table = sa.Table(
+            table_name, meta, *columns, prefixes=["TEMPORARY"] if as_temp_table else []
+        )
+        new_table.create(bind=connection, checkfirst=True)
         return new_table
 
     def prepare_column(
@@ -536,7 +624,13 @@ class PostgresConnector(SQLConnector):
         current_type_collation = self.remove_collation(current_type)
 
         # Check if the existing column type and the sql type are the same
-        if str(sql_type) == str(current_type):
+        cmp_a = str(sql_type)
+        cmp_b = str(current_type)
+        if isinstance(sql_type, ENUM) and hasattr(sql_type, "enums"):
+            cmp_a = "ENUM " + str(sql_type.enums)
+        if isinstance(current_type, ENUM) and hasattr(current_type, "enums"):
+            cmp_b = "ENUM " + str(current_type.enums)
+        if cmp_a == cmp_b:
             # The current column and sql type are the same
             # Nothing to do
             return
@@ -544,7 +638,6 @@ class PostgresConnector(SQLConnector):
         # Not the same type, generic type or compatible types
         # calling merge_sql_types for assistnace
         compatible_sql_type = self.merge_sql_types([current_type, sql_type])
-
         if str(compatible_sql_type) == str(current_type):
             # Nothing to do
             return
@@ -794,7 +887,6 @@ class PostgresConnector(SQLConnector):
         """
         inspector = sa.inspect(connection)
         columns = inspector.get_columns(table_name, schema_name)
-
         return {
             col_meta["name"]: sa.Column(
                 col_meta["name"],

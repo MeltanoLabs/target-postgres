@@ -226,7 +226,6 @@ class PostgresSink(SQLSink):
             insert_stmt = sa.insert(to_table).from_select(
                 names=from_table.columns, select=select_stmt
             )
-
             connection.execute(insert_stmt)
 
             # Update
@@ -254,7 +253,12 @@ class PostgresSink(SQLSink):
             columns.append(
                 sa.Column(
                     property_name,
-                    self.connector.to_sql_type(property_jsonschema),
+                    self.connector.to_sql_type(
+                        schema_name=self.schema_name,
+                        table_name=self.table_name,
+                        property_name=property_name,
+                        jsonschema_type=property_jsonschema,
+                    ),
                 )
             )
         return columns

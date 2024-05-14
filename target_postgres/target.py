@@ -202,6 +202,23 @@ class TargetPostgres(SQLTarget):
             ),
         ),
         th.Property(
+            "storage_optimized_enum",
+            th.BooleanType,
+            default=False,
+            description=(
+                "If set to true, the target will store enum values as a custom pg type "
+                "instead of a text column. This can save space and improve performance,"
+                " but may make the data harder to query and analyze."
+                "Please consider these several downsides to take into consideration "
+                "before activating this feature:"
+                " it changes the sort behavior of the resulting column,"
+                " string operations will not be available,"
+                " portability of the data is reduced,"
+                " it is not possible to add remove or modify the enum values,"
+                " enums are not shared accross tables."
+            ),
+        ),
+        th.Property(
             "ssl_enable",
             th.BooleanType,
             default=False,
