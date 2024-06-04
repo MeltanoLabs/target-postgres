@@ -209,7 +209,7 @@ The below table shows how this tap will map between jsonschema datatypes and Pos
 | UNSUPPORTED                    | tsquery                                 |
 | UNSUPPORTED                    | tsvector                                |
 | UNSUPPORTED                    | txid_snapshot                           |
-| UNSUPPORTED                    | uuid                                    |
+| string with format="uuid"      | uuid                                    |
 | UNSUPPORTED                    | xml                                     |
 
 Note that while object types are mapped directly to jsonb, array types are mapped to a jsonb array.
