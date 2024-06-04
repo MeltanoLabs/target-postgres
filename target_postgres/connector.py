@@ -313,6 +313,7 @@ class PostgresConnector(SQLConnector):
             HexByteString,
             ARRAY,
             JSONB,
+            UUID,
             TEXT,
             TIMESTAMP,
             DATETIME,
