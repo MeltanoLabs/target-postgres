@@ -16,7 +16,7 @@ import simplejson
 import sqlalchemy as sa
 from singer_sdk import SQLConnector
 from singer_sdk import typing as th
-from sqlalchemy.dialects.postgresql import ARRAY, BIGINT, BYTEA, JSONB
+from sqlalchemy.dialects.postgresql import ARRAY, BIGINT, BYTEA, JSONB, UUID
 from sqlalchemy.engine import URL
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.types import (
@@ -287,6 +287,8 @@ class PostgresConnector(SQLConnector):
         # string formats
         if jsonschema_type.get("format") == "date-time":
             return TIMESTAMP()
+        if jsonschema_type.get("format") == "uuid":
+            return UUID()
         if (
             self.interpret_content_encoding
             and jsonschema_type.get("contentEncoding") == "base16"
