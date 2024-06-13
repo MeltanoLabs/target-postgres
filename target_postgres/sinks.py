@@ -280,24 +280,6 @@ class PostgresSink(SQLSink):
 
         return sql
 
-    def generate_insert_statement(
-        self,
-        full_table_name: str,
-        columns: List[sa.Column],  # type: ignore[override]
-    ) -> Union[str, Executable]:
-        """Generate an insert statement for the given records.
-
-        Args:
-            full_table_name: the target table name.
-            columns: the target table columns.
-
-        Returns:
-            An insert statement.
-        """
-        metadata = sa.MetaData()
-        table = sa.Table(full_table_name, metadata, *columns)
-        return sa.insert(table)
-
     def conform_name(self, name: str, object_type: Optional[str] = None) -> str:
         """Conforming names of tables, schemas, column names."""
         return name
