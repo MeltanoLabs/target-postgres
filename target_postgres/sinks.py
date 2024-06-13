@@ -1,7 +1,9 @@
 """Postgres target sink class, which handles writing streams."""
 
+import csv
 import uuid
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Union, cast
+from io import StringIO
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union, cast
 
 import sqlalchemy as sa
 from pendulum import now
@@ -142,35 +144,35 @@ class PostgresSink(SQLSink):
             True if table exists, False if not, None if unsure or undetectable.
         """
         columns = self.column_representation(schema)
-        insert: str = cast(
-            str,
-            self.generate_insert_statement(
-                table.name,
-                columns,
-            ),
-        )
-        self.logger.info("Inserting with SQL: %s", insert)
+        copy_statement: str = self.generate_copy_statement(table.name, columns)
+        self.logger.info("Inserting with SQL: %s", copy_statement)
         # Only one record per PK, we want to take the last one
-        data_to_insert: List[Dict[str, Any]] = []
+        data_to_insert: Tuple[Tuple[Any]] = None
 
         if self.append_only is False:
-            insert_records: Dict[str, Dict] = {}  # pk : record
+            copy_values: Dict[str, Tuple] = {}  # pk : values
             for record in records:
-                insert_record = {}
-                for column in columns:
-                    insert_record[column.name] = record.get(column.name)
+                values = tuple((record.get(column.name) for column in columns))
                 # No need to check for a KeyError here because the SDK already
                 # guaruntees that all key properties exist in the record.
                 primary_key_value = "".join([str(record[key]) for key in primary_keys])
-                insert_records[primary_key_value] = insert_record
-            data_to_insert = list(insert_records.values())
+                copy_values[primary_key_value] = values
+            data_to_insert = tuple(copy_values.values())
         else:
-            for record in records:
-                insert_record = {}
-                for column in columns:
-                    insert_record[column.name] = record.get(column.name)
-                data_to_insert.append(insert_record)
-        connection.execute(insert, data_to_insert)
+            data_to_insert = [
+                tuple((record.get(column.name) for column in columns))
+                for record in records
+            ]
+
+        # Prepare a buffer with the values as csv.
+        buffer = StringIO()
+        writer = csv.writer(buffer)
+        writer.writerows(data_to_insert)
+        buffer.seek(0)
+
+        with connection.connection.cursor() as cur:
+            cur.copy_expert(sql=copy_statement, file=buffer)
+
         return True
 
     def upsert(
