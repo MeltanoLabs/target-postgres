@@ -259,6 +259,25 @@ class PostgresSink(SQLSink):
             )
         return columns
 
+    def generate_copy_statement(
+        self,
+        full_table_name: str,
+        columns: List[sa.Column],
+    ) -> str:
+        """Generate a copy statement for bulk copy.
+
+        Args:
+            full_table_name: the target table name.
+            columns: the target table columns.
+
+        Returns:
+            A copy statement.
+        """
+        columns_list = ", ".join((f'"{column.name}"' for column in columns))
+        sql: str = f"copy {full_table_name} ({columns_list}) from stdin with csv"
+
+        return sql
+
     def generate_insert_statement(
         self,
         full_table_name: str,
