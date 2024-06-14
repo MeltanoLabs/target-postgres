@@ -180,7 +180,8 @@ class PostgresSink(SQLSink):
         ]
 
         def process_column_value(data: Any, proc: Callable) -> str:
-            # If the data is null, return nothing (unquoted).
+            # If the data is null, return an unquoted, empty value.
+            # Unquoted is important here, for PostgreSQL to interpret as null.
             if data is None:
                 return ""
 
