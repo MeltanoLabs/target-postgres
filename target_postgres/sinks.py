@@ -1,6 +1,5 @@
 """Postgres target sink class, which handles writing streams."""
 
-import csv
 import uuid
 from io import StringIO
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union, cast
@@ -164,10 +163,27 @@ class PostgresSink(SQLSink):
                 for record in records
             ]
 
-        # Prepare a buffer with the values as csv.
+        # Prepare processor functions for each column type. These are used to convert
+        # from Python values to database values.
+        column_processors = [
+            column.type.bind_processor(connection.dialect) or str for column in columns
+        ]
+
+        # Create a buffer of CSV formatted values to send in bulk.
         buffer = StringIO()
-        writer = csv.writer(buffer)
-        writer.writerows(data_to_insert)
+        for row in data_to_insert:
+            processed_row = ",".join(
+                map(
+                    lambda data, proc: (
+                        "" if data is None else str(proc(data)).replace('"', '""')
+                    ),
+                    row,
+                    column_processors,
+                )
+            )
+
+            buffer.write(processed_row)
+            buffer.write("\n")
         buffer.seek(0)
 
         with connection.connection.cursor() as cur:
