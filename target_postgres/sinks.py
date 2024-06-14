@@ -292,7 +292,7 @@ class PostgresSink(SQLSink):
             A copy statement.
         """
         columns_list = ", ".join((f'"{column.name}"' for column in columns))
-        sql: str = f"copy {full_table_name} ({columns_list}) from stdin with csv"
+        sql: str = f'copy "{full_table_name}" ({columns_list}) from stdin with csv'
 
         return sql
 
