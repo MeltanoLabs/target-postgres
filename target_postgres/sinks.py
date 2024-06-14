@@ -186,6 +186,8 @@ class PostgresSink(SQLSink):
             buffer.write("\n")
         buffer.seek(0)
 
+        # Use copy_expert to run the copy statement.
+        # https://www.psycopg.org/docs/cursor.html#cursor.copy_expert
         with connection.connection.cursor() as cur:
             cur.copy_expert(sql=copy_statement, file=buffer)
 
