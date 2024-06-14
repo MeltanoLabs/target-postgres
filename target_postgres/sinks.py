@@ -2,7 +2,18 @@
 
 import uuid
 from io import StringIO
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+)
 
 import sqlalchemy as sa
 from pendulum import now
@@ -163,24 +174,43 @@ class PostgresSink(SQLSink):
                 for record in records
             ]
 
-        # Prepare processor functions for each column type. These are used to convert
-        # from Python values to database values.
+        # Prepare to process the rows into csv. Use each column's bind_processor to do
+        # most of the work, then do the final construction of the csv rows ourselves
+        # to control exactly how values are converted and which ones are quoted.
         column_processors = [
             column.type.bind_processor(connection.dialect) or str for column in columns
         ]
 
-        # Create a buffer of CSV formatted values to send in bulk.
+        def process_column_value(data: Any, proc: Callable) -> str:
+            # If the data is null, return nothing (unquoted).
+            if data is None:
+                return ""
+
+            # Pass the Python value through the bind_processor.
+            value = proc(data)
+
+            # If the value is a string, escape double-quotes as "" and return
+            # a quoted value.
+            if isinstance(value, str):
+                # escape double quotes as "".
+                return '"' + value.replace('"', '""') + '"'
+
+            # If the value is a list (for ARRAY), escape double-quotes as \" and return
+            # a quoted value in literal array format.
+            if isinstance(value, list):
+                # for each member of value, escape double quotes as \".
+                return (
+                    '"{'
+                    + ",".join('""' + v.replace('"', r'\""') + '""' for v in value)
+                    + '}"'
+                )
+
+            # Otherwise, return the string representation of the value.
+            return str(value)
+
         buffer = StringIO()
         for row in data_to_insert:
-            processed_row = ",".join(
-                map(
-                    lambda data, proc: (
-                        "" if data is None else str(proc(data)).replace('"', '""')
-                    ),
-                    row,
-                    column_processors,
-                )
-            )
+            processed_row = ",".join(map(process_column_value, row, column_processors))
 
             buffer.write(processed_row)
             buffer.write("\n")
