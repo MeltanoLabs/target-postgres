@@ -11,14 +11,12 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
-    Union,
     cast,
 )
 
 import sqlalchemy as sa
 from pendulum import now
 from singer_sdk.sinks import SQLSink
-from sqlalchemy.sql import Executable
 from sqlalchemy.sql.expression import bindparam
 
 from target_postgres.connector import PostgresConnector
