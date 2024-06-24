@@ -121,7 +121,7 @@ A list of each file and its purpose:
 1. `server.crt`: Server's certificate (stored on the server)
 1. `server.key`: Server's private key (stored on the server)
 
-Run the following command to generate all relevant SSL files, with certificates valid for two centuries.
+Run the following command to generate all relevant SSL files, with certificates valid for two centuries (73048 days).
 
 ```bash
 openssl req -new -x509 -days 73048 -nodes -out ssl/server.crt -keyout ssl/server.key -subj "/CN=localhost" &&
