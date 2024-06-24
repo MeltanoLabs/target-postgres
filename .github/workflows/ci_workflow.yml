@@ -21,6 +21,7 @@ jobs:
         chmod 600 ssl/server.key
         sudo chown 999:999 ssl/server.key
         chmod 600 ssl/pkey.key
+        chmod 644 public_pkey.key
     - name: Set up Postgres container
       run: |
         docker compose -f docker-compose.yml up -d
