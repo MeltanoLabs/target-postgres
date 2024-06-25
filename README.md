@@ -108,13 +108,36 @@ pipx install pre-commit
 pre-commit install
 ```
 
-### Create and Run Tests
+### Setting Up SSL Files
 
-Set up the SSL files permissions:
+We have set the provided keys in the .ssl directory to be valid for multiple centuries. However, we have also provided configuration instructions below to create all of the necessary files for testing SSL.
+
+A list of each file and its purpose:
+1. `ca.crt`: CA for client's certificate (stored on the server)
+1. `cert.crt`: Client's certificate (stored on the client)
+1. `pkey.key`: Client's private key (stored on the client)
+1. `public_pkey.key`: Client's private key with incorrect file permissions (stored on the client)
+1. `root.crt`: CA for server's certificate (stored on the client)
+1. `server.crt`: Server's certificate (stored on the server)
+1. `server.key`: Server's private key (stored on the server)
+
+Run the following command to generate all relevant SSL files, with certificates valid for two centuries (73048 days).
 
 ```bash
-chmod 0600 .ssl/*.key
+openssl req -new -x509 -days 73048 -nodes -out ssl/server.crt -keyout ssl/server.key -subj "/CN=localhost" &&
+openssl req -new -x509 -days 73048 -nodes -out ssl/cert.crt -keyout ssl/pkey.key -subj "/CN=postgres" &&
+cp ssl/server.crt ssl/root.crt &&
+cp ssl/cert.crt ssl/ca.crt &&
+cp ssl/pkey.key ssl/public_pkey.key &&
+chown 999:999 ssl/server.key &&
+chmod 600 ssl/server.key &&
+chmod 600 ssl/pkey.key &&
+chmod 644 ssl/public_pkey.key
 ```
+
+Now that all of the SSL files have been set up, you're ready to set up tests with pytest.
+
+### Create and Run Tests
 
 Start the test databases using Docker Compose:
 ```bash
@@ -209,7 +232,7 @@ The below table shows how this tap will map between jsonschema datatypes and Pos
 | UNSUPPORTED                    | tsquery                                 |
 | UNSUPPORTED                    | tsvector                                |
 | UNSUPPORTED                    | txid_snapshot                           |
-| UNSUPPORTED                    | uuid                                    |
+| string with format="uuid"      | uuid                                    |
 | UNSUPPORTED                    | xml                                     |
 
 Note that while object types are mapped directly to jsonb, array types are mapped to a jsonb array.
