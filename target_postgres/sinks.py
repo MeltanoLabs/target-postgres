@@ -180,6 +180,12 @@ class PostgresSink(SQLSink):
         ]
 
         # Make translation table for escaping in array values.
+        str_translate_table = str.maketrans(
+            {
+                '"': '""',
+                "\\": "\\\\",
+            }
+        )
         array_translate_table = str.maketrans(
             {
                 '"': '\\""',
@@ -200,7 +206,7 @@ class PostgresSink(SQLSink):
             # a quoted value.
             if isinstance(value, str):
                 # escape double quotes as "".
-                return '"' + value.replace('"', '""') + '"'
+                return '"' + value.translate(str_translate_table) + '"'
 
             # If the value is a list (for ARRAY), escape double-quotes as \" and return
             # a quoted value in literal array format.
