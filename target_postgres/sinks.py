@@ -179,6 +179,14 @@ class PostgresSink(SQLSink):
             column.type.bind_processor(connection.dialect) or str for column in columns
         ]
 
+        # Make translation table for escaping in array values.
+        array_translate_table = str.maketrans(
+            {
+                '"': '\\""',
+                "\\": "\\\\",
+            }
+        )
+
         def process_column_value(data: Any, proc: Callable) -> str:
             # If the data is null, return an unquoted, empty value.
             # Unquoted is important here, for PostgreSQL to interpret as null.
@@ -200,7 +208,9 @@ class PostgresSink(SQLSink):
                 # for each member of value, escape double quotes as \".
                 return (
                     '"{'
-                    + ",".join('""' + v.replace('"', r'\""') + '""' for v in value)
+                    + ",".join(
+                        '""' + v.translate(array_translate_table) + '""' for v in value
+                    )
                     + '}"'
                 )
 
