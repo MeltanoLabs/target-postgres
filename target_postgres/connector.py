@@ -558,7 +558,7 @@ class PostgresConnector(SQLConnector):
 
         if not self.allow_column_alter:
             # As a last resort, try inserting TEXT into a UUID column
-            if str(current_type) == 'UUID' and str(sql_type) == 'TEXT':
+            if str(current_type) == "UUID" and str(sql_type) == "TEXT":
                 return
 
             msg = (
