@@ -557,6 +557,10 @@ class PostgresConnector(SQLConnector):
             self.update_collation(compatible_sql_type, current_type_collation)
 
         if not self.allow_column_alter:
+            # As a last resort, try inserting TEXT into a UUID column
+            if str(current_type) == 'UUID' and str(sql_type) == 'TEXT':
+                return
+
             msg = (
                 "Altering columns is not supported. Could not convert column "
                 f"'{schema_name}.{table_name}.{column_name}' from '{current_type}' to "
