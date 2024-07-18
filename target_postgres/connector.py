@@ -144,6 +144,7 @@ class PostgresConnector(SQLConnector):
             column_object = None
             if property_name in columns:
                 column_object = columns[property_name]
+
             self.prepare_column(
                 full_table_name=table.fullname,
                 column_name=property_name,
@@ -246,6 +247,14 @@ class PostgresConnector(SQLConnector):
                         json_type_dict["format"] = jsonschema_type["format"]
                     if encoding := jsonschema_type.get("contentEncoding", False):
                         json_type_dict["contentEncoding"] = encoding
+                    # Figure out array type, but only if there's a single type
+                    # (no array union types)
+                    if (
+                        "items" in jsonschema_type
+                        and "type" in jsonschema_type["items"]
+                        and isinstance(jsonschema_type["items"]["type"], str)
+                    ):
+                        json_type_dict["items"] = jsonschema_type["items"]["type"]
                     json_type_array.append(json_type_dict)
             else:
                 msg = "Invalid format for jsonschema type: not str or list."
@@ -282,7 +291,13 @@ class PostgresConnector(SQLConnector):
         if "object" in jsonschema_type["type"]:
             return JSONB()
         if "array" in jsonschema_type["type"]:
-            return ARRAY(JSONB())
+            items_type = jsonschema_type.get("items")
+            if "string" == items_type:
+                return ARRAY(TEXT())
+            if "integer" == items_type:
+                return ARRAY(BIGINT())
+            else:
+                return ARRAY(JSONB())
 
         # string formats
         if jsonschema_type.get("format") == "date-time":
