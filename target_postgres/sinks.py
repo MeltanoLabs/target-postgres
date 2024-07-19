@@ -324,6 +324,15 @@ class PostgresSink(SQLSink):
             )
             return
 
+        if self._pending_batch:
+            self.logger.info(
+                "An activate version message for '%s' was received. Draining...",
+                self.stream_name,
+            )
+            draining_status = self.start_drain()
+            self.process_batch(draining_status)
+            self.mark_drained()
+
         # There's nothing to do if the table doesn't exist yet
         # (which it won't the first time the stream is processed)
         if not self.connector.table_exists(self.full_table_name):
@@ -370,7 +379,7 @@ class PostgresSink(SQLSink):
                 delete_stmt = sa.delete(target_table).where(
                     sa.or_(
                         target_table.c[self.version_column_name].is_(None),
-                        target_table.c[self.version_column_name] <= new_version,
+                        target_table.c[self.version_column_name] < new_version,
                     )
                 )
                 connection.execute(delete_stmt)
