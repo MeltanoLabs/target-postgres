@@ -291,13 +291,18 @@ class PostgresConnector(SQLConnector):
         if "object" in jsonschema_type["type"]:
             return JSONB()
         if "array" in jsonschema_type["type"]:
-            items_type = jsonschema_type.get("items")
-            if "string" == items_type:
+            items_type = jsonschema_type.get("items", {})
+            if isinstance(items_type, str):
+                items_type = [items_type]
+            elif "type" in items_type:
+                items_type = items_type["type"]
+
+            if "string" in items_type:
                 return ARRAY(TEXT())
-            if "integer" == items_type:
+            if "integer" in items_type:
                 return ARRAY(BIGINT())
             else:
-                return ARRAY(JSONB())
+                return JSONB()
 
         # string formats
         if jsonschema_type.get("format") == "date-time":
