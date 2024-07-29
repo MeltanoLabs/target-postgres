@@ -37,17 +37,34 @@ plugins:
     settings:
     - name: sqlalchemy_url
       kind: password
+      sensitive: true
     - name: ssl_enable
       kind: boolean
+      sensitive: true
     - name: ssl_client_certificate_enable
       kind: boolean
+      sensitive: true
     - name: ssl_mode
     - name: ssl_certificate_authority
       kind: password
+      sensitive: true
     - name: ssl_client_certificate
       kind: password
+      sensitive: true
     - name: ssl_client_private_key
       kind: password
+      sensitive: true
+    - name: password
+      kind: password
+      sensitive: true
+    - name: host
+    - name: port
+      kind: integer
+    - name: user
+    - name: database
+    - name: target_schema
+    - name: add_record_metadata
+      kind: boolean
     config:
       host: localhost
       port: 5432
