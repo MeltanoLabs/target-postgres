@@ -423,6 +423,16 @@ def test_array_data(postgres_target):
     verify_data(postgres_target, "test_carts", 4, "id", row)
 
 
+def test_jsonb_data(postgres_target):
+    file_name = "jsonb_data.singer"
+    singer_file_to_target(file_name, postgres_target)
+    row = [
+        {"id": 1, "event_data": None},
+        {"id": 2, "event_data": {"test": {"test_name": "test_value"}}},
+    ]
+    verify_data(postgres_target, "test_jsonb_data", 2, "id", row)
+
+
 def test_encoded_string_data(postgres_target):
     """
     We removed NUL characters from the original encoded_strings.singer as postgres doesn't allow them.

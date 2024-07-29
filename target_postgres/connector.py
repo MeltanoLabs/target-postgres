@@ -291,13 +291,33 @@ class PostgresConnector(SQLConnector):
         if "object" in jsonschema_type["type"]:
             return JSONB()
         if "array" in jsonschema_type["type"]:
-            items_type = jsonschema_type.get("items")
-            if "string" == items_type:
-                return ARRAY(TEXT())
-            if "integer" == items_type:
-                return ARRAY(BIGINT())
-            else:
+            items = jsonschema_type.get("items")
+            # Case 1: items is a string
+            if isinstance(items, str):
+                return ARRAY(self.to_sql_type({"type": items}))
+
+            # Case 2: items are more complex
+            if isinstance(items, dict):
+                # Case 2.1: items are variants
+                if "type" not in items:
+                    return ARRAY(JSONB())
+
+                items_type = items["type"]
+
+                # Case 2.2: items are a single type
+                if isinstance(items_type, str):
+                    return ARRAY(self.to_sql_type({"type": items_type}))
+
+                # Case 2.3: items are a list of types
+                if isinstance(items_type, list):
+                    return ARRAY(self.to_sql_type({"type": items_type}))
+
+            # Case 3: tuples
+            if isinstance(items, list):
                 return ARRAY(JSONB())
+
+            # All other cases, return JSONB
+            return JSONB()
 
         # string formats
         if jsonschema_type.get("format") == "date-time":

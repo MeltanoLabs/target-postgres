@@ -1,0 +1,3 @@
+{"type":"SCHEMA", "stream":"test_jsonb_data", "key_properties":["id"], "schema":{"required":["id"], "type":"object", "properties":{"id":{"type":["integer"]},"event_data":{"type":["string","number","integer","array","object","boolean","null"]}}}}
+{"type":"RECORD","stream":"test_jsonb_data","record":{"id":1,"event_data":null,"time_extracted":"2024-07-27T12:24:43.774995+00:00"}}
+{"type":"RECORD","stream":"test_jsonb_data","record":{"id":2,"event_data":{"test":{"test_name":"test_value"}},"time_extracted":"2024-07-27T12:24:43.774995+00:00"}}
