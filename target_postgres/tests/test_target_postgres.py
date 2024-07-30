@@ -633,9 +633,9 @@ def test_activate_version_soft_delete(postgres_config_no_ssl):
     table_name = "test_activate_version_soft"
     file_name = f"{table_name}.singer"
     full_table_name = postgres_config_no_ssl["default_target_schema"] + "." + table_name
-    postgres_config_hard_delete_true = copy.deepcopy(postgres_config_no_ssl)
-    postgres_config_hard_delete_true["hard_delete"] = False
-    pg_soft_delete = TargetPostgres(config=postgres_config_hard_delete_true)
+    postgres_config_hard_delete_false = copy.deepcopy(postgres_config_no_ssl)
+    postgres_config_hard_delete_false["hard_delete"] = False
+    pg_soft_delete = TargetPostgres(config=postgres_config_hard_delete_false)
     engine = create_engine(pg_soft_delete)
     singer_file_to_target(file_name, pg_soft_delete)
     with engine.connect() as connection:
