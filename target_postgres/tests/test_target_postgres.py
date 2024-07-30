@@ -423,6 +423,16 @@ def test_array_data(postgres_target):
     verify_data(postgres_target, "test_carts", 4, "id", row)
 
 
+def test_jsonb_data(postgres_target):
+    file_name = "jsonb_data.singer"
+    singer_file_to_target(file_name, postgres_target)
+    row = [
+        {"id": 1, "event_data": None},
+        {"id": 2, "event_data": {"test": {"test_name": "test_value"}}},
+    ]
+    verify_data(postgres_target, "test_jsonb_data", 2, "id", row)
+
+
 def test_encoded_string_data(postgres_target):
     """
     We removed NUL characters from the original encoded_strings.singer as postgres doesn't allow them.
@@ -623,9 +633,9 @@ def test_activate_version_soft_delete(postgres_config_no_ssl):
     table_name = "test_activate_version_soft"
     file_name = f"{table_name}.singer"
     full_table_name = postgres_config_no_ssl["default_target_schema"] + "." + table_name
-    postgres_config_hard_delete_true = copy.deepcopy(postgres_config_no_ssl)
-    postgres_config_hard_delete_true["hard_delete"] = False
-    pg_soft_delete = TargetPostgres(config=postgres_config_hard_delete_true)
+    postgres_config_hard_delete_false = copy.deepcopy(postgres_config_no_ssl)
+    postgres_config_hard_delete_false["hard_delete"] = False
+    pg_soft_delete = TargetPostgres(config=postgres_config_hard_delete_false)
     engine = create_engine(pg_soft_delete)
     singer_file_to_target(file_name, pg_soft_delete)
     with engine.connect() as connection:

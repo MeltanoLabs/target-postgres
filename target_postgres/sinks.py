@@ -1,5 +1,6 @@
 """Postgres target sink class, which handles writing streams."""
 
+import datetime
 import uuid
 from io import StringIO
 from typing import (
@@ -15,7 +16,6 @@ from typing import (
 )
 
 import sqlalchemy as sa
-from pendulum import now
 from singer_sdk.sinks import SQLSink
 from sqlalchemy.sql.expression import bindparam
 
@@ -390,12 +390,21 @@ class PostgresSink(SQLSink):
             )
             return
 
+        if self._pending_batch:
+            self.logger.info(
+                "An activate version message for '%s' was received. Draining...",
+                self.stream_name,
+            )
+            draining_status = self.start_drain()
+            self.process_batch(draining_status)
+            self.mark_drained()
+
         # There's nothing to do if the table doesn't exist yet
         # (which it won't the first time the stream is processed)
         if not self.connector.table_exists(self.full_table_name):
             return
 
-        deleted_at = now()
+        deleted_at = datetime.datetime.now(tz=datetime.timezone.utc)
 
         with self.connector._connect() as connection, connection.begin():
             # Theoretically these errors should never appear because we always create
@@ -436,7 +445,7 @@ class PostgresSink(SQLSink):
                 delete_stmt = sa.delete(target_table).where(
                     sa.or_(
                         target_table.c[self.version_column_name].is_(None),
-                        target_table.c[self.version_column_name] <= new_version,
+                        target_table.c[self.version_column_name] < new_version,
                     )
                 )
                 connection.execute(delete_stmt)
