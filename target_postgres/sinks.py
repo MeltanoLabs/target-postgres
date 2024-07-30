@@ -1,10 +1,10 @@
 """Postgres target sink class, which handles writing streams."""
 
+import datetime
 import uuid
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Union, cast
 
 import sqlalchemy as sa
-from pendulum import now
 from singer_sdk.sinks import SQLSink
 from sqlalchemy.sql import Executable
 from sqlalchemy.sql.expression import bindparam
@@ -338,7 +338,7 @@ class PostgresSink(SQLSink):
         if not self.connector.table_exists(self.full_table_name):
             return
 
-        deleted_at = now()
+        deleted_at = datetime.datetime.now(tz=datetime.timezone.utc)
 
         with self.connector._connect() as connection, connection.begin():
             # Theoretically these errors should never appear because we always create
