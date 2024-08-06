@@ -73,15 +73,12 @@ class PostgresSink(SQLSink):
         """
         # Use one connection so we do this all in a single transaction
         with self.connector._connect() as connection, connection.begin():
-            # Check structure of table
-            table: sa.Table = self.connector.prepare_table(
-                full_table_name=self.full_table_name,
-                schema=self.schema,
-                primary_keys=self.key_properties,
-                as_temp_table=False,
-                connection=connection,
-            )
+
+            table = self.connector.get_table_from_metadata(self.full_table_name, connection)
+
             # Create a temp table (Creates from the table above)
+            # TODO: maybe we should not even create the table copying the structure
+            # but just create the temp table using the schema
             temp_table: sa.Table = self.connector.copy_table_structure(
                 full_table_name=self.temp_table_name,
                 from_table=table,
@@ -347,7 +344,6 @@ class PostgresSink(SQLSink):
             if not self.connector.column_exists(
                 full_table_name=self.full_table_name,
                 column_name=self.version_column_name,
-                connection=connection,
             ):
                 raise RuntimeError(
                     f"{self.version_column_name} is required for activate version "
@@ -358,7 +354,6 @@ class PostgresSink(SQLSink):
                 or self.connector.column_exists(
                     full_table_name=self.full_table_name,
                     column_name=self.soft_delete_column_name,
-                    connection=connection,
                 )
             ):
                 raise RuntimeError(
