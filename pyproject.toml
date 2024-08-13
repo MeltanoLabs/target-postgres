@@ -83,10 +83,12 @@ select = [
   "F",   # Pyflakes
   "W",   # pycodestyle warnings
   "E",   # pycodestyle errors
+  "FA",  # flake8-future-annotations
   "I",   # isort
   "N",   # pep8-naming
   "D",   # pydocsyle
   "ICN", # flake8-import-conventions
+  "UP",  # pyupgrade
   "RUF", # ruff
 ]
 
