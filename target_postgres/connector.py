@@ -33,6 +33,9 @@ from sqlalchemy.types import (
 )
 from sshtunnel import SSHTunnelForwarder
 
+if t.TYPE_CHECKING:
+    from singer_sdk.connectors.sql import FullyQualifiedName
+
 
 class PostgresConnector(SQLConnector):
     """Sets up SQL Alchemy, and other Postgres related stuff."""
@@ -94,7 +97,7 @@ class PostgresConnector(SQLConnector):
 
     def prepare_table(  # type: ignore[override]
         self,
-        full_table_name: str,
+        full_table_name: str | FullyQualifiedName,
         schema: dict,
         primary_keys: t.Sequence[str],
         connection: sa.engine.Connection,
@@ -156,7 +159,7 @@ class PostgresConnector(SQLConnector):
 
     def copy_table_structure(
         self,
-        full_table_name: str,
+        full_table_name: str | FullyQualifiedName,
         from_table: sa.Table,
         connection: sa.engine.Connection,
         as_temp_table: bool = False,
@@ -426,7 +429,7 @@ class PostgresConnector(SQLConnector):
 
     def prepare_column(
         self,
-        full_table_name: str,
+        full_table_name: str | FullyQualifiedName,
         column_name: str,
         sql_type: sa.types.TypeEngine,
         connection: sa.engine.Connection | None = None,
@@ -846,7 +849,7 @@ class PostgresConnector(SQLConnector):
 
     def column_exists(  # type: ignore[override]
         self,
-        full_table_name: str,
+        full_table_name: str | FullyQualifiedName,
         column_name: str,
         connection: sa.engine.Connection,
     ) -> bool:
@@ -922,7 +925,7 @@ class HexByteString(TypeDecorator):
             except ValueError as ex:
                 raise ValueError(f"Invalid hexadecimal string: {value}") from ex
 
-        if not isinstance(value, bytearray | memoryview | bytes):
+        if not isinstance(value, (bytearray, memoryview, bytes)):
             raise TypeError(
                 "HexByteString columns support only bytes or hex string values. "
                 f"{type(value)} is not supported"

@@ -13,6 +13,9 @@ from sqlalchemy.sql.expression import bindparam
 
 from target_postgres.connector import PostgresConnector
 
+if t.TYPE_CHECKING:
+    from singer_sdk.connectors.sql import FullyQualifiedName
+
 
 class PostgresSink(SQLSink):
     """Postgres target sink class."""
@@ -263,7 +266,7 @@ class PostgresSink(SQLSink):
 
     def generate_insert_statement(
         self,
-        full_table_name: str,
+        full_table_name: str | FullyQualifiedName,
         columns: list[sa.Column],  # type: ignore[override]
     ) -> str | Executable:
         """Generate an insert statement for the given records.

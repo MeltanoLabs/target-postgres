@@ -1,18 +1,18 @@
 """Postgres target tests"""
 
+from __future__ import annotations
+
 # flake8: noqa
 import copy
-import datetime
 import io
 from contextlib import redirect_stdout
 from decimal import Decimal
 from pathlib import Path
 
-import jsonschema
 import pytest
 import sqlalchemy
 from singer_sdk.exceptions import InvalidRecord, MissingKeyPropertiesError
-from singer_sdk.testing import get_target_test_class, sync_end_to_end
+from singer_sdk.testing import sync_end_to_end
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.types import TEXT, TIMESTAMP
 
