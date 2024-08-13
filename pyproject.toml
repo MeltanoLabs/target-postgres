@@ -37,7 +37,8 @@ sqlalchemy = "~=2.0"
 sshtunnel = "0.4.0"
 
 [tool.poetry.dependencies.singer-sdk]
-version = "~=0.39.0"
+git = "https://github.com/meltano/sdk.git"
+rev = "edgarrmondragon/refactor/backwards-compat-sql-ident-quoting"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=7.4.2"
