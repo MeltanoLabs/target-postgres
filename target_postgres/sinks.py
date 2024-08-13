@@ -1,8 +1,20 @@
 """Postgres target sink class, which handles writing streams."""
 
+from __future__ import annotations
+
 import datetime
 import uuid
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Union,
+    cast,
+)
 
 import sqlalchemy as sa
 from singer_sdk.sinks import SQLSink
@@ -10,6 +22,9 @@ from sqlalchemy.sql import Executable
 from sqlalchemy.sql.expression import bindparam
 
 from target_postgres.connector import PostgresConnector
+
+if TYPE_CHECKING:
+    from singer_sdk.connectors.sql import FullyQualifiedName
 
 
 class PostgresSink(SQLSink):
@@ -261,7 +276,7 @@ class PostgresSink(SQLSink):
 
     def generate_insert_statement(
         self,
-        full_table_name: str,
+        full_table_name: str | FullyQualifiedName,
         columns: List[sa.Column],  # type: ignore[override]
     ) -> Union[str, Executable]:
         """Generate an insert statement for the given records.
