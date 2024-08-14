@@ -6,10 +6,6 @@ import datetime
 import typing as t
 import uuid
 from io import StringIO
-from typing import (
-    Any,
-    Callable,
-)
 
 import sqlalchemy as sa
 from singer_sdk.sinks import SQLSink
@@ -154,7 +150,7 @@ class PostgresSink(SQLSink):
         copy_statement: str = self.generate_copy_statement(table.name, columns)
         self.logger.info("Inserting with SQL: %s", copy_statement)
         # Only one record per PK, we want to take the last one
-        data_to_insert: tuple[tuple[Any, ...], ...]
+        data_to_insert: tuple[tuple[t.Any, ...], ...]
 
         if self.append_only is False:
             copy_values: dict[str, tuple] = {}  # pk : values
@@ -192,7 +188,7 @@ class PostgresSink(SQLSink):
             }
         )
 
-        def process_column_value(data: Any, proc: Callable) -> str:
+        def process_column_value(data: t.Any, proc: t.Callable) -> str:
             # If the data is null, return an unquoted, empty value.
             # Unquoted is important here, for PostgreSQL to interpret as null.
             if data is None:
