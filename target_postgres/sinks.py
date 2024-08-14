@@ -1,18 +1,14 @@
 """Postgres target sink class, which handles writing streams."""
 
+from __future__ import annotations
+
 import datetime
+import typing as t
 import uuid
 from io import StringIO
 from typing import (
     Any,
     Callable,
-    Dict,
-    Iterable,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
-    cast,
 )
 
 import sqlalchemy as sa
@@ -20,6 +16,9 @@ from singer_sdk.sinks import SQLSink
 from sqlalchemy.sql.expression import bindparam
 
 from target_postgres.connector import PostgresConnector
+
+if t.TYPE_CHECKING:
+    from singer_sdk.connectors.sql import FullyQualifiedName
 
 
 class PostgresSink(SQLSink):
@@ -49,7 +48,7 @@ class PostgresSink(SQLSink):
         Returns:
             The connector object.
         """
-        return cast(PostgresConnector, self._connector)
+        return t.cast(PostgresConnector, self._connector)
 
     def setup(self) -> None:
         """Set up Sink.
@@ -130,10 +129,10 @@ class PostgresSink(SQLSink):
         self,
         table: sa.Table,
         schema: dict,
-        records: Iterable[Dict[str, Any]],
-        primary_keys: Sequence[str],
+        records: t.Iterable[dict[str, t.Any]],
+        primary_keys: t.Sequence[str],
         connection: sa.engine.Connection,
-    ) -> Optional[int]:
+    ) -> int | None:
         """Bulk insert records to an existing destination table.
 
         The default implementation uses a generic SQLAlchemy bulk insert operation.
@@ -155,22 +154,22 @@ class PostgresSink(SQLSink):
         copy_statement: str = self.generate_copy_statement(table.name, columns)
         self.logger.info("Inserting with SQL: %s", copy_statement)
         # Only one record per PK, we want to take the last one
-        data_to_insert: Tuple[Tuple[Any]] = None
+        data_to_insert: tuple[tuple[Any, ...], ...]
 
         if self.append_only is False:
-            copy_values: Dict[str, Tuple] = {}  # pk : values
+            copy_values: dict[str, tuple] = {}  # pk : values
             for record in records:
-                values = tuple((record.get(column.name) for column in columns))
+                values = tuple(record.get(column.name) for column in columns)
                 # No need to check for a KeyError here because the SDK already
                 # guaruntees that all key properties exist in the record.
                 primary_key_value = "".join([str(record[key]) for key in primary_keys])
                 copy_values[primary_key_value] = values
             data_to_insert = tuple(copy_values.values())
         else:
-            data_to_insert = [
-                tuple((record.get(column.name) for column in columns))
+            data_to_insert = tuple(
+                tuple(record.get(column.name) for column in columns)
                 for record in records
-            ]
+            )
 
         # Prepare to process the rows into csv. Use each column's bind_processor to do
         # most of the work, then do the final construction of the csv rows ourselves
@@ -233,7 +232,7 @@ class PostgresSink(SQLSink):
 
         # Use copy_expert to run the copy statement.
         # https://www.psycopg.org/docs/cursor.html#cursor.copy_expert
-        with connection.connection.cursor() as cur:
+        with connection.connection.cursor() as cur:  # type: ignore[attr-defined]
             cur.copy_expert(sql=copy_statement, file=buffer)
 
         return True
@@ -243,9 +242,9 @@ class PostgresSink(SQLSink):
         from_table: sa.Table,
         to_table: sa.Table,
         schema: dict,
-        join_keys: Sequence[str],
+        join_keys: t.Sequence[str],
         connection: sa.engine.Connection,
-    ) -> Optional[int]:
+    ) -> int | None:
         """Merge upsert data from one table to another.
 
         Args:
@@ -312,7 +311,7 @@ class PostgresSink(SQLSink):
     def column_representation(
         self,
         schema: dict,
-    ) -> List[sa.Column]:
+    ) -> list[sa.Column]:
         """Return a sqlalchemy table representation for the current schema."""
         columns: list[sa.Column] = []
         for property_name, property_jsonschema in schema["properties"].items():
@@ -326,8 +325,8 @@ class PostgresSink(SQLSink):
 
     def generate_copy_statement(
         self,
-        full_table_name: str,
-        columns: List[sa.Column],
+        full_table_name: str | FullyQualifiedName,
+        columns: list[sa.Column],  # type: ignore[override]
     ) -> str:
         """Generate a copy statement for bulk copy.
 
@@ -338,17 +337,17 @@ class PostgresSink(SQLSink):
         Returns:
             A copy statement.
         """
-        columns_list = ", ".join((f'"{column.name}"' for column in columns))
+        columns_list = ", ".join(f'"{column.name}"' for column in columns)
         sql: str = f'copy "{full_table_name}" ({columns_list}) from stdin with csv'
 
         return sql
 
-    def conform_name(self, name: str, object_type: Optional[str] = None) -> str:
+    def conform_name(self, name: str, object_type: str | None = None) -> str:
         """Conforming names of tables, schemas, column names."""
         return name
 
     @property
-    def schema_name(self) -> Optional[str]:
+    def schema_name(self) -> str | None:
         """Return the schema name or `None` if using names with no schema part.
 
                 Note that after the next SDK release (after 0.14.0) we can remove this

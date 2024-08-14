@@ -43,6 +43,7 @@ jobs:
         pipx install poetry
     - name: Install dependencies
       run: |
+        poetry env use python${{ matrix.python-version }}
         poetry install
     - name: Run pytest
       run: |
@@ -65,14 +66,12 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
-    env:
-      python-version: "3.8"
     steps:
     - uses: actions/checkout@v4
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: 3.x
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
