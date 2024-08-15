@@ -1,0 +1,67 @@
+name: Bug Report
+description: File a bug report
+title: "bug: <title>"
+
+labels:
+  - bug
+
+assignees:
+  - edgarrmondragon
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+  - type: input
+    id: target_version
+    attributes:
+      label: Target Version
+      description: Version of the package you are using
+      placeholder: "0.0.10 on PyPI, 0.0.10 on GitHub, main branch, etc."
+    validations:
+      required: true
+  - type: dropdown
+    id: python_version
+    attributes:
+      label: Python Version
+      description: Version of Python you are using
+      options:
+        - "3.12"
+        - "3.11"
+        - "3.10"
+        - "3.9"
+        - "3.8"
+        - "NA"
+    validations:
+      required: true
+  - type: input
+    id: postgres_version
+    attributes:
+      label: PostgreSQL Version
+      description: Version of PostgreSQL the target is loading
+      placeholder: "15.1"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      description: What operating system you are using
+      placeholder: "Linux - Ubuntu 20.04"
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Description
+      description: Describe what you were trying to get done
+      placeholder: Tell us what happened, what went wrong, and what you expected to happen
+    validations:
+      required: true
+  - type: input
+    id: slack_or_linen
+    attributes:
+      label: Link to Slack/Linen
+      description: Provide a link to the Slack or Linen conversation, if applicable
+      placeholder: "https://..."
