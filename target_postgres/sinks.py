@@ -46,6 +46,26 @@ class PostgresSink(SQLSink):
         """
         return t.cast(PostgresConnector, self._connector)
 
+    def sanitize(self, data):
+        null = '\u0000'
+        def replace_null_character(d):
+            return d.replace(null, '\uFFFD')
+
+        if isinstance(data, str):
+            if null in data:
+                data = replace_null_character(data)
+        elif isinstance(data, dict):
+            for k in data:
+                if isinstance(data[k], str):
+                    if null in data[k]:
+                        data[k] = replace_null_character(data[k])
+        elif isinstance(data, list):
+            if null in data:
+                for i in range(0, len(data)):
+                    if isinstance(data[i], str):
+                        data[i] = replace_null_character(data[i])
+        return data
+
     def setup(self) -> None:
         """Set up Sink.
 
@@ -163,7 +183,7 @@ class PostgresSink(SQLSink):
             for record in records:
                 insert_record = {}
                 for column in columns:
-                    insert_record[column.name] = record.get(column.name)
+                    insert_record[column.name] = self.sanitize(record.get(column.name))
                 # No need to check for a KeyError here because the SDK already
                 # guaruntees that all key properties exist in the record.
                 primary_key_value = "".join([str(record[key]) for key in primary_keys])
@@ -173,7 +193,7 @@ class PostgresSink(SQLSink):
             for record in records:
                 insert_record = {}
                 for column in columns:
-                    insert_record[column.name] = record.get(column.name)
+                    insert_record[column.name] = self.sanitize(record.get(column.name))
                 data_to_insert.append(insert_record)
         connection.execute(insert, data_to_insert)
         return True
