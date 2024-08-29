@@ -3,8 +3,20 @@ name: Test target-postgres
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+    paths:
+    - docker-compose.yml
+    - pyproject.toml
+    - poetry.lock
+    - targets_postgres/**
+    - .github/workflows/ci_workflow.yml
   push:
     branches: [main]
+    paths:
+    - docker-compose.yml
+    - pyproject.toml
+    - poetry.lock
+    - targets_postgres/**
+    - .github/workflows/ci_workflow.yml
   workflow_dispatch:
     inputs: {}
 
