@@ -1,13 +1,13 @@
 [tool.poetry]
 name = "meltanolabs-target-postgres"
 version = "0.0.0"
-description = "`target-postgres` is a Singer target for Postgres, built with the Meltano SDK for Singer Targets."
+description = "Singer target for Postgres, built with the Meltano SDK for Singer Targets."
 authors = ["Meltano Team and Contributors <hello@meltano.com>"]
 maintainers = ["Meltano Team and Contributors <hello@meltano.com>"]
 license = "MIT"
 readme = "README.md"
 homepage = "https://meltano.com"
-repository = "https://github.com/meltanolabs/target-postgres"
+repository = "https://github.com/MeltanoLabs/target-postgres"
 keywords = [
     "Postgres",
     "Singer",
