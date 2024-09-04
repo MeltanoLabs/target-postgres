@@ -13,6 +13,8 @@ from target_postgres.sinks import PostgresSink
 class TargetPostgres(SQLTarget):
     """Target for Postgres."""
 
+    package_name = "meltanolabs-target-postgres"
+
     def __init__(
         self,
         config: dict | PurePath | str | list[PurePath | str] | None = None,
