@@ -8,6 +8,7 @@ license = "MIT"
 readme = "README.md"
 homepage = "https://meltano.com"
 repository = "https://github.com/MeltanoLabs/target-postgres"
+documentation = "https://github.com/MeltanoLabs/target-postgres/blob/main/README.md"
 keywords = [
     "Postgres",
     "Singer",
