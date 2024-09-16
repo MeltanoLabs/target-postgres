@@ -33,5 +33,5 @@ Next steps to improve peformance:
 - [ ] Test the new sink with the same tests as the main sink and add failures for the one's we know do not pass
 - [ ] Note to folks in the main README about peformance and how to get the best performance right now is to turn on COPY mode, turn off record validation. 
 - [ ] Evaluate why we're not closer to native copy speeds. Within 50% of native speeds seems reasonable but that's just a guess
-- [ ] Add pg_table with multiple threads, no reason we couldn't do something similar in targets
+- [ ] Add [pg_loader](https://github.com/dimitri/pgloader) with multiple threads, no reason we couldn't do something similar in targets
 - [ ] Add a CI job that calculates performance implications of PR for every run
