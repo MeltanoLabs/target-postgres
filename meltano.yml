@@ -11,9 +11,11 @@ plugins:
     config:
       streams:
       - stream_name: animals
-        input_filename: https://gitlab.com/meltano/tap-smoke-test/-/raw/main/demo-data/animals-data.jsonl
+        input_filename: 
+          https://gitlab.com/meltano/tap-smoke-test/-/raw/main/demo-data/animals-data.jsonl
       - stream_name: page_views
-        input_filename: https://gitlab.com/meltano/tap-smoke-test/-/raw/main/demo-data/pageviews-data.jsonl
+        input_filename: 
+          https://gitlab.com/meltano/tap-smoke-test/-/raw/main/demo-data/pageviews-data.jsonl
       stream_maps:
         animals:
           __key_properties__: [id]
@@ -30,13 +32,22 @@ plugins:
     - commits.url
     - commits.sha
     - commits.commit_timestamp
+  - name: tap-csv
+    variant: meltanolabs
+    pip_url: git+https://github.com/MeltanoLabs/tap-csv.git
+    config:
+      files:
+      - entity: data_target_postgres
+        path: $MELTANO_PROJECT_ROOT/performance/data.csv
+        keys: [column_1]
+      add_metadata_columns: false
   loaders:
   - name: target-postgres
     namespace: target_postgres
     pip_url: -e .
     settings:
     - name: sqlalchemy_url
-      kind: password
+      kind: string
       sensitive: true
     - name: ssl_enable
       kind: boolean
@@ -46,16 +57,16 @@ plugins:
       sensitive: true
     - name: ssl_mode
     - name: ssl_certificate_authority
-      kind: password
+      kind: string
       sensitive: true
     - name: ssl_client_certificate
-      kind: password
+      kind: string
       sensitive: true
     - name: ssl_client_private_key
-      kind: password
+      kind: string
       sensitive: true
     - name: password
-      kind: password
+      kind: string
       sensitive: true
     - name: host
     - name: port
@@ -72,6 +83,10 @@ plugins:
       password: postgres
       database: postgres
       target_schema: test
+      validate_records: false
       add_record_metadata: true
+  - name: target-postgres-copy-branch
+    inherit_from: target-postgres
+    pip_url: git+https://github.com/kinghuang/target-postgres@bulk-insert-copy
 environments:
 - name: dev
