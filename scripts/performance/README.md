@@ -14,7 +14,7 @@ Main points:
 2. `python speed_compare.py ./meltano_import.sh ./pg_copy_upsert.sh` runs each and gives you a nice time comparisons
 3. `python speed_compare.py ./target_postgres_copy_branch.sh ./target-postgres_copy_branch_no_validate.sh`
 
-# Results on my machine
+# Results for 1 million records
 | **Test Name**                                               | **Total Run Time (s)** | **x Slower Than Native Copy** |
 |-------------------------------------------------------------|------------------------|-------------------------------|
 | `./perf_tests/pg_copy_upsert.sh`                            | 13.64                  | 1.0000                        |
