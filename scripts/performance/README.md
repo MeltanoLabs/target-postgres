@@ -26,3 +26,12 @@ Main points:
 # Other questions / concerns
 1. `COPY` is single threaded, there's no reason we need to stick to a single thread. https://github.com/dimitri/pgloader is much faster. We should try this out as well
 1. `prep.sh`'s tap-csv step runs to give us a data.singer file (jsonl output from the tap) this takes an extremely long time to run for one million records
+
+# Next steps to improve performance
+Next steps to improve peformance:
+- [ ] Split the current [Bulk Insert Speed PR](https://github.com/MeltanoLabs/target-postgres/pull/370) to be a seperate sink that can be turned on with a configuration setting
+- [ ] Test the new sink with the same tests as the main sink and add failures for the one's we know do not pass
+- [ ] Note to folks in the main README about peformance and how to get the best performance right now is to turn on COPY mode, turn off record validation. 
+- [ ] Evaluate why we're not closer to native copy speeds. Within 50% of native speeds seems reasonable but that's just a guess
+- [ ] Add pg_table with multiple threads, no reason we couldn't do something similar in targets
+- [ ] Add a CI job that calculates performance implications of PR for every run
