@@ -2,7 +2,6 @@ import csv
 import random
 import string
 
-# Number of rows and columns
 num_rows = 1_000_000
 num_columns = 10
 

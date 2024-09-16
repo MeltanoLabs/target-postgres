@@ -1,12 +1,11 @@
 #!/bin/bash
-# time python 1m_rows_generate.py
-# Not trying to test the time here but this takes a very long time
-#time meltano invoke tap-csv > performance/data.singer 
+time python 1m_rows_generate.py
+time meltano invoke tap-csv > data.singer 
 
 # Create initial table in postgres
 
 #Spin up postgres instance
-#podman run -e POSTGRES_PASSWORD=postgres -p 5432:5432 -h postgres -d postgres
+podman run -e POSTGRES_PASSWORD=postgres -p 5432:5432 -h postgres -d postgres
 
 #Vars  We'd definietly want this as a meltano utility, just as POC right now
 DB_NAME="postgres"
