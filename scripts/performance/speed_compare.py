@@ -19,8 +19,13 @@ def measure_time(script_path):
     print(f"Measuring execution time for {script_path}...")
     start_time = time.perf_counter()
     try:
-        subprocess.run([script_path], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
-    except subprocess.CalledProcessError as e:
+        subprocess.run(
+            [script_path],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.STDOUT,
+        )
+    except subprocess.CalledProcessError:
         print(f"Error: {script_path} exited with a non-zero status.")
         sys.exit(1)
     end_time = time.perf_counter()
@@ -28,12 +33,18 @@ def measure_time(script_path):
     print(f"Execution time for {script_path}: {duration:.6f} seconds\n")
     return duration
 
+
 def main():
     perf_tests_dir = "./perf_tests"
-    scripts = [test for test in os.listdir(perf_tests_dir) if os.path.isfile(os.path.join(perf_tests_dir, test))]
+    scripts = [
+        test
+        for test in os.listdir(perf_tests_dir)
+        if os.path.isfile(os.path.join(perf_tests_dir, test))
+    ]
     for script in scripts:
         script_path = os.path.join("./perf_tests", script)
         measure_time(script_path)
+
 
 if __name__ == "__main__":
     main()

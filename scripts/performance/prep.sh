@@ -1,6 +1,6 @@
 #!/bin/bash
 time python 1m_rows_generate.py
-time meltano invoke tap-csv > data.singer 
+time meltano invoke tap-csv > data.singer
 
 # Create initial table in postgres
 
