@@ -11,8 +11,7 @@ Main points:
 
 # How to run
 1. `./prep.sh` gets the data together for you in the right place
-2. `python speed_compare.py ./meltano_import.sh ./pg_copy_upsert.sh` runs each and gives you a nice time comparisons
-3. `python speed_compare.py ./target_postgres_copy_branch.sh ./target-postgres_copy_branch_no_validate.sh`
+2. `python speed_compare.py` runs all the tests and gives you the times for each test
 
 # Results for 1 million records
 | **Test Name**                                               | **Total Run Time (s)** | **x Slower Than Native Copy** |
@@ -31,7 +30,7 @@ Main points:
 Next steps to improve peformance:
 - [ ] Split the current [Bulk Insert Speed PR](https://github.com/MeltanoLabs/target-postgres/pull/370) to be a seperate sink that can be turned on with a configuration setting
 - [ ] Test the new sink with the same tests as the main sink and add failures for the one's we know do not pass
-- [ ] Note to folks in the main README about peformance and how to get the best performance right now is to turn on COPY mode, turn off record validation. 
+- [ ] Note to folks in the main README about peformance and how to get the best performance right now is to turn on COPY mode, turn off record validation.
 - [ ] Evaluate why we're not closer to native copy speeds. Within 50% of native speeds seems reasonable but that's just a guess
 - [ ] Add [pg_loader](https://github.com/dimitri/pgloader) with multiple threads, no reason we couldn't do something similar in targets
 - [ ] Add a CI job that calculates performance implications of PR for every run
