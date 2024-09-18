@@ -12,6 +12,7 @@ from sqlalchemy.sql import Executable
 from sqlalchemy.sql.expression import bindparam
 
 from target_postgres.connector import PostgresConnector
+from target_postgres.tests.test_types import connector
 
 if t.TYPE_CHECKING:
     from singer_sdk.connectors.sql import FullyQualifiedName
@@ -121,6 +122,28 @@ class PostgresSink(SQLSink):
         # in postgres, used a guid just in case we are using the same session
         return f"{str(uuid.uuid4()).replace('-', '_')}"
 
+    def sanitize_null_text_characters(self, data):
+        """Sanitizes null characters by replacing \u0000 with \uFFFD"""
+
+        def replace_null_character(d):
+            return d.replace('\u0000', '\uFFFD')
+
+        if isinstance(data, str):
+            data = replace_null_character(data)
+
+        elif isinstance(data, dict):
+            for k in data:
+                if isinstance(data[k], str):
+                    data[k] = replace_null_character(data[k])
+
+        elif isinstance(data, list):
+            for i in range(0, len(data)):
+                if isinstance(data[i], str):
+                    data[i] = replace_null_character(data[i])
+
+        return data
+
+
     def bulk_insert_records(  # type: ignore[override]
         self,
         table: sa.Table,
@@ -163,9 +186,12 @@ class PostgresSink(SQLSink):
             for record in records:
                 insert_record = {}
                 for column in columns:
-                    insert_record[column.name] = record.get(column.name)
+                    if self.connector.sanitize_null_text_characters:
+                        insert_record[column.name] = self.sanitize_null_text_characters(record.get(column.name))
+                    else:
+                        insert_record[column.name] = record.get(column.name)
                 # No need to check for a KeyError here because the SDK already
-                # guaruntees that all key properties exist in the record.
+                # guarantees that all key properties exist in the record.
                 primary_key_value = "".join([str(record[key]) for key in primary_keys])
                 insert_records[primary_key_value] = insert_record
             data_to_insert = list(insert_records.values())
@@ -173,7 +199,10 @@ class PostgresSink(SQLSink):
             for record in records:
                 insert_record = {}
                 for column in columns:
-                    insert_record[column.name] = record.get(column.name)
+                    if self.connector.sanitize_null_text_characters:
+                        insert_record[column.name] = self.sanitize_null_text_characters(record.get(column.name))
+                    else:
+                        insert_record[column.name] = record.get(column.name)
                 data_to_insert.append(insert_record)
         connection.execute(insert, data_to_insert)
         return True
