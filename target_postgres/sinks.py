@@ -12,7 +12,6 @@ from sqlalchemy.sql import Executable
 from sqlalchemy.sql.expression import bindparam
 
 from target_postgres.connector import PostgresConnector
-from target_postgres.tests.test_types import connector
 
 if t.TYPE_CHECKING:
     from singer_sdk.connectors.sql import FullyQualifiedName
