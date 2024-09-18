@@ -122,10 +122,10 @@ class PostgresSink(SQLSink):
         return f"{str(uuid.uuid4()).replace('-', '_')}"
 
     def sanitize_null_text_characters(self, data):
-        """Sanitizes null characters by replacing \u0000 with \uFFFD"""
+        """Sanitizes null characters by replacing \u0000 with \ufffd"""
 
         def replace_null_character(d):
-            return d.replace('\u0000', '\uFFFD')
+            return d.replace("\u0000", "\ufffd")
 
         if isinstance(data, str):
             data = replace_null_character(data)
@@ -141,7 +141,6 @@ class PostgresSink(SQLSink):
                     data[i] = replace_null_character(data[i])
 
         return data
-
 
     def bulk_insert_records(  # type: ignore[override]
         self,
@@ -186,7 +185,9 @@ class PostgresSink(SQLSink):
                 insert_record = {}
                 for column in columns:
                     if self.connector.sanitize_null_text_characters:
-                        insert_record[column.name] = self.sanitize_null_text_characters(record.get(column.name))
+                        insert_record[column.name] = self.sanitize_null_text_characters(
+                            record.get(column.name)
+                        )
                     else:
                         insert_record[column.name] = record.get(column.name)
                 # No need to check for a KeyError here because the SDK already
@@ -199,7 +200,9 @@ class PostgresSink(SQLSink):
                 insert_record = {}
                 for column in columns:
                     if self.connector.sanitize_null_text_characters:
-                        insert_record[column.name] = self.sanitize_null_text_characters(record.get(column.name))
+                        insert_record[column.name] = self.sanitize_null_text_characters(
+                            record.get(column.name)
+                        )
                     else:
                         insert_record[column.name] = record.get(column.name)
                 data_to_insert.append(insert_record)
