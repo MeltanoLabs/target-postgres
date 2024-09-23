@@ -1,15 +1,20 @@
 """Postgres target sink class, which handles writing streams."""
 
+from __future__ import annotations
+
+import datetime
+import typing as t
 import uuid
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Union, cast
 
 import sqlalchemy as sa
-from pendulum import now
 from singer_sdk.sinks import SQLSink
-from sqlalchemy.sql import Executable
 from sqlalchemy.sql.expression import bindparam
 
 from target_postgres.connector import PostgresConnector
+
+if t.TYPE_CHECKING:
+    from singer_sdk.connectors.sql import FullyQualifiedName
+    from sqlalchemy.sql import Executable
 
 
 class PostgresSink(SQLSink):
@@ -39,7 +44,7 @@ class PostgresSink(SQLSink):
         Returns:
             The connector object.
         """
-        return cast(PostgresConnector, self._connector)
+        return t.cast(PostgresConnector, self._connector)
 
     def setup(self) -> None:
         """Set up Sink.
@@ -48,6 +53,7 @@ class PostgresSink(SQLSink):
         Table entities in the target database.
         """
         self.append_only = self.key_properties is None or self.key_properties == []
+
         if self.schema_name:
             self.connector.prepare_schema(self.schema_name)
         with self.connector._connect() as connection, connection.begin():
@@ -117,10 +123,10 @@ class PostgresSink(SQLSink):
         self,
         table: sa.Table,
         schema: dict,
-        records: Iterable[Dict[str, Any]],
-        primary_keys: Sequence[str],
+        records: t.Iterable[dict[str, t.Any]],
+        primary_keys: t.Sequence[str],
         connection: sa.engine.Connection,
-    ) -> Optional[int]:
+    ) -> int | None:
         """Bulk insert records to an existing destination table.
 
         The default implementation uses a generic SQLAlchemy bulk insert operation.
@@ -139,7 +145,7 @@ class PostgresSink(SQLSink):
             True if table exists, False if not, None if unsure or undetectable.
         """
         columns = self.column_representation(schema)
-        insert: str = cast(
+        insert: str = t.cast(
             str,
             self.generate_insert_statement(
                 table.name,
@@ -148,10 +154,10 @@ class PostgresSink(SQLSink):
         )
         self.logger.info("Inserting with SQL: %s", insert)
         # Only one record per PK, we want to take the last one
-        data_to_insert: List[Dict[str, Any]] = []
+        data_to_insert: list[dict[str, t.Any]] = []
 
         if self.append_only is False:
-            insert_records: Dict[str, Dict] = {}  # pk : record
+            insert_records: dict[str, dict] = {}  # pk : record
             for record in records:
                 insert_record = {
                     column.name: record.get(column.name) for column in columns
@@ -175,9 +181,9 @@ class PostgresSink(SQLSink):
         from_table: sa.Table,
         to_table: sa.Table,
         schema: dict,
-        join_keys: Sequence[str],
+        join_keys: t.Sequence[str],
         connection: sa.engine.Connection,
-    ) -> Optional[int]:
+    ) -> int | None:
         """Merge upsert data from one table to another.
 
         Args:
@@ -244,7 +250,7 @@ class PostgresSink(SQLSink):
     def column_representation(
         self,
         schema: dict,
-    ) -> List[sa.Column]:
+    ) -> list[sa.Column]:
         """Return a sqlalchemy table representation for the current schema."""
         columns: list[sa.Column] = [
             sa.Column(
@@ -257,9 +263,9 @@ class PostgresSink(SQLSink):
 
     def generate_insert_statement(
         self,
-        full_table_name: str,
-        columns: List[sa.Column],  # type: ignore[override]
-    ) -> Union[str, Executable]:
+        full_table_name: str | FullyQualifiedName,
+        columns: list[sa.Column],  # type: ignore[override]
+    ) -> str | Executable:
         """Generate an insert statement for the given records.
 
         Args:
@@ -273,12 +279,12 @@ class PostgresSink(SQLSink):
         table = sa.Table(full_table_name, metadata, *columns)
         return sa.insert(table)
 
-    def conform_name(self, name: str, object_type: Optional[str] = None) -> str:
+    def conform_name(self, name: str, object_type: str | None = None) -> str:
         """Conforming names of tables, schemas, column names."""
         return name
 
     @property
-    def schema_name(self) -> Optional[str]:
+    def schema_name(self) -> str | None:
         """Return the schema name or `None` if using names with no schema part.
 
                 Note that after the next SDK release (after 0.14.0) we can remove this
@@ -313,12 +319,21 @@ class PostgresSink(SQLSink):
             )
             return
 
+        if self._pending_batch:
+            self.logger.info(
+                "An activate version message for '%s' was received. Draining...",
+                self.stream_name,
+            )
+            draining_status = self.start_drain()
+            self.process_batch(draining_status)
+            self.mark_drained()
+
         # There's nothing to do if the table doesn't exist yet
         # (which it won't the first time the stream is processed)
         if not self.connector.table_exists(self.full_table_name):
             return
 
-        deleted_at = now()
+        deleted_at = datetime.datetime.now(tz=datetime.timezone.utc)
 
         with self.connector._connect() as connection, connection.begin():
             # Theoretically these errors should never appear because we always create
@@ -359,7 +374,7 @@ class PostgresSink(SQLSink):
                 delete_stmt = sa.delete(target_table).where(
                     sa.or_(
                         target_table.c[self.version_column_name].is_(None),
-                        target_table.c[self.version_column_name] <= new_version,
+                        target_table.c[self.version_column_name] < new_version,
                     )
                 )
                 connection.execute(delete_stmt)

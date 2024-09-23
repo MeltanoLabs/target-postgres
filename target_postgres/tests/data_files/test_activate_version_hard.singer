@@ -7,4 +7,5 @@
 {"type": "RECORD", "stream": "test_activate_version_hard", "record": {"code": "NA", "name": "North America"}, "version": 1674486431563, "time_extracted": "2023-01-23T15:07:11.563063Z"}
 {"type": "RECORD", "stream": "test_activate_version_hard", "record": {"code": "OC", "name": "Oceania"}, "version": 1674486431563, "time_extracted": "2023-01-23T15:07:11.563063Z"}
 {"type": "RECORD", "stream": "test_activate_version_hard", "record": {"code": "SA", "name": "South America"}, "version": 1674486431563, "time_extracted": "2023-01-23T15:07:11.563063Z"}
+{"type": "RECORD", "stream": "test_activate_version_hard", "record": {"code": "XX", "name": "This record should be deleted"}, "version": 1674486431562, "time_extracted": "2023-01-23T15:07:11.563063Z"}
 {"type": "ACTIVATE_VERSION", "stream": "test_activate_version_hard", "version": 1674486431563}

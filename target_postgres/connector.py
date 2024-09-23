@@ -35,6 +35,9 @@ from sqlalchemy.types import (
 )
 from sshtunnel import SSHTunnelForwarder
 
+if t.TYPE_CHECKING:
+    from singer_sdk.connectors.sql import FullyQualifiedName
+
 
 class PostgresConnector(SQLConnector):
     """Sets up SQL Alchemy, and other Postgres related stuff."""
@@ -96,7 +99,7 @@ class PostgresConnector(SQLConnector):
 
     def prepare_table(  # type: ignore[override]  # noqa: PLR0913
         self,
-        full_table_name: str,
+        full_table_name: str | FullyQualifiedName,
         schema: dict,
         primary_keys: t.Sequence[str],
         connection: sa.engine.Connection,
@@ -157,7 +160,7 @@ class PostgresConnector(SQLConnector):
 
     def copy_table_structure(
         self,
-        full_table_name: str,
+        full_table_name: str | FullyQualifiedName,
         from_table: sa.Table,
         connection: sa.engine.Connection,
         as_temp_table: bool = False,
@@ -203,13 +206,7 @@ class PostgresConnector(SQLConnector):
         self, new_table_name, table, metadata, connection, temp_table
     ) -> sa.Table:
         """Clone a table."""
-        new_columns = [
-            sa.Column(
-                column.name,
-                column.type,
-            )
-            for column in table.columns
-        ]
+        new_columns = [sa.Column(column.name, column.type) for column in table.columns]
         if temp_table is True:
             new_table = sa.Table(
                 new_table_name, metadata, *new_columns, prefixes=["TEMPORARY"]
@@ -291,13 +288,33 @@ class PostgresConnector(SQLConnector):
         if "object" in jsonschema_type["type"]:
             return JSONB()
         if "array" in jsonschema_type["type"]:
-            items_type = jsonschema_type.get("items")
-            if "string" == items_type:
-                return ARRAY(TEXT())
-            if "integer" == items_type:
-                return ARRAY(BIGINT())
-            else:
+            items = jsonschema_type.get("items")
+            # Case 1: items is a string
+            if isinstance(items, str):
+                return ARRAY(self.to_sql_type({"type": items}))
+
+            # Case 2: items are more complex
+            if isinstance(items, dict):
+                # Case 2.1: items are variants
+                if "type" not in items:
+                    return ARRAY(JSONB())
+
+                items_type = items["type"]
+
+                # Case 2.2: items are a single type
+                if isinstance(items_type, str):
+                    return ARRAY(self.to_sql_type({"type": items_type}))
+
+                # Case 2.3: items are a list of types
+                if isinstance(items_type, list):
+                    return ARRAY(self.to_sql_type({"type": items_type}))
+
+            # Case 3: tuples
+            if isinstance(items, list):
                 return ARRAY(JSONB())
+
+            # All other cases, return JSONB
+            return JSONB()
 
         # string formats
         if jsonschema_type.get("format") == "date-time":
@@ -404,7 +421,7 @@ class PostgresConnector(SQLConnector):
 
     def prepare_column(  # noqa: PLR0913
         self,
-        full_table_name: str,
+        full_table_name: str | FullyQualifiedName,
         column_name: str,
         sql_type: sa.types.TypeEngine,
         connection: sa.engine.Connection | None = None,
@@ -822,7 +839,7 @@ class PostgresConnector(SQLConnector):
 
     def column_exists(  # type: ignore[override]
         self,
-        full_table_name: str,
+        full_table_name: str | FullyQualifiedName,
         column_name: str,
         connection: sa.engine.Connection,
     ) -> bool:
@@ -898,7 +915,7 @@ class HexByteString(TypeDecorator):
             except ValueError as ex:
                 raise ValueError(f"Invalid hexadecimal string: {value}") from ex
 
-        if not isinstance(value, bytearray | memoryview | bytes):
+        if not isinstance(value, (bytearray, memoryview, bytes)):
             raise TypeError(
                 "HexByteString columns support only bytes or hex string values. "
                 f"{type(value)} is not supported"
