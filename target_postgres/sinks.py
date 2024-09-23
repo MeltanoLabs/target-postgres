@@ -8,13 +8,13 @@ import uuid
 
 import sqlalchemy as sa
 from singer_sdk.sinks import SQLSink
-from sqlalchemy.sql import Executable
 from sqlalchemy.sql.expression import bindparam
 
 from target_postgres.connector import PostgresConnector
 
 if t.TYPE_CHECKING:
     from singer_sdk.connectors.sql import FullyQualifiedName
+    from sqlalchemy.sql import Executable
 
 
 class PostgresSink(SQLSink):
@@ -52,10 +52,8 @@ class PostgresSink(SQLSink):
         This method is called on Sink creation, and creates the required Schema and
         Table entities in the target database.
         """
-        if self.key_properties is None or self.key_properties == []:
-            self.append_only = True
-        else:
-            self.append_only = False
+        self.append_only = self.key_properties is None or self.key_properties == []
+
         if self.schema_name:
             self.connector.prepare_schema(self.schema_name)
         with self.connector._connect() as connection, connection.begin():
@@ -165,7 +163,7 @@ class PostgresSink(SQLSink):
                 for column in columns:
                     insert_record[column.name] = record.get(column.name)
                 # No need to check for a KeyError here because the SDK already
-                # guaruntees that all key properties exist in the record.
+                # guarantees that all key properties exist in the record.
                 primary_key_value = "".join([str(record[key]) for key in primary_keys])
                 insert_records[primary_key_value] = insert_record
             data_to_insert = list(insert_records.values())
@@ -296,7 +294,7 @@ class PostgresSink(SQLSink):
         Returns:
             The target schema name.
         """
-        # Look for a default_target_scheme in the configuraion fle
+        # Look for a default_target_scheme in the configuration fle
         default_target_schema: str = self.config.get("default_target_schema", None)
         parts = self.stream_name.split("-")
 
