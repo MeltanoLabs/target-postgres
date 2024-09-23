@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
-from pathlib import PurePath
+import typing as t
 
 from singer_sdk import typing as th
 from singer_sdk.target_base import SQLTarget
 
 from target_postgres.sinks import PostgresSink
+
+if t.TYPE_CHECKING:
+    from pathlib import PurePath
 
 
 class TargetPostgres(SQLTarget):
@@ -208,8 +211,9 @@ class TargetPostgres(SQLTarget):
             th.BooleanType,
             default=False,
             description=(
-                "If set to true, the target will sanitize null characters in char/text/varchar fields, as they "
-                "are not supported by Postgres. See [postgres documentation](https://www.postgresql.org/docs/current/functions-string.html) "
+                "If set to true, the target will sanitize null characters in "
+                "char/text/varchar fields, as they are not supported by Postgres. "
+                "See [postgres documentation](https://www.postgresql.org/docs/current/functions-string.html) "  # noqa: E501
                 "for more information about chr(0) not being supported."
             ),
         ),

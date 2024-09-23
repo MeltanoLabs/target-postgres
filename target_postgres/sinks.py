@@ -8,13 +8,13 @@ import uuid
 
 import sqlalchemy as sa
 from singer_sdk.sinks import SQLSink
-from sqlalchemy.sql import Executable
 from sqlalchemy.sql.expression import bindparam
 
 from target_postgres.connector import PostgresConnector
 
 if t.TYPE_CHECKING:
     from singer_sdk.connectors.sql import FullyQualifiedName
+    from sqlalchemy.sql import Executable
 
 
 class PostgresSink(SQLSink):
@@ -52,10 +52,8 @@ class PostgresSink(SQLSink):
         This method is called on Sink creation, and creates the required Schema and
         Table entities in the target database.
         """
-        if self.key_properties is None or self.key_properties == []:
-            self.append_only = True
-        else:
-            self.append_only = False
+        self.append_only = self.key_properties is None or self.key_properties == []
+
         if self.schema_name:
             self.connector.prepare_schema(self.schema_name)
         with self.connector._connect() as connection, connection.begin():
@@ -122,7 +120,7 @@ class PostgresSink(SQLSink):
         return f"{str(uuid.uuid4()).replace('-', '_')}"
 
     def sanitize_null_text_characters(self, data):
-        """Sanitizes null characters by replacing \u0000 with \ufffd"""
+        """Sanitizes null characters by replacing \u0000 with \ufffd."""
 
         def replace_null_character(d):
             return d.replace("\u0000", "\ufffd")
@@ -182,14 +180,14 @@ class PostgresSink(SQLSink):
         if self.append_only is False:
             insert_records: dict[str, dict] = {}  # pk : record
             for record in records:
-                insert_record = {}
-                for column in columns:
-                    if self.connector.sanitize_null_text_characters:
-                        insert_record[column.name] = self.sanitize_null_text_characters(
-                            record.get(column.name)
-                        )
-                    else:
-                        insert_record[column.name] = record.get(column.name)
+                insert_record = {
+                    column.name: (
+                        self.sanitize_null_text_characters(record.get(column.name))
+                        if self.connector.sanitize_null_text_characters
+                        else record.get(column.name)
+                    )
+                    for column in columns
+                }
                 # No need to check for a KeyError here because the SDK already
                 # guarantees that all key properties exist in the record.
                 primary_key_value = "".join([str(record[key]) for key in primary_keys])
@@ -197,14 +195,14 @@ class PostgresSink(SQLSink):
             data_to_insert = list(insert_records.values())
         else:
             for record in records:
-                insert_record = {}
-                for column in columns:
-                    if self.connector.sanitize_null_text_characters:
-                        insert_record[column.name] = self.sanitize_null_text_characters(
-                            record.get(column.name)
-                        )
-                    else:
-                        insert_record[column.name] = record.get(column.name)
+                insert_record = {
+                    column.name: (
+                        self.sanitize_null_text_characters(record.get(column.name))
+                        if self.connector.sanitize_null_text_characters
+                        else record.get(column.name)
+                    )
+                    for column in columns
+                }
                 data_to_insert.append(insert_record)
         connection.execute(insert, data_to_insert)
         return True
@@ -285,14 +283,13 @@ class PostgresSink(SQLSink):
         schema: dict,
     ) -> list[sa.Column]:
         """Return a sqlalchemy table representation for the current schema."""
-        columns: list[sa.Column] = []
-        for property_name, property_jsonschema in schema["properties"].items():
-            columns.append(
-                sa.Column(
-                    property_name,
-                    self.connector.to_sql_type(property_jsonschema),
-                )
+        columns: list[sa.Column] = [
+            sa.Column(
+                property_name,
+                self.connector.to_sql_type(property_jsonschema),
             )
+            for property_name, property_jsonschema in schema["properties"].items()
+        ]
         return columns
 
     def generate_insert_statement(
@@ -322,12 +319,12 @@ class PostgresSink(SQLSink):
         """Return the schema name or `None` if using names with no schema part.
 
                 Note that after the next SDK release (after 0.14.0) we can remove this
-                as it's already upstreamed.
+                as it's already implemented upstream.
 
         Returns:
             The target schema name.
         """
-        # Look for a default_target_scheme in the configuraion fle
+        # Look for a default_target_scheme in the configuration fle
         default_target_schema: str = self.config.get("default_target_schema", None)
         parts = self.stream_name.split("-")
 
