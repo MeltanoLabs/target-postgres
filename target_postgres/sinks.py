@@ -288,7 +288,7 @@ class PostgresSink(SQLSink):
         """Return the schema name or `None` if using names with no schema part.
 
                 Note that after the next SDK release (after 0.14.0) we can remove this
-                as it's already up-streamed.
+                as it's already implemented upstream.
 
         Returns:
             The target schema name.

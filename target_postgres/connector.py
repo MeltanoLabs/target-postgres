@@ -310,11 +310,7 @@ class PostgresConnector(SQLConnector):
                     return ARRAY(self.to_sql_type({"type": items_type}))
 
             # Case 3: tuples
-            if isinstance(items, list):
-                return ARRAY(JSONB())
-
-            # All other cases, return JSONB
-            return JSONB()
+            return ARRAY(JSONB()) if isinstance(items, list) else JSONB()
 
         # string formats
         if jsonschema_type.get("format") == "date-time":
@@ -398,7 +394,7 @@ class PostgresConnector(SQLConnector):
             raise RuntimeError(
                 f"Schema for table_name: '{table_name}'"
                 f"does not define properties: {schema}"
-            )
+            ) from None
 
         for property_name, property_jsonschema in properties.items():
             is_primary_key = property_name in primary_keys
