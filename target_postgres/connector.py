@@ -178,11 +178,10 @@ class PostgresConnector(SQLConnector):
         _, schema_name, table_name = self.parse_full_table_name(full_table_name)
         meta = sa.MetaData(schema=schema_name)
         new_table: sa.Table
-        columns = []
         if self.table_exists(full_table_name=full_table_name):
             raise RuntimeError("Table already exists")
-        for column in from_table.columns:
-            columns.append(column._copy())
+
+        columns = [column._copy() for column in from_table.columns]
         if as_temp_table:
             new_table = sa.Table(table_name, meta, *columns, prefixes=["TEMPORARY"])
             new_table.create(bind=connection)
@@ -204,14 +203,7 @@ class PostgresConnector(SQLConnector):
         self, new_table_name, table, metadata, connection, temp_table
     ) -> sa.Table:
         """Clone a table."""
-        new_columns = []
-        for column in table.columns:
-            new_columns.append(
-                sa.Column(
-                    column.name,
-                    column.type,
-                )
-            )
+        new_columns = [sa.Column(column.name, column.type) for column in table.columns]
         if temp_table is True:
             new_table = sa.Table(
                 new_table_name, metadata, *new_columns, prefixes=["TEMPORARY"]
@@ -752,7 +744,7 @@ class PostgresConnector(SQLConnector):
         ):
             try:
                 key = key_class.from_private_key(io.StringIO(key_data))  # type: ignore[attr-defined]
-            except paramiko.SSHException:
+            except paramiko.SSHException:  # noqa: PERF203
                 continue
             else:
                 return key
