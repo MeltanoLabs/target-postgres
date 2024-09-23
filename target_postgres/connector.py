@@ -187,10 +187,9 @@ class PostgresConnector(SQLConnector):
             new_table = sa.Table(table_name, meta, *columns, prefixes=["TEMPORARY"])
             new_table.create(bind=connection)
             return new_table
-        else:
-            new_table = sa.Table(table_name, meta, *columns)
-            new_table.create(bind=connection)
-            return new_table
+        new_table = sa.Table(table_name, meta, *columns)
+        new_table.create(bind=connection)
+        return new_table
 
     @contextmanager
     def _connect(self) -> t.Iterator[sa.engine.Connection]:
@@ -653,17 +652,16 @@ class PostgresConnector(SQLConnector):
         if config.get("sqlalchemy_url"):
             return cast(str, config["sqlalchemy_url"])
 
-        else:
-            sqlalchemy_url = URL.create(
-                drivername=config["dialect+driver"],
-                username=config["user"],
-                password=config["password"],
-                host=config["host"],
-                port=config["port"],
-                database=config["database"],
-                query=self.get_sqlalchemy_query(config),
-            )
-            return cast(str, sqlalchemy_url)
+        sqlalchemy_url = URL.create(
+            drivername=config["dialect+driver"],
+            username=config["user"],
+            password=config["password"],
+            host=config["host"],
+            port=config["port"],
+            database=config["database"],
+            query=self.get_sqlalchemy_query(config),
+        )
+        return cast(str, sqlalchemy_url)
 
     def get_sqlalchemy_query(self, config: dict) -> dict:
         """Get query values to be used for sqlalchemy URL creation.
@@ -725,12 +723,11 @@ class PostgresConnector(SQLConnector):
         """
         if path.isfile(value):
             return value
-        else:
-            with open(alternative_name, "wb") as alternative_file:
-                alternative_file.write(value.encode("utf-8"))
-            if restrict_permissions:
-                chmod(alternative_name, 0o600)
-            return alternative_name
+        with open(alternative_name, "wb") as alternative_file:
+            alternative_file.write(value.encode("utf-8"))
+        if restrict_permissions:
+            chmod(alternative_name, 0o600)
+        return alternative_name
 
     def guess_key_type(self, key_data: str) -> paramiko.PKey:
         """Guess the type of the private key.

@@ -92,8 +92,9 @@ select = [
   "I",   # isort
   "N",   # pep8-naming
   "D",   # pydocsyle
-  "ICN", # flake8-import-conventions
   "UP",  # pyupgrade
+  "ICN", # flake8-import-conventions
+  "RET", # flake8-return
   "RUF", # ruff
 ]
 
