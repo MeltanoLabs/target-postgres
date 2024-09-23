@@ -97,6 +97,7 @@ select = [
   "RET",  # flake8-return
   "SIM",  # flake8-simplify
   "TCH",  # flake8-type-checking
+  "PL",   # Pylint
   "PERF", # Perflint
   "RUF",  # ruff
 ]

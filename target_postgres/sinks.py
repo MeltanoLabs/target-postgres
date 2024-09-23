@@ -159,9 +159,9 @@ class PostgresSink(SQLSink):
         if self.append_only is False:
             insert_records: dict[str, dict] = {}  # pk : record
             for record in records:
-                insert_record = {}
-                for column in columns:
-                    insert_record[column.name] = record.get(column.name)
+                insert_record = {
+                    column.name: record.get(column.name) for column in columns
+                }
                 # No need to check for a KeyError here because the SDK already
                 # guarantees that all key properties exist in the record.
                 primary_key_value = "".join([str(record[key]) for key in primary_keys])
@@ -169,9 +169,9 @@ class PostgresSink(SQLSink):
             data_to_insert = list(insert_records.values())
         else:
             for record in records:
-                insert_record = {}
-                for column in columns:
-                    insert_record[column.name] = record.get(column.name)
+                insert_record = {
+                    column.name: record.get(column.name) for column in columns
+                }
                 data_to_insert.append(insert_record)
         connection.execute(insert, data_to_insert)
         return True
@@ -252,14 +252,13 @@ class PostgresSink(SQLSink):
         schema: dict,
     ) -> list[sa.Column]:
         """Return a sqlalchemy table representation for the current schema."""
-        columns: list[sa.Column] = []
-        for property_name, property_jsonschema in schema["properties"].items():
-            columns.append(
-                sa.Column(
-                    property_name,
-                    self.connector.to_sql_type(property_jsonschema),
-                )
+        columns: list[sa.Column] = [
+            sa.Column(
+                property_name,
+                self.connector.to_sql_type(property_jsonschema),
             )
+            for property_name, property_jsonschema in schema["properties"].items()
+        ]
         return columns
 
     def generate_insert_statement(
@@ -289,7 +288,7 @@ class PostgresSink(SQLSink):
         """Return the schema name or `None` if using names with no schema part.
 
                 Note that after the next SDK release (after 0.14.0) we can remove this
-                as it's already upstreamed.
+                as it's already implemented upstream.
 
         Returns:
             The target schema name.
