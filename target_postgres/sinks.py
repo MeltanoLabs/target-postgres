@@ -237,7 +237,7 @@ class PostgresSink(SQLSink):
             # Update
             where_condition = join_condition
             update_columns = {}
-            for column_name in self.schema["properties"].keys():
+            for column_name in self.schema["properties"]:
                 from_table_column: sa.Column = from_table.columns[column_name]
                 to_table_column: sa.Column = to_table.columns[column_name]
                 update_columns[to_table_column] = from_table_column

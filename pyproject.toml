@@ -95,6 +95,7 @@ select = [
   "UP",  # pyupgrade
   "ICN", # flake8-import-conventions
   "RET", # flake8-return
+  "SIM", # flake8-simplify
   "RUF", # ruff
 ]
 
