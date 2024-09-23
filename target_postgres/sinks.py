@@ -268,7 +268,7 @@ class PostgresSink(SQLSink):
             # Update
             where_condition = join_condition
             update_columns = {}
-            for column_name in self.schema["properties"].keys():
+            for column_name in self.schema["properties"]:
                 from_table_column: sa.Column = from_table.columns[column_name]
                 to_table_column: sa.Column = to_table.columns[column_name]
                 update_columns[to_table_column] = from_table_column
@@ -338,14 +338,7 @@ class PostgresSink(SQLSink):
         if default_target_schema:
             return default_target_schema
 
-        if len(parts) in {2, 3}:
-            # Stream name is a two-part or three-part identifier.
-            # Use the second-to-last part as the schema name.
-            stream_schema = self.conform_name(parts[-2], "schema")
-            return stream_schema
-
-        # Schema name not detected.
-        return None
+        return self.conform_name(parts[-2], "schema") if len(parts) in {2, 3} else None
 
     def activate_version(self, new_version: int) -> None:
         """Bump the active version of the target table.

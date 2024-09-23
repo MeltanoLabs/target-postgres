@@ -85,16 +85,19 @@ target-version = "py38"
 
 [tool.ruff.lint]
 select = [
-  "F",   # Pyflakes
-  "W",   # pycodestyle warnings
-  "E",   # pycodestyle errors
-  "FA",  # flake8-future-annotations
-  "I",   # isort
-  "N",   # pep8-naming
-  "D",   # pydocsyle
-  "ICN", # flake8-import-conventions
-  "UP",  # pyupgrade
-  "RUF", # ruff
+  "F",    # Pyflakes
+  "W",    # pycodestyle warnings
+  "E",    # pycodestyle errors
+  "FA",   # flake8-future-annotations
+  "I",    # isort
+  "N",    # pep8-naming
+  "D",    # pydocsyle
+  "UP",   # pyupgrade
+  "ICN",  # flake8-import-conventions
+  "RET",  # flake8-return
+  "SIM",  # flake8-simplify
+  "PERF", # Perflint
+  "RUF",  # ruff
 ]
 
 [tool.ruff.lint.flake8-import-conventions]
