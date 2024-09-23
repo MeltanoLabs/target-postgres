@@ -375,7 +375,7 @@ class PostgresConnector(SQLConnector):
 
         Args:
             table_name: the target table name.
-            meta: the SQLAchemy metadata object.
+            meta: the SQLAlchemy metadata object.
             schema: the JSON schema for the new table.
             connection: the database connection.
             primary_keys: list of key properties.
@@ -574,7 +574,7 @@ class PostgresConnector(SQLConnector):
             return
 
         # Not the same type, generic type or compatible types
-        # calling merge_sql_types for assistnace
+        # calling merge_sql_types for assistance
         compatible_sql_type = self.merge_sql_types([current_type, sql_type])
 
         if str(compatible_sql_type) == str(current_type):
