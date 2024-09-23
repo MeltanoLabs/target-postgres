@@ -307,14 +307,7 @@ class PostgresSink(SQLSink):
         if default_target_schema:
             return default_target_schema
 
-        if len(parts) in {2, 3}:
-            # Stream name is a two-part or three-part identifier.
-            # Use the second-to-last part as the schema name.
-            stream_schema = self.conform_name(parts[-2], "schema")
-            return stream_schema
-
-        # Schema name not detected.
-        return None
+        return self.conform_name(parts[-2], "schema") if len(parts) in {2, 3} else None
 
     def activate_version(self, new_version: int) -> None:
         """Bump the active version of the target table.
