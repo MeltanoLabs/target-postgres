@@ -178,7 +178,7 @@ class PostgresSink(SQLSink):
         data_to_insert: list[dict[str, t.Any]] = []
 
         if self.append_only is False:
-            insert_records: dict[str, dict] = {}  # pk : record
+            insert_records: dict[tuple, dict] = {}  # pk tuple: record
             for record in records:
                 insert_record = {
                     column.name: (
@@ -190,8 +190,8 @@ class PostgresSink(SQLSink):
                 }
                 # No need to check for a KeyError here because the SDK already
                 # guarantees that all key properties exist in the record.
-                primary_key_value = "".join([str(record[key]) for key in primary_keys])
-                insert_records[primary_key_value] = insert_record
+                primary_key_tuple = tuple(record[key] for key in primary_keys)
+                insert_records[primary_key_tuple] = insert_record
             data_to_insert = list(insert_records.values())
         else:
             for record in records:

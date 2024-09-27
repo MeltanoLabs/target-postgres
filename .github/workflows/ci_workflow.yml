@@ -7,7 +7,7 @@ on:
     - docker-compose.yml
     - pyproject.toml
     - poetry.lock
-    - targets_postgres/**
+    - target_postgres/**
     - .github/workflows/ci_workflow.yml
   push:
     branches: [main]
@@ -15,7 +15,7 @@ on:
     - docker-compose.yml
     - pyproject.toml
     - poetry.lock
-    - targets_postgres/**
+    - target_postgres/**
     - .github/workflows/ci_workflow.yml
   workflow_dispatch:
     inputs: {}
