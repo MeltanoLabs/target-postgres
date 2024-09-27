@@ -33,7 +33,7 @@ packages = [
 
 [tool.poetry.dependencies]
 python = ">=3.8"
-faker = {version = "~=28.1", optional = true}
+faker = {version = "~=29.0", optional = true}
 psycopg2-binary = "2.9.9"
 sqlalchemy = "~=2.0"
 sshtunnel = "0.4.0"
@@ -85,16 +85,21 @@ target-version = "py38"
 
 [tool.ruff.lint]
 select = [
-  "F",   # Pyflakes
-  "W",   # pycodestyle warnings
-  "E",   # pycodestyle errors
-  "FA",  # flake8-future-annotations
-  "I",   # isort
-  "N",   # pep8-naming
-  "D",   # pydocsyle
-  "ICN", # flake8-import-conventions
-  "UP",  # pyupgrade
-  "RUF", # ruff
+  "F",    # Pyflakes
+  "W",    # pycodestyle warnings
+  "E",    # pycodestyle errors
+  "FA",   # flake8-future-annotations
+  "I",    # isort
+  "N",    # pep8-naming
+  "D",    # pydocsyle
+  "UP",   # pyupgrade
+  "ICN",  # flake8-import-conventions
+  "RET",  # flake8-return
+  "SIM",  # flake8-simplify
+  "TCH",  # flake8-type-checking
+  "PL",   # Pylint
+  "PERF", # Perflint
+  "RUF",  # ruff
 ]
 
 [tool.ruff.lint.flake8-import-conventions]

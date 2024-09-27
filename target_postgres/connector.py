@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import atexit
 import io
+import itertools
 import signal
+import sys
 import typing as t
 from contextlib import contextmanager
 from functools import cached_property
@@ -95,7 +97,7 @@ class PostgresConnector(SQLConnector):
         """
         return self.config.get("interpret_content_encoding", False)
 
-    def prepare_table(  # type: ignore[override]
+    def prepare_table(  # type: ignore[override]  # noqa: PLR0913
         self,
         full_table_name: str | FullyQualifiedName,
         schema: dict,
@@ -121,7 +123,7 @@ class PostgresConnector(SQLConnector):
         meta = sa.MetaData(schema=schema_name)
         table: sa.Table
         if not self.table_exists(full_table_name=full_table_name):
-            table = self.create_empty_table(
+            return self.create_empty_table(
                 table_name=table_name,
                 meta=meta,
                 schema=schema,
@@ -130,7 +132,6 @@ class PostgresConnector(SQLConnector):
                 as_temp_table=as_temp_table,
                 connection=connection,
             )
-            return table
         meta.reflect(connection, only=[table_name])
         table = meta.tables[
             full_table_name
@@ -178,19 +179,17 @@ class PostgresConnector(SQLConnector):
         _, schema_name, table_name = self.parse_full_table_name(full_table_name)
         meta = sa.MetaData(schema=schema_name)
         new_table: sa.Table
-        columns = []
         if self.table_exists(full_table_name=full_table_name):
             raise RuntimeError("Table already exists")
-        for column in from_table.columns:
-            columns.append(column._copy())
+
+        columns = [column._copy() for column in from_table.columns]
         if as_temp_table:
             new_table = sa.Table(table_name, meta, *columns, prefixes=["TEMPORARY"])
             new_table.create(bind=connection)
             return new_table
-        else:
-            new_table = sa.Table(table_name, meta, *columns)
-            new_table.create(bind=connection)
-            return new_table
+        new_table = sa.Table(table_name, meta, *columns)
+        new_table.create(bind=connection)
+        return new_table
 
     @contextmanager
     def _connect(self) -> t.Iterator[sa.engine.Connection]:
@@ -205,14 +204,7 @@ class PostgresConnector(SQLConnector):
         self, new_table_name, table, metadata, connection, temp_table
     ) -> sa.Table:
         """Clone a table."""
-        new_columns = []
-        for column in table.columns:
-            new_columns.append(
-                sa.Column(
-                    column.name,
-                    column.type,
-                )
-            )
+        new_columns = [sa.Column(column.name, column.type) for column in table.columns]
         if temp_table is True:
             new_table = sa.Table(
                 new_table_name, metadata, *new_columns, prefixes=["TEMPORARY"]
@@ -278,7 +270,7 @@ class PostgresConnector(SQLConnector):
 
         return PostgresConnector.pick_best_sql_type(sql_type_array=sql_type_array)
 
-    def pick_individual_type(self, jsonschema_type: dict):
+    def pick_individual_type(self, jsonschema_type: dict):  # noqa: PLR0911
         """Select the correct sql type assuming jsonschema_type has only a single type.
 
         Args:
@@ -316,11 +308,7 @@ class PostgresConnector(SQLConnector):
                     return ARRAY(self.to_sql_type({"type": items_type}))
 
             # Case 3: tuples
-            if isinstance(items, list):
-                return ARRAY(JSONB())
-
-            # All other cases, return JSONB
-            return JSONB()
+            return ARRAY(JSONB()) if isinstance(items, list) else JSONB()
 
         # string formats
         if jsonschema_type.get("format") == "date-time":
@@ -333,9 +321,7 @@ class PostgresConnector(SQLConnector):
         ):
             return HexByteString()
         individual_type = th.to_sql_type(jsonschema_type)
-        if isinstance(individual_type, VARCHAR):
-            return TEXT()
-        return individual_type
+        return TEXT() if isinstance(individual_type, VARCHAR) else individual_type
 
     @staticmethod
     def pick_best_sql_type(sql_type_array: list):
@@ -364,13 +350,12 @@ class PostgresConnector(SQLConnector):
             NOTYPE,
         ]
 
-        for sql_type in precedence_order:
-            for obj in sql_type_array:
-                if isinstance(obj, sql_type):
-                    return obj
+        for sql_type, obj in itertools.product(precedence_order, sql_type_array):
+            if isinstance(obj, sql_type):
+                return obj
         return TEXT()
 
-    def create_empty_table(  # type: ignore[override]
+    def create_empty_table(  # type: ignore[override]  # noqa: PLR0913
         self,
         table_name: str,
         meta: sa.MetaData,
@@ -384,7 +369,7 @@ class PostgresConnector(SQLConnector):
 
         Args:
             table_name: the target table name.
-            meta: the SQLAchemy metadata object.
+            meta: the SQLAlchemy metadata object.
             schema: the JSON schema for the new table.
             connection: the database connection.
             primary_keys: list of key properties.
@@ -406,7 +391,7 @@ class PostgresConnector(SQLConnector):
             raise RuntimeError(
                 f"Schema for table_name: '{table_name}'"
                 f"does not define properties: {schema}"
-            )
+            ) from None
 
         for property_name, property_jsonschema in properties.items():
             is_primary_key = property_name in primary_keys
@@ -540,7 +525,7 @@ class PostgresConnector(SQLConnector):
             },
         )
 
-    def _adapt_column_type(  # type: ignore[override]
+    def _adapt_column_type(  # type: ignore[override]  # noqa: PLR0913
         self,
         schema_name: str,
         table_name: str,
@@ -583,7 +568,7 @@ class PostgresConnector(SQLConnector):
             return
 
         # Not the same type, generic type or compatible types
-        # calling merge_sql_types for assistnace
+        # calling merge_sql_types for assistance
         compatible_sql_type = self.merge_sql_types([current_type, sql_type])
 
         if str(compatible_sql_type) == str(current_type):
@@ -653,17 +638,16 @@ class PostgresConnector(SQLConnector):
         if config.get("sqlalchemy_url"):
             return cast(str, config["sqlalchemy_url"])
 
-        else:
-            sqlalchemy_url = URL.create(
-                drivername=config["dialect+driver"],
-                username=config["user"],
-                password=config["password"],
-                host=config["host"],
-                port=config["port"],
-                database=config["database"],
-                query=self.get_sqlalchemy_query(config),
-            )
-            return cast(str, sqlalchemy_url)
+        sqlalchemy_url = URL.create(
+            drivername=config["dialect+driver"],
+            username=config["user"],
+            password=config["password"],
+            host=config["host"],
+            port=config["port"],
+            database=config["database"],
+            query=self.get_sqlalchemy_query(config),
+        )
+        return cast(str, sqlalchemy_url)
 
     def get_sqlalchemy_query(self, config: dict) -> dict:
         """Get query values to be used for sqlalchemy URL creation.
@@ -679,7 +663,7 @@ class PostgresConnector(SQLConnector):
         # ssl_enable is for verifying the server's identity to the client.
         if config["ssl_enable"]:
             ssl_mode = config["ssl_mode"]
-            query.update({"sslmode": ssl_mode})
+            query["sslmode"] = ssl_mode
             query["sslrootcert"] = self.filepath_or_certificate(
                 value=config["ssl_certificate_authority"],
                 alternative_name=config["ssl_storage_directory"] + "/root.crt",
@@ -725,12 +709,11 @@ class PostgresConnector(SQLConnector):
         """
         if path.isfile(value):
             return value
-        else:
-            with open(alternative_name, "wb") as alternative_file:
-                alternative_file.write(value.encode("utf-8"))
-            if restrict_permissions:
-                chmod(alternative_name, 0o600)
-            return alternative_name
+        with open(alternative_name, "wb") as alternative_file:
+            alternative_file.write(value.encode("utf-8"))
+        if restrict_permissions:
+            chmod(alternative_name, 0o600)
+        return alternative_name
 
     def guess_key_type(self, key_data: str) -> paramiko.PKey:
         """Guess the type of the private key.
@@ -755,7 +738,7 @@ class PostgresConnector(SQLConnector):
         ):
             try:
                 key = key_class.from_private_key(io.StringIO(key_data))  # type: ignore[attr-defined]
-            except paramiko.SSHException:
+            except paramiko.SSHException:  # noqa: PERF203
                 continue
             else:
                 return key
@@ -775,7 +758,7 @@ class PostgresConnector(SQLConnector):
             signum: The signal number
             frame: The current stack frame
         """
-        exit(1)  # Calling this to be sure atexit is called, so clean_up gets called
+        sys.exit(1)  # Calling this to be sure atexit is called, so clean_up gets called
 
     def _get_column_type(  # type: ignore[override]
         self,
