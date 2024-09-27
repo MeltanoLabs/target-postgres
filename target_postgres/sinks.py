@@ -151,13 +151,13 @@ class PostgresSink(SQLSink):
         data_to_insert: tuple[tuple[t.Any, ...], ...]
 
         if self.append_only is False:
-            copy_values: dict[str, tuple] = {}  # pk : values
+            copy_values: dict[tuple, tuple] = {}  # pk tuple: values
             for record in records:
                 values = tuple(record.get(column.name) for column in columns)
                 # No need to check for a KeyError here because the SDK already
                 # guarantees that all key properties exist in the record.
-                primary_key_value = "".join([str(record[key]) for key in primary_keys])
-                copy_values[primary_key_value] = values
+                primary_key_tuple = tuple(record[key] for key in primary_keys)
+                copy_values[primary_key_tuple] = values
             data_to_insert = tuple(copy_values.values())
         else:
             data_to_insert = tuple(
