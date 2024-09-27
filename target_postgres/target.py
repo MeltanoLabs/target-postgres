@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
-from pathlib import PurePath
+import typing as t
 
 from singer_sdk import typing as th
 from singer_sdk.target_base import SQLTarget
 
 from target_postgres.sinks import PostgresSink
+
+if t.TYPE_CHECKING:
+    from pathlib import PurePath
 
 
 class TargetPostgres(SQLTarget):
