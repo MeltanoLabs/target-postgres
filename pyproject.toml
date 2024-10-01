@@ -33,10 +33,11 @@ packages = [
 
 [tool.poetry.dependencies]
 python = ">=3.8"
-faker = {version = "~=30.0", optional = true}
-psycopg2-binary = "2.9.9"
+faker = {version = "~=29.0", optional = true}
 sqlalchemy = "~=2.0"
 sshtunnel = "0.4.0"
+psycopg = "^3.2.3"
+psycopg-binary = "^3.2.3"
 
 [tool.poetry.dependencies.singer-sdk]
 version = "~=0.40.0a1"

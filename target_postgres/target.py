@@ -150,7 +150,7 @@ class TargetPostgres(SQLTarget):
         th.Property(
             "dialect+driver",
             th.StringType,
-            default="postgresql+psycopg2",
+            default="postgresql+psycopg",
             description=(
                 "Dialect+driver see "
                 + "https://docs.sqlalchemy.org/en/20/core/engines.html. "
