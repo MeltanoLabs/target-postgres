@@ -112,14 +112,14 @@ class PostgresSink(SQLSink):
 
     def generate_temp_table_name(self):
         """Uuid temp table name."""
-        # sa.exc.IdentifierError: Identifier
+        # sa.exc.IdentifierError: Identifier  # noqa: ERA001
         # 'temp_test_optional_attributes_388470e9_fbd0_47b7_a52f_d32a2ee3f5f6'
         # exceeds maximum length of 63 characters
         # Is hit if we have a long table name, there is no limit on Temporary tables
         # in postgres, used a guid just in case we are using the same session
         return f"{str(uuid.uuid4()).replace('-', '_')}"
 
-    def bulk_insert_records(  # type: ignore[override]
+    def bulk_insert_records(  # type: ignore[override]  # noqa: PLR0913
         self,
         table: sa.Table,
         schema: dict,
@@ -176,7 +176,7 @@ class PostgresSink(SQLSink):
         connection.execute(insert, data_to_insert)
         return True
 
-    def upsert(
+    def upsert(  # noqa: PLR0913
         self,
         from_table: sa.Table,
         to_table: sa.Table,
@@ -293,7 +293,7 @@ class PostgresSink(SQLSink):
         Returns:
             The target schema name.
         """
-        # Look for a default_target_scheme in the configuration fle
+        # Look for a default_target_scheme in the configuration file
         default_target_schema: str = self.config.get("default_target_schema", None)
         parts = self.stream_name.split("-")
 
