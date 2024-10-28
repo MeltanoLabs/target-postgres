@@ -8,7 +8,7 @@ updates:
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
-      interval: weekly
+      interval: monthly
       timezone: "America/New_York"
       time: "07:23"
     versioning-strategy: increase-if-necessary
@@ -22,7 +22,7 @@ updates:
   - package-ecosystem: "pip"
     directory: "/.github/workflows"
     schedule:
-      interval: weekly
+      interval: monthly
       timezone: "America/New_York"
       time: "07:23"
     reviewers:
@@ -34,7 +34,7 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: weekly
+      interval: monthly
       timezone: "America/New_York"
       time: "07:23"
     groups:
