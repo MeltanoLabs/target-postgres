@@ -142,6 +142,7 @@ def verify_data(
                 sqlalchemy.text(f"SELECT COUNT(*) FROM {full_table_name}")
             )
             assert result.first()[0] == number_of_rows
+    engine.dispose()
 
 
 def test_sqlalchemy_url_config(postgres_config_no_ssl):
@@ -167,7 +168,7 @@ def test_sqlalchemy_url_config(postgres_config_no_ssl):
 def test_port_default_config():
     """Test that the default config is passed into the engine when the config doesn't provide it"""
     config = {
-        "dialect+driver": "postgresql+psycopg2",
+        "dialect+driver": "postgresql+psycopg",
         "host": "localhost",
         "user": "postgres",
         "password": "postgres",
@@ -186,12 +187,13 @@ def test_port_default_config():
         engine.url.render_as_string(hide_password=False)
         == f"{dialect_driver}://{user}:{password}@{host}:5432/{database}"
     )
+    engine.dispose()
 
 
 def test_port_config():
     """Test that the port config works"""
     config = {
-        "dialect+driver": "postgresql+psycopg2",
+        "dialect+driver": "postgresql+psycopg",
         "host": "localhost",
         "user": "postgres",
         "password": "postgres",
@@ -211,6 +213,7 @@ def test_port_config():
         engine.url.render_as_string(hide_password=False)
         == f"{dialect_driver}://{user}:{password}@{host}:5433/{database}"
     )
+    engine.dispose()
 
 
 # Test name would work well
@@ -402,6 +405,7 @@ def test_no_primary_keys(postgres_target):
     singer_file_to_target(file_name, postgres_target)
 
     verify_data(postgres_target, table_name, 16)
+    engine.dispose()
 
 
 def test_no_type(postgres_target):
@@ -511,6 +515,7 @@ def test_anyof(postgres_target):
             # {"anyOf":[{"type":"string"},{"type":"integer"},{"type":"null"}]}
             if column.name == "legacy_id":
                 assert isinstance(column.type, TEXT)
+    engine.dispose()
 
 
 def test_new_array_column(postgres_target):
@@ -621,6 +626,7 @@ def test_activate_version_hard_delete(postgres_config_no_ssl):
         assert result.rowcount == 9
 
     singer_file_to_target(file_name, pg_hard_delete_true)
+    engine.dispose()
 
     # Should remove the 2 records we added manually
     with engine.connect() as connection:
@@ -692,6 +698,7 @@ def test_activate_version_soft_delete(postgres_config_no_ssl):
         # South America row should not have been modified, but it would have been prior
         # to the fix mentioned in #204 and implemented in #240.
         assert south_america == result.first()._asdict()
+    engine.dispose()
 
 
 def test_activate_version_no_metadata(postgres_config_no_ssl):
@@ -742,6 +749,7 @@ def test_activate_version_deletes_data_properly(postgres_target):
     with engine.connect() as connection:
         result = connection.execute(sqlalchemy.text(f"SELECT * FROM {full_table_name}"))
         assert result.rowcount == 0
+    engine.dispose()
 
 
 def test_reserved_keywords(postgres_target):

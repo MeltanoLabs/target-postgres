@@ -62,7 +62,9 @@ class BasePostgresSDKTests:
     @pytest.fixture()
     def connection(self, runner):
         engine = create_engine(runner)
-        return engine.connect()
+        with engine.connect() as conn:
+            yield conn
+        engine.dispose()
 
 
 SDKTests = get_target_test_class(
