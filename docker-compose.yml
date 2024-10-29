@@ -2,7 +2,7 @@
 # docker compose -f docker-compose.yml up -d
 services:
   postgres:
-    image: docker.io/postgres:${POSTGRES_VERSION:-latest}
+    image: postgres:${POSTGRES_VERSION:-latest}
     command: postgres -c ssl=on -c ssl_cert_file=/var/lib/postgresql/server.crt -c ssl_key_file=/var/lib/postgresql/server.key -c ssl_ca_file=/var/lib/postgresql/ca.crt -c hba_file=/var/lib/postgresql/pg_hba.conf
     environment:
       POSTGRES_USER: postgres
@@ -19,7 +19,7 @@ services:
     ports:
       - "5432:5432"
   postgres_no_ssl: # Borrowed from https://github.com/MeltanoLabs/tap-postgres/blob/main/.github/workflows/test.yml#L13-L23
-    image: docker.io/postgres:latest
+    image: postgres:${POSTGRES_VERSION:-latest}
     environment:
       POSTGRES_PASSWORD: postgres
     ports:
@@ -42,7 +42,7 @@ services:
     networks:
       - inner
   postgresdb:
-    image: postgres:13.0
+    image: postgres:${POSTGRES_VERSION:-latest}
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
