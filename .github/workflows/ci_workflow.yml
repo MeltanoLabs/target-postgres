@@ -68,6 +68,7 @@ jobs:
         POSTGRES_VERSION: ${{ matrix.postgres-version }}
       run: |
         docker compose -f docker-compose.yml up -d
+    - run: docker ps
     - name: Set up Python '${{ matrix.python-version }}'
       uses: actions/setup-python@v5
       with:
