@@ -1,6 +1,5 @@
 ---
 # docker compose -f docker-compose.yml up -d
-version: "2.1"
 services:
   postgres:
     image: docker.io/postgres:${POSTGRES_VERSION:-latest}

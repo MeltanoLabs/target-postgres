@@ -20,8 +20,16 @@ on:
   workflow_dispatch:
     inputs: {}
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_COLOR: 1
+
 jobs:
   tests:
+    name: Python ${{ matrix.python-version }} / Postgres ${{ matrix.postgres-version }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -78,6 +86,7 @@ jobs:
         tox -e lint
 
   integration:
+    name: Meltano integration test
     runs-on: ubuntu-latest
     services:
       postgres:
