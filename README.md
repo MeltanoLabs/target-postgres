@@ -18,6 +18,10 @@ Built with the [Meltano SDK](https://sdk.meltano.com) for Singer Taps and Target
 * `target-schema`
 * `hard-delete`
 
+## Supported Python and PostgreSQL Versions
+
+This target is tested with all actively supported Python and PostgreSQL versions. At the time of writing, this includes Python 3.9 through 3.13 and PostgreSQL 12 through 17.
+
 ## Settings
 
 | Setting                           | Required | Default                       | Description                                                                                                                                                                                                                                                                                              |
