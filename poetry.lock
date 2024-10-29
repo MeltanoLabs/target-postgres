@@ -1506,13 +1506,13 @@ files = [
 
 [[package]]
 name = "singer-sdk"
-version = "0.41.0"
+version = "0.42.0a2"
 description = "A framework for building Singer taps"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "singer_sdk-0.41.0-py3-none-any.whl", hash = "sha256:9570377d043239c04d38d4193e0c6e164949d07382234c5895e5ea1ba273e260"},
-    {file = "singer_sdk-0.41.0.tar.gz", hash = "sha256:be3a4b0ae034eda445e7dd9378999f9d19d8135fd14c9135e3bc5deaf5dbd3ad"},
+    {file = "singer_sdk-0.42.0a2-py3-none-any.whl", hash = "sha256:28eb7a06d8c68e7a54c3e986f2f2bc62a241c9f3fda48edabb6b80cf7c3c0542"},
+    {file = "singer_sdk-0.42.0a2.tar.gz", hash = "sha256:25d4a3107a26bf8813fed3d9101b9b49e58e4ad37a3ca6a9a590888413f71f12"},
 ]
 
 [package.dependencies]
@@ -1533,11 +1533,10 @@ PyYAML = ">=6.0"
 referencing = ">=0.30.0"
 requests = ">=2.25.1"
 setuptools = "<=70.3.0"
-simpleeval = ">=0.9.13"
+simpleeval = {version = ">=0.9.13", markers = "python_version >= \"3.9\""}
 simplejson = ">=3.17.6"
 sqlalchemy = ">=1.4,<3.0"
 typing-extensions = ">=4.5.0"
-urllib3 = ">=1.26,<2"
 
 [package.extras]
 docs = ["furo (>=2024.5.6)", "myst-parser (>=3)", "pytest (>=7.2.1)", "sphinx (>=7)", "sphinx-copybutton (>=0.5.2)", "sphinx-inline-tabs (>=2023.4.21)", "sphinx-notfound-page (>=1.0.0)", "sphinx-reredirects (>=0.1.5)"]
@@ -1774,19 +1773,20 @@ files = [
 
 [[package]]
 name = "urllib3"
-version = "1.26.20"
+version = "2.2.3"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
 optional = false
-python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,>=2.7"
+python-versions = ">=3.8"
 files = [
-    {file = "urllib3-1.26.20-py2.py3-none-any.whl", hash = "sha256:0ed14ccfbf1c30a9072c7ca157e4319b70d65f623e91e7b32fadb2853431016e"},
-    {file = "urllib3-1.26.20.tar.gz", hash = "sha256:40c2dc0c681e47eb8f90e7e27bf6ff7df2e677421fd46756da1161c39ca70d32"},
+    {file = "urllib3-2.2.3-py3-none-any.whl", hash = "sha256:ca899ca043dcb1bafa3e262d73aa25c465bfb49e0bd9dd5d59f1d0acba2f8fac"},
+    {file = "urllib3-2.2.3.tar.gz", hash = "sha256:e7d814a81dad81e6caf2ec9fdedb284ecc9c73076b62654547cc64ccdcae26e9"},
 ]
 
 [package.extras]
-brotli = ["brotli (==1.0.9)", "brotli (>=1.0.9)", "brotlicffi (>=0.8.0)", "brotlipy (>=0.6.0)"]
-secure = ["certifi", "cryptography (>=1.3.4)", "idna (>=2.0.0)", "ipaddress", "pyOpenSSL (>=0.14)", "urllib3-secure-extra"]
-socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
+brotli = ["brotli (>=1.0.9)", "brotlicffi (>=0.8.0)"]
+h2 = ["h2 (>=4,<5)"]
+socks = ["pysocks (>=1.5.6,!=1.5.7,<2.0)"]
+zstd = ["zstandard (>=0.18.0)"]
 
 [[package]]
 name = "virtualenv"
@@ -1833,4 +1833,4 @@ faker = ["faker"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9"
-content-hash = "77bb7bd159ea661a4a77a7a049e643bfe6ec2a9e54505a04f711dba71e86aec0"
+content-hash = "7079d1067e0b823186870cd9cba645d0d5b7adfa8083ac7caa387df7790baebe"
