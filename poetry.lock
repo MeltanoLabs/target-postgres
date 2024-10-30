@@ -1492,7 +1492,7 @@ files = [
 
 [[package]]
 name = "singer-sdk"
-version = "0.42.0a3.post10.dev0+b67b565a"
+version = "0.42.0a3.post11.dev0+e8351a89"
 description = "A framework for building Singer taps"
 optional = false
 python-versions = ">=3.8"
@@ -1535,7 +1535,7 @@ testing = ["pytest (>=7.2.1)"]
 type = "git"
 url = "https://github.com/meltano/sdk.git"
 reference = "refs/pull/2732/head"
-resolved_reference = "b67b565ad7a09d0a6f96c599a429fbf21635a8da"
+resolved_reference = "e8351a8926c469af6607a4fe162c2bf3b4d1793b"
 
 [[package]]
 name = "six"

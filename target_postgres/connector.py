@@ -30,7 +30,6 @@ from sqlalchemy.types import (
     TEXT,
     TIME,
     TIMESTAMP,
-    VARCHAR,
     TypeDecorator,
 )
 from sshtunnel import SSHTunnelForwarder
@@ -244,11 +243,17 @@ class PostgresConnector(SQLConnector):
     def jsonschema_to_sql(self) -> JSONSchemaToSQL:
         """Return a JSONSchemaToSQL instance with custom type handling."""
         to_sql = JSONSchemaToSQL()
+        to_sql.fallback_type = TEXT
         to_sql.register_type_handler("integer", BIGINT)
         to_sql.register_type_handler("object", JSONB)
         to_sql.register_type_handler("array", self._handle_array_type)
         to_sql.register_format_handler("date-time", TIMESTAMP)
         to_sql.register_format_handler("uuid", UUID)
+        to_sql.register_format_handler("email", TEXT)
+        to_sql.register_format_handler("uri", TEXT)
+        to_sql.register_format_handler("hostname", TEXT)
+        to_sql.register_format_handler("ipv4", TEXT)
+        to_sql.register_format_handler("ipv6", TEXT)
         return to_sql
 
     def to_sql_type(self, jsonschema_type: dict) -> sa.types.TypeEngine:
@@ -336,8 +341,7 @@ class PostgresConnector(SQLConnector):
         ):
             return HexByteString()
 
-        individual_type = self.jsonschema_to_sql.to_sql_type(jsonschema_type)
-        return TEXT() if isinstance(individual_type, VARCHAR) else individual_type
+        return self.jsonschema_to_sql.to_sql_type(jsonschema_type)
 
     @staticmethod
     def pick_best_sql_type(sql_type_array: list):
