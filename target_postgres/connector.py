@@ -38,6 +38,22 @@ if t.TYPE_CHECKING:
     from singer_sdk.connectors.sql import FullyQualifiedName
 
 
+class JSONSchemaToPostgres(JSONSchemaToSQL):
+    """Convert JSON Schema types to Postgres types."""
+
+    def __init__(self, *, content_encoding: bool = True) -> None:
+        """Initialize the JSONSchemaToPostgres instance."""
+        super().__init__()
+        self.content_encoding = content_encoding
+
+    def handle_raw_string(self, schema):
+        """Handle a raw string type."""
+        if self.content_encoding and schema.get("contentEncoding") == "base16":
+            return HexByteString()
+
+        return TEXT()
+
+
 class PostgresConnector(SQLConnector):
     """Sets up SQL Alchemy, and other Postgres related stuff."""
 
@@ -242,7 +258,7 @@ class PostgresConnector(SQLConnector):
     @cached_property
     def jsonschema_to_sql(self) -> JSONSchemaToSQL:
         """Return a JSONSchemaToSQL instance with custom type handling."""
-        to_sql = JSONSchemaToSQL()
+        to_sql = JSONSchemaToPostgres(content_encoding=self.interpret_content_encoding)
         to_sql.fallback_type = TEXT
         to_sql.register_type_handler("integer", BIGINT)
         to_sql.register_type_handler("object", JSONB)
@@ -323,23 +339,6 @@ class PostgresConnector(SQLConnector):
         """
         if "null" in jsonschema_type["type"]:
             return None
-        # if "integer" in jsonschema_type["type"]:
-        #     return BIGINT()
-        # if "object" in jsonschema_type["type"]:
-        #     return JSONB()
-        # if "array" in jsonschema_type["type"]:
-        #     return self._handle_array_type(jsonschema_type)
-
-        # string formats
-        # if jsonschema_type.get("format") == "date-time":
-        #     return TIMESTAMP()
-        # if jsonschema_type.get("format") == "uuid":
-        #     return UUID()
-        if (
-            self.interpret_content_encoding
-            and jsonschema_type.get("contentEncoding") == "base16"
-        ):
-            return HexByteString()
 
         return self.jsonschema_to_sql.to_sql_type(jsonschema_type)
 
