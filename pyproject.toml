@@ -97,6 +97,8 @@ select = [
   "RET",  # flake8-return
   "SIM",  # flake8-simplify
   "TCH",  # flake8-type-checking
+  "ERA",  # eradicate
+  "PGH",  # pygrep-hooks
   "PL",   # Pylint
   "PERF", # Perflint
   "RUF",  # ruff

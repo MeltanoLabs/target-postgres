@@ -178,7 +178,7 @@ class TargetPostgres(SQLTarget):
             th.BooleanType,
             default=False,
             description=(
-                "When activate version is sent from a tap this specefies "
+                "When activate version is sent from a tap this specifies "
                 + "if we should delete the records that don't match, or mark "
                 + "them with a date in the `_sdc_deleted_at` column. This config "
                 + "option is ignored if `activate_version` is set to false."

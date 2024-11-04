@@ -183,10 +183,12 @@ class PostgresConnector(SQLConnector):
             raise RuntimeError("Table already exists")
 
         columns = [column._copy() for column in from_table.columns]
+
         if as_temp_table:
             new_table = sa.Table(table_name, meta, *columns, prefixes=["TEMPORARY"])
             new_table.create(bind=connection)
             return new_table
+
         new_table = sa.Table(table_name, meta, *columns)
         new_table.create(bind=connection)
         return new_table
@@ -200,7 +202,7 @@ class PostgresConnector(SQLConnector):
         """Drop table data."""
         table.drop(bind=connection)
 
-    def clone_table(
+    def clone_table(  # noqa: PLR0913
         self, new_table_name, table, metadata, connection, temp_table
     ) -> sa.Table:
         """Clone a table."""
@@ -321,6 +323,7 @@ class PostgresConnector(SQLConnector):
         ):
             return HexByteString()
         individual_type = th.to_sql_type(jsonschema_type)
+
         return TEXT() if isinstance(individual_type, VARCHAR) else individual_type
 
     @staticmethod
@@ -412,7 +415,7 @@ class PostgresConnector(SQLConnector):
         new_table.create(bind=connection)
         return new_table
 
-    def prepare_column(
+    def prepare_column(  # noqa: PLR0913
         self,
         full_table_name: str | FullyQualifiedName,
         column_name: str,
@@ -460,7 +463,7 @@ class PostgresConnector(SQLConnector):
             column_object=column_object,
         )
 
-    def _create_empty_column(  # type: ignore[override]
+    def _create_empty_column(  # type: ignore[override]  # noqa: PLR0913
         self,
         schema_name: str,
         table_name: str,
