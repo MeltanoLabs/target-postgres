@@ -39,8 +39,7 @@ sqlalchemy = "~=2.0"
 sshtunnel = "0.4.0"
 
 [tool.poetry.dependencies.singer-sdk]
-git = "https://github.com/meltano/sdk.git"
-rev = "refs/pull/2732/head"
+version = "~=0.42.0b1"
 
 [tool.poetry.extras]
 faker = ["faker"]
