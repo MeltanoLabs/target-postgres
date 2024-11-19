@@ -18,10 +18,14 @@ Built with the [Meltano SDK](https://sdk.meltano.com) for Singer Taps and Target
 * `target-schema`
 * `hard-delete`
 
+## Supported Python and PostgreSQL Versions
+
+This target is tested with all actively supported [Python](https://devguide.python.org/versions/#supported-versions) and [PostgreSQL](https://www.postgresql.org/support/versioning/) versions. At the time of writing, this includes Python 3.9 through 3.13 and PostgreSQL 12 through 17.
+
 ## Settings
 
 | Setting                         | Required | Default                      | Description                                                                                                                                                                                                                                                                                              |
-| :------------------------------ | :------- |:-----------------------------| :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| :------------------------------ | :------- | :--------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | host                            | False    | None                         | Hostname for postgres instance. Note if sqlalchemy_url is set this will be ignored.                                                                                                                                                                                                                      |
 | port                            | False    | 5432                         | The port on which postgres is awaiting connection. Note if sqlalchemy_url is set this will be ignored.                                                                                                                                                                                                   |
 | user                            | False    | None                         | User name used to authenticate. Note if sqlalchemy_url is set this will be ignored.                                                                                                                                                                                                                      |
