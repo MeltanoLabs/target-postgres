@@ -8,7 +8,7 @@ from target_postgres.target import TargetPostgres
 
 def postgres_config():
     return {
-        "dialect+driver": "postgresql+psycopg2",
+        "dialect+driver": "postgresql+psycopg",
         "host": "localhost",
         "user": "postgres",
         "password": "postgres",
@@ -29,7 +29,7 @@ def postgres_config():
 
 def postgres_config_no_ssl():
     return {
-        "dialect+driver": "postgresql+psycopg2",
+        "dialect+driver": "postgresql+psycopg",
         "host": "localhost",
         "user": "postgres",
         "password": "postgres",
