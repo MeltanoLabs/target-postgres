@@ -8,7 +8,6 @@ from target_postgres.target import TargetPostgres
 
 def postgres_config():
     return {
-        "dialect+driver": "postgresql+psycopg",
         "host": "localhost",
         "user": "postgres",
         "password": "postgres",
@@ -29,7 +28,6 @@ def postgres_config():
 
 def postgres_config_no_ssl():
     return {
-        "dialect+driver": "postgresql+psycopg",
         "host": "localhost",
         "user": "postgres",
         "password": "postgres",
@@ -43,7 +41,11 @@ def postgres_config_no_ssl():
 
 def postgres_config_ssh_tunnel():
     return {
-        "sqlalchemy_url": "postgresql://postgres:postgres@10.5.0.5:5432/main",
+        "host": "10.5.0.5",
+        "user": "postgres",
+        "password": "postgres",
+        "database": "main",
+        "port": 5432,
         "ssh_tunnel": {
             "enable": True,
             "host": "127.0.0.1",
