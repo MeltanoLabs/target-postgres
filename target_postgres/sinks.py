@@ -153,6 +153,8 @@ class PostgresSink(SQLSink):
             for column in columns
         }
 
+        raise NotImplementedError("This method is not implemented yet.")
+
         # Use copy to run the copy statement.
         # https://www.psycopg.org/psycopg3/docs/basic/copy.html
         with connection.connection.cursor().copy(copy_statement) as copy:  # type: ignore[attr-defined]
