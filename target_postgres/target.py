@@ -144,7 +144,8 @@ class TargetPostgres(SQLTarget):
             default=False,
             description=(
                 "Use the COPY command to insert data. This is usually faster than "
-                "INSERT statements."
+                f"INSERT statements. This option is only available for the {PSYCOPG3} "
+                "dialect+driver."
             ),
             title="Use COPY",
         ),
