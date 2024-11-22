@@ -29,7 +29,7 @@ env:
 
 jobs:
   tests:
-    name: Python ${{ matrix.python-version }} / Postgres ${{ matrix.postgres-version }}
+    name: Python ${{ matrix.python-version }} / Postgres ${{ matrix.postgres-version }} / ${{ matrix.use-copy && 'COPY' || 'INSERT' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -96,7 +96,7 @@ jobs:
         tox -e lint
 
   integration:
-    name: Meltano integration test
+    name: Meltano integration test / ${{ matrix.use-copy && 'COPY' || 'INSERT' }}
     runs-on: ubuntu-latest
     services:
       postgres:
