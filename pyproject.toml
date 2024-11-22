@@ -58,6 +58,9 @@ types-jsonschema = ">=4.19.0.3"
 
 [tool.mypy]
 exclude = "tests"
+warn_redundant_casts = true
+warn_unused_configs = true
+warn_unused_ignores = true
 
 [[tool.mypy.overrides]]
 module = ["sshtunnel"]

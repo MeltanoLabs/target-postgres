@@ -29,7 +29,7 @@ env:
 
 jobs:
   tests:
-    name: Python ${{ matrix.python-version }} / Postgres ${{ matrix.postgres-version }}
+    name: Python ${{ matrix.python-version }} / Postgres ${{ matrix.postgres-version }} / ${{ matrix.use-copy == 'true' && 'COPY' || 'INSERT' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -42,15 +42,24 @@ jobs:
         - "3.9"
         postgres-version:
         - "17"
+        use-copy:
+        - "true"
         include:
         - python-version: "3.13"
           postgres-version: "13"
+          use-copy: "true"
         - python-version: "3.13"
           postgres-version: "14"
+          use-copy: "true"
         - python-version: "3.13"
           postgres-version: "15"
+          use-copy: "true"
         - python-version: "3.13"
           postgres-version: "16"
+          use-copy: "true"
+        - python-version: "3.13"
+          postgres-version: "17"
+          use-copy: "false"
     steps:
     - uses: actions/checkout@v4
       with:
@@ -78,6 +87,8 @@ jobs:
         python -m pip install --upgrade pip
         pipx install tox
     - name: Run pytest
+      env:
+        TARGET_POSTGRES_USE_COPY: ${{ matrix.use-copy }}
       run: |
         tox -e ${{ matrix.python-version }}
     - name: Run lint
@@ -85,7 +96,7 @@ jobs:
         tox -e lint
 
   integration:
-    name: Meltano integration test
+    name: Meltano integration test / ${{ matrix.use-copy == 'true' && 'COPY' || 'INSERT' }}
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -99,6 +110,10 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
+    strategy:
+      fail-fast: false
+      matrix:
+        use-copy: ["true", "false"]
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python
@@ -113,4 +128,6 @@ jobs:
         pipx install meltano
         meltano --version
     - name: smoke-test-tap
+      env:
+        TARGET_POSTGRES_USE_COPY: ${{ matrix.use-copy }}
       run: meltano run tap-smoke-test target-postgres
