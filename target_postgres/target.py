@@ -139,6 +139,16 @@ class TargetPostgres(SQLTarget):
             description="Database name.",
         ),
         th.Property(
+            "use_copy",
+            th.BooleanType,
+            default=False,
+            description=(
+                "Use the COPY command to insert data. This is usually faster than "
+                "INSERT statements."
+            ),
+            title="Use COPY",
+        ),
+        th.Property(
             "sqlalchemy_url",
             th.StringType,
             description=(

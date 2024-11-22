@@ -122,7 +122,7 @@ class PostgresSink(SQLSink):
     def generate_copy_statement(
         self,
         full_table_name: str | FullyQualifiedName,
-        columns: list[sa.Column],  # type: ignore[override]
+        columns: list[sa.Column],
     ) -> str:
         """Generate a copy statement for bulk copy.
 
@@ -196,8 +196,6 @@ class PostgresSink(SQLSink):
             True if table exists, False if not, None if unsure or undetectable.
         """
         columns = self.column_representation(schema)
-        copy_statement: str = self.generate_copy_statement(table.name, columns)
-        self.logger.info("Inserting with SQL: %s", copy_statement)
 
         data: list[dict[str, t.Any]] = []
 
@@ -220,7 +218,20 @@ class PostgresSink(SQLSink):
                 }
                 data.append(insert_record)
 
-        self._do_copy(connection, copy_statement, columns, data)
+        if self.config["use_copy"]:
+            copy_statement: str = self.generate_copy_statement(table.name, columns)
+            self.logger.info("Inserting with SQL: %s", copy_statement)
+            self._do_copy(connection, copy_statement, columns, data)
+        else:
+            insert: str = t.cast(
+                str,
+                self.generate_insert_statement(
+                    table.name,
+                    columns,
+                ),
+            )
+            self.logger.info("Inserting with SQL: %s", insert)
+            connection.execute(insert, data)
 
         return True
 
