@@ -141,7 +141,7 @@ class TargetPostgres(SQLTarget):
         th.Property(
             "use_copy",
             th.BooleanType,
-            default=False,
+            default=True,
             description=(
                 "Use the COPY command to insert data. This is usually faster than "
                 "INSERT statements."
