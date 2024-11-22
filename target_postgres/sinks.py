@@ -170,8 +170,6 @@ class PostgresSink(SQLSink):
 
                 copy.write_row(processed_row)
 
-        raise NotImplementedError("This method is not implemented yet.")
-
     def bulk_insert_records(  # type: ignore[override]
         self,
         table: sa.Table,
