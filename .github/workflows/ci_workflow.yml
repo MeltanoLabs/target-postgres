@@ -71,7 +71,7 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '${{ matrix.python-version }}'
-    - name: Install Poetry
+    - name: Install Tox
       env:
         PIP_CONSTRAINT: ${{ github.workspace }}/.github/workflows/constraints.txt
       run: |
