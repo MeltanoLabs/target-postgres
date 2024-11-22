@@ -89,7 +89,7 @@ jobs:
     - name: Run pytest
       env:
         TARGET_POSTGRES_USE_COPY: ${{ matrix.use-copy }}
-      run: A
+      run: |
         tox -e ${{ matrix.python-version }}
     - name: Run lint
       run: |
