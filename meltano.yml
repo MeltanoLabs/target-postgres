@@ -59,6 +59,8 @@ plugins:
       kind: integer
     - name: user
     - name: database
+    - name: use_copy
+      kind: boolean
     - name: target_schema
     - name: add_record_metadata
       kind: boolean

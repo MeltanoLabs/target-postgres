@@ -119,6 +119,57 @@ class PostgresSink(SQLSink):
         # in postgres, used a guid just in case we are using the same session
         return f"{str(uuid.uuid4()).replace('-', '_')}"
 
+    def generate_copy_statement(
+        self,
+        full_table_name: str | FullyQualifiedName,
+        columns: list[sa.Column],
+    ) -> str:
+        """Generate a copy statement for bulk copy.
+
+        Args:
+            full_table_name: the target table name.
+            columns: the target table columns.
+
+        Returns:
+            A copy statement.
+        """
+        columns_list = ", ".join(f'"{column.name}"' for column in columns)
+        sql: str = f'COPY "{full_table_name}" ({columns_list}) FROM STDIN'
+
+        return sql
+
+    def _do_copy(
+        self,
+        connection: sa.engine.Connection,
+        copy_statement: str,
+        columns: list[sa.Column],
+        data_to_copy: list[dict[str, t.Any]],
+    ) -> None:
+        # Prepare to process the rows into csv. Use each column's bind_processor to do
+        # most of the work, then do the final construction of the csv rows ourselves
+        # to control exactly how values are converted and which ones are quoted.
+        column_bind_processors = {
+            column.name: column.type.bind_processor(connection.dialect)
+            for column in columns
+        }
+
+        # Use copy to run the copy statement.
+        # https://www.psycopg.org/psycopg3/docs/basic/copy.html
+        with connection.connection.cursor().copy(copy_statement) as copy:  # type: ignore[attr-defined]
+            for row in data_to_copy:
+                processed_row = []
+                for row_column_name in row:
+                    if column_bind_processors[row_column_name] is not None:
+                        processed_row.append(
+                            column_bind_processors[row_column_name](
+                                row[row_column_name]
+                            )
+                        )
+                    else:
+                        processed_row.append(row[row_column_name])
+
+                copy.write_row(processed_row)
+
     def bulk_insert_records(  # type: ignore[override]
         self,
         table: sa.Table,
@@ -145,19 +196,12 @@ class PostgresSink(SQLSink):
             True if table exists, False if not, None if unsure or undetectable.
         """
         columns = self.column_representation(schema)
-        insert: str = t.cast(
-            str,
-            self.generate_insert_statement(
-                table.name,
-                columns,
-            ),
-        )
-        self.logger.info("Inserting with SQL: %s", insert)
-        # Only one record per PK, we want to take the last one
-        data_to_insert: list[dict[str, t.Any]] = []
 
+        data: list[dict[str, t.Any]] = []
+
+        # If append only is False, we only take the latest record one per primary key
         if self.append_only is False:
-            insert_records: dict[tuple, dict] = {}  # pk tuple: record
+            unique_records: dict[tuple, dict] = {}  # pk tuple: values
             for record in records:
                 insert_record = {
                     column.name: record.get(column.name) for column in columns
@@ -165,15 +209,30 @@ class PostgresSink(SQLSink):
                 # No need to check for a KeyError here because the SDK already
                 # guarantees that all key properties exist in the record.
                 primary_key_tuple = tuple(record[key] for key in primary_keys)
-                insert_records[primary_key_tuple] = insert_record
-            data_to_insert = list(insert_records.values())
+                unique_records[primary_key_tuple] = insert_record
+            data = list(unique_records.values())
         else:
             for record in records:
                 insert_record = {
                     column.name: record.get(column.name) for column in columns
                 }
-                data_to_insert.append(insert_record)
-        connection.execute(insert, data_to_insert)
+                data.append(insert_record)
+
+        if self.config["use_copy"]:
+            copy_statement: str = self.generate_copy_statement(table.name, columns)
+            self.logger.info("Inserting with SQL: %s", copy_statement)
+            self._do_copy(connection, copy_statement, columns, data)
+        else:
+            insert: str = t.cast(
+                str,
+                self.generate_insert_statement(
+                    table.name,
+                    columns,
+                ),
+            )
+            self.logger.info("Inserting with SQL: %s", insert)
+            connection.execute(insert, data)
+
         return True
 
     def upsert(
