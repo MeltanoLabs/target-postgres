@@ -153,8 +153,6 @@ class PostgresSink(SQLSink):
             for column in columns
         }
 
-        raise NotImplementedError("This method is not implemented yet.")
-
         # Use copy to run the copy statement.
         # https://www.psycopg.org/psycopg3/docs/basic/copy.html
         with connection.connection.cursor().copy(copy_statement) as copy:  # type: ignore[attr-defined]
@@ -171,6 +169,8 @@ class PostgresSink(SQLSink):
                         processed_row.append(row[row_column_name])
 
                 copy.write_row(processed_row)
+
+        raise NotImplementedError("This method is not implemented yet.")
 
     def bulk_insert_records(  # type: ignore[override]
         self,
