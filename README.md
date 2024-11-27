@@ -240,8 +240,8 @@ The below table shows how this tap will map between jsonschema datatypes and Pos
 | jsonschema                                                                         | Postgres                                |
 | ---------------------------------------------------------------------------------- | --------------------------------------- |
 | integer                                                                            | bigint                                  |
-| integer with maximum<32768                                                         | smallint                                |
-| integer with maximum>=2147483648                                                   | integer                                 |
+| integer with maximum < 32768                                                       | smallint                                |
+| integer with maximum < 2147483648                                                  | integer                                 |
 | UNSUPPORTED                                                                        | bigserial                               |
 | UNSUPPORTED                                                                        | bit [ (n) ]                             |
 | UNSUPPORTED                                                                        | bit varying [ (n) ]                     |
