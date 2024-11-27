@@ -1,0 +1,22 @@
+name: Feature Request
+description: Request a new feature be supported by this project
+title: "feat: <title>"
+
+labels: []
+
+assignees:
+  - edgarrmondragon
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out feature request!
+  - type: textarea
+    id: what
+    attributes:
+      label: Description
+      description: Describe the feature
+      placeholder: Tell us about the new feature in detail, how it would benefit you or other users
+    validations:
+      required: true
