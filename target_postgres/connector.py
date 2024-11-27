@@ -18,7 +18,14 @@ import simplejson
 import sqlalchemy as sa
 from singer_sdk import SQLConnector
 from singer_sdk.connectors.sql import JSONSchemaToSQL
-from sqlalchemy.dialects.postgresql import ARRAY, BIGINT, BYTEA, JSONB, UUID
+from sqlalchemy.dialects.postgresql import (
+    ARRAY,
+    BIGINT,
+    BYTEA,
+    JSONB,
+    SMALLINT,
+    UUID,
+)
 from sqlalchemy.engine import URL
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.types import (
@@ -255,12 +262,22 @@ class PostgresConnector(SQLConnector):
         # Case 3: tuples
         return ARRAY(JSONB()) if isinstance(items, list) else JSONB()
 
+    def _handle_integer_type(self, jsonschema: dict) -> SMALLINT | INTEGER | BIGINT:
+        """Handle integer type."""
+        if maximum := jsonschema.get("maximum"):
+            if maximum < 2**15:
+                return SMALLINT()
+            if maximum < 2**31:
+                return INTEGER()
+
+        return BIGINT()
+
     @cached_property
     def jsonschema_to_sql(self) -> JSONSchemaToSQL:
         """Return a JSONSchemaToSQL instance with custom type handling."""
         to_sql = JSONSchemaToPostgres(content_encoding=self.interpret_content_encoding)
         to_sql.fallback_type = TEXT
-        to_sql.register_type_handler("integer", BIGINT)
+        to_sql.register_type_handler("integer", self._handle_integer_type)
         to_sql.register_type_handler("object", JSONB)
         to_sql.register_type_handler("array", self._handle_array_type)
         to_sql.register_format_handler("date-time", TIMESTAMP)
