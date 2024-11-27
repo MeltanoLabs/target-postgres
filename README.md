@@ -297,6 +297,7 @@ If a column has multiple jsonschema types, the following order is using to order
 - DECIMAL
 - BIGINT
 - INTEGER
+- SMALLINT
 - BOOLEAN
 - NOTYPE
 

@@ -382,6 +382,7 @@ class PostgresConnector(SQLConnector):
             DECIMAL,
             BIGINT,
             INTEGER,
+            SMALLINT,
             BOOLEAN,
             NOTYPE,
         ]
