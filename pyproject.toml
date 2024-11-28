@@ -40,7 +40,8 @@ sqlalchemy = "~=2.0"
 sshtunnel = "0.4.0"
 
 [tool.poetry.dependencies.singer-sdk]
-version = "~=0.42.0b1"
+git = "https://github.com/meltano/sdk.git"
+branch = "edgarrmondragon/refactor/jsonschematosql-fromconfig"
 
 [tool.poetry.extras]
 faker = ["faker"]
