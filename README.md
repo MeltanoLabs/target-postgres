@@ -240,8 +240,8 @@ The below table shows how this tap will map between jsonschema datatypes and Pos
 | jsonschema                                                                         | Postgres                                |
 | ---------------------------------------------------------------------------------- | --------------------------------------- |
 | integer                                                                            | bigint                                  |
-| integer with maximum < 32768                                                       | smallint                                |
-| integer with maximum < 2147483648                                                  | integer                                 |
+| integer with minimum >= 32768 or maximum < 32768                                   | smallint                                |
+| integer with minimum >= 2147483648 or maximum < 2147483648                         | integer                                 |
 | UNSUPPORTED                                                                        | bigserial                               |
 | UNSUPPORTED                                                                        | bit [ (n) ]                             |
 | UNSUPPORTED                                                                        | bit varying [ (n) ]                     |
@@ -314,7 +314,9 @@ plugins:
       some_stream_id:
         my_column:
           type: integer
-          maximum: 1000  # This will be mapped to 'smallint'
+          # This will be mapped to 'smallint'
+          minimum: 0
+          maximum: 1000
 ```
 
 ## Content Encoding Support
