@@ -303,7 +303,7 @@ If a column has multiple jsonschema types, the following order is using to order
 
 ### Using the Singer catalog to narrow down the Postgres data types
 
-You can use [Singer catalog's schema](https://github.com/singer-io/getting-started/blob/master/docs/DISCOVERY_MODE.md#schemas) to override the data types coming from the tap. The easiest way to do this is to use Meltano and its [schema setting](https://docs.meltano.com/concepts/plugins/#schema-extra) for the tap:
+You can use [Singer catalog's schema](https://github.com/singer-io/getting-started/blob/master/docs/DISCOVERY_MODE.md#schemas) to override the data types coming from the tap. The easiest way to do this is to use Meltano and its [`schema` setting](https://docs.meltano.com/concepts/plugins/#schema-extra) for the tap:
 
 ```yaml
 # meltano.yml
@@ -311,9 +311,10 @@ plugins:
   extractors:
   - name: tap-my-tap
     schema:
-      my_column:
-        type: integer
-        maximum: 1000  # This will be mapped to 'smallint'
+      some_stream_id:
+        my_column:
+          type: integer
+          maximum: 1000  # This will be mapped to 'smallint'
 ```
 
 ## Content Encoding Support
