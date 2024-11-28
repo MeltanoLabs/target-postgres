@@ -56,6 +56,7 @@ class TestJSONSchemaToPostgres:
         ("jsonschema", "expected"),
         [
             pytest.param({"type": "integer"}, BIGINT, id="default"),
+            pytest.param({"type": ["integer", "null"]}, BIGINT, id="default-nullable"),
             pytest.param(
                 {"type": "integer", "maximum": 2**15 - 1},
                 SMALLINT,
