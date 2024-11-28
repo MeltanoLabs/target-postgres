@@ -58,17 +58,38 @@ class TestJSONSchemaToPostgres:
             pytest.param({"type": "integer"}, BIGINT, id="default"),
             pytest.param({"type": ["integer", "null"]}, BIGINT, id="default-nullable"),
             pytest.param(
-                {"type": "integer", "maximum": 2**15 - 1},
+                {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2**15 - 1,
+                },
                 SMALLINT,
                 id="smallint",
             ),
             pytest.param(
-                {"type": "integer", "maximum": 2**31 - 1},
+                {
+                    "type": "integer",
+                    "minimum": -5,
+                    "maximum": 5,
+                },
+                SMALLINT,
+                id="negative-smallint",
+            ),
+            pytest.param(
+                {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2**31 - 1,
+                },
                 sa.INTEGER,
                 id="integer",
             ),
             pytest.param(
-                {"type": "integer", "maximum": 2**31 + 1},
+                {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2**31 + 1,
+                },
                 BIGINT,
                 id="bigint",
             ),

@@ -5,6 +5,7 @@ from __future__ import annotations
 import atexit
 import io
 import itertools
+import math
 import signal
 import sys
 import typing as t
@@ -264,11 +265,12 @@ class PostgresConnector(SQLConnector):
 
     def _handle_integer_type(self, jsonschema: dict) -> SMALLINT | INTEGER | BIGINT:
         """Handle integer type."""
-        if maximum := jsonschema.get("maximum"):
-            if maximum < 2**15:
-                return SMALLINT()
-            if maximum < 2**31:
-                return INTEGER()
+        minimum = jsonschema.get("minimum", -math.inf)
+        maximum = jsonschema.get("maximum", math.inf)
+        if minimum >= -(2**15) and maximum < 2**15:
+            return SMALLINT()
+        if minimum >= -(2**31) and maximum < 2**31:
+            return INTEGER()
 
         return BIGINT()
 
