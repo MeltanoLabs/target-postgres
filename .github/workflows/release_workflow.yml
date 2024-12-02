@@ -37,4 +37,4 @@ jobs:
         tag: ${{ github.ref }}
         overwrite: true
         file_glob: true
-    - uses: pypa/gh-action-pypi-publish@v1.11.0
+    - uses: pypa/gh-action-pypi-publish@v1.12.2
