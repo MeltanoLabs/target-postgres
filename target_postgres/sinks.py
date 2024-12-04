@@ -11,6 +11,7 @@ from singer_sdk.sinks import SQLSink
 from sqlalchemy.sql.expression import bindparam
 
 from target_postgres.connector import PostgresConnector
+from target_postgres.tests.test_types import connector
 
 if t.TYPE_CHECKING:
     from singer_sdk.connectors.sql import FullyQualifiedName
@@ -189,6 +190,27 @@ class PostgresSink(SQLSink):
                         processed_row.append(row[row_column_name])
 
                 copy.write_row(processed_row)
+    def sanitize_null_text_characters(self, data):
+        """Sanitizes null characters by replacing \u0000 with \uFFFD"""
+
+        def replace_null_character(d):
+            return d.replace('\u0000', '\uFFFD')
+
+        if isinstance(data, str):
+            data = replace_null_character(data)
+
+        elif isinstance(data, dict):
+            for k in data:
+                if isinstance(data[k], str):
+                    data[k] = replace_null_character(data[k])
+
+        elif isinstance(data, list):
+            for i in range(0, len(data)):
+                if isinstance(data[i], str):
+                    data[i] = replace_null_character(data[i])
+
+        return data
+
 
     def bulk_insert_records(  # type: ignore[override]
         self,
@@ -231,6 +253,11 @@ class PostgresSink(SQLSink):
                     )
                     for column in columns
                 }
+                for column in columns:
+                    if self.connector.sanitize_null_text_characters:
+                        insert_record[column.name] = self.sanitize_null_text_characters(record.get(column.name))
+                    else:
+                        insert_record[column.name] = record.get(column.name)
                 # No need to check for a KeyError here because the SDK already
                 # guarantees that all key properties exist in the record.
                 primary_key_tuple = tuple(record[key] for key in primary_keys)
@@ -246,8 +273,14 @@ class PostgresSink(SQLSink):
                     )
                     for column in columns
                 }
+                for column in columns:
+                    if self.connector.sanitize_null_text_characters:
+                        insert_record[column.name] = self.sanitize_null_text_characters(record.get(column.name))
+                    else:
+                        insert_record[column.name] = record.get(column.name)
                 data.append(insert_record)
 
+        
         if self.config["use_copy"]:
             copy_statement: str = self.generate_copy_statement(table.name, columns)
             self.logger.info("Inserting with SQL: %s", copy_statement)
