@@ -219,6 +219,17 @@ class TargetPostgres(SQLTarget):
             ),
         ),
         th.Property(
+            "sanitize_null_text_characters",
+            th.BooleanType,
+            default=False,
+            description=(
+                "If set to true, the target will sanitize null characters in "
+                "char/text/varchar fields, as they are not supported by Postgres. "
+                "See [postgres documentation](https://www.postgresql.org/docs/current/functions-string.html) "  # noqa: E501
+                "for more information about chr(0) not being supported."
+            ),
+        ),
+        th.Property(
             "ssl_enable",
             th.BooleanType,
             default=False,
