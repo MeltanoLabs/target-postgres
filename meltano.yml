@@ -35,9 +35,6 @@ plugins:
     namespace: target_postgres
     pip_url: -e .
     settings:
-    - name: sqlalchemy_url
-      kind: password
-      sensitive: true
     - name: ssl_enable
       kind: boolean
       sensitive: true
@@ -62,6 +59,8 @@ plugins:
       kind: integer
     - name: user
     - name: database
+    - name: use_copy
+      kind: boolean
     - name: target_schema
     - name: add_record_metadata
       kind: boolean

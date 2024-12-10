@@ -10,22 +10,18 @@ from singer_sdk.testing.target_tests import (
     TargetCamelcaseTest,
     TargetCliPrintsTest,
     TargetDuplicateRecords,
-    TargetEncodedStringData,
     TargetInvalidSchemaTest,
-    TargetMultipleStateMessages,
     TargetNoPrimaryKeys,
     TargetOptionalAttributes,
     TargetRecordBeforeSchemaTest,
     TargetRecordMissingKeyProperty,
     TargetRecordMissingOptionalFields,
-    TargetRecordMissingRequiredProperty,
     TargetSchemaNoProperties,
     TargetSchemaUpdates,
     TargetSpecialCharsInAttributes,
 )
 
 from target_postgres.target import TargetPostgres
-
 from .core import create_engine, postgres_config
 
 target_tests = TestSuite(
@@ -62,7 +58,9 @@ class BasePostgresSDKTests:
     @pytest.fixture()
     def connection(self, runner):
         engine = create_engine(runner)
-        return engine.connect()
+        with engine.connect() as conn:
+            yield conn
+        engine.dispose()
 
 
 SDKTests = get_target_test_class(

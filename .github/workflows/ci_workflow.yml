@@ -20,8 +20,16 @@ on:
   workflow_dispatch:
     inputs: {}
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_COLOR: 1
+
 jobs:
   tests:
+    name: Python ${{ matrix.python-version }} / Postgres ${{ matrix.postgres-version }} / ${{ matrix.use-copy == 'true' && 'COPY' || 'INSERT' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -32,8 +40,30 @@ jobs:
         - "3.11"
         - "3.10"
         - "3.9"
+        postgres-version:
+        - "17"
+        use-copy:
+        - "true"
+        include:
+        - python-version: "3.13"
+          postgres-version: "13"
+          use-copy: "true"
+        - python-version: "3.13"
+          postgres-version: "14"
+          use-copy: "true"
+        - python-version: "3.13"
+          postgres-version: "15"
+          use-copy: "true"
+        - python-version: "3.13"
+          postgres-version: "16"
+          use-copy: "true"
+        - python-version: "3.13"
+          postgres-version: "17"
+          use-copy: "false"
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-tags: true
     - name: Fix key permissions
       run: |
         chmod 600 ssl/server.key
@@ -41,30 +71,32 @@ jobs:
         chmod 600 ssl/pkey.key
         chmod 644 ssl/public_pkey.key
     - name: Set up Postgres container
+      env:
+        POSTGRES_VERSION: ${{ matrix.postgres-version }}
       run: |
         docker compose -f docker-compose.yml up -d
+    - run: docker ps
     - name: Set up Python '${{ matrix.python-version }}'
       uses: actions/setup-python@v5
       with:
         python-version: '${{ matrix.python-version }}'
-    - name: Install Poetry
+    - name: Install Tox
       env:
         PIP_CONSTRAINT: ${{ github.workspace }}/.github/workflows/constraints.txt
       run: |
         python -m pip install --upgrade pip
-        pipx install poetry
-    - name: Install dependencies
-      run: |
-        poetry env use python${{ matrix.python-version }}
-        poetry install
+        pipx install tox
     - name: Run pytest
+      env:
+        TARGET_POSTGRES_USE_COPY: ${{ matrix.use-copy }}
       run: |
-        poetry run pytest --capture=no
+        tox -e ${{ matrix.python-version }}
     - name: Run lint
       run: |
-        poetry run tox -e lint
+        tox -e lint
 
   integration:
+    name: Meltano integration test / ${{ matrix.use-copy == 'true' && 'COPY' || 'INSERT' }}
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -78,6 +110,10 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
+    strategy:
+      fail-fast: false
+      matrix:
+        use-copy: ["true", "false"]
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python
@@ -85,9 +121,13 @@ jobs:
       with:
         python-version: 3.x
     - name: Install dependencies
+      env:
+        PIP_CONSTRAINT: ${{ github.workspace }}/.github/workflows/constraints.txt
       run: |
         python -m pip install --upgrade pip
         pipx install meltano
-        meltano install
+        meltano --version
     - name: smoke-test-tap
+      env:
+        TARGET_POSTGRES_USE_COPY: ${{ matrix.use-copy }}
       run: meltano run tap-smoke-test target-postgres
