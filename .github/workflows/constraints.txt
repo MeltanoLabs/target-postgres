@@ -1,2 +1,2 @@
-meltano==3.6.0b4
+meltano==3.6.0
 tox==4.23.2
