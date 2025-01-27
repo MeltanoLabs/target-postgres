@@ -238,51 +238,51 @@ develop your own Singer taps and targets.
 
 The below table shows how this tap will map between jsonschema datatypes and Postgres datatypes.
 
-| jsonschema                     | Postgres                                |
-|--------------------------------|-----------------------------------------|
-| integer                        | bigint                                  |
-| UNSUPPORTED                    | bigserial                               |
-| UNSUPPORTED                    | bit [ (n) ]                             |
-| UNSUPPORTED                    | bit varying [ (n) ]                     |
-| boolean                        | boolean                                 |
-| UNSUPPORTED                    | box                                     |
+| jsonschema                                                                         | Postgres                                |
+| ---------------------------------------------------------------------------------- | --------------------------------------- |
+| integer                                                                            | bigint                                  |
+| integer with minimum >= 32768 or maximum < 32768                                   | smallint                                |
+| integer with minimum >= 2147483648 or maximum < 2147483648                         | integer                                 |
+| UNSUPPORTED                                                                        | bigserial                               |
+| UNSUPPORTED                                                                        | bit [ (n) ]                             |
+| UNSUPPORTED                                                                        | bit varying [ (n) ]                     |
+| boolean                                                                            | boolean                                 |
+| UNSUPPORTED                                                                        | box                                     |
 | string with contentEncoding="base16" ([opt-in feature](#content-encoding-support)) | bytea                                   |
-| UNSUPPORTED                    | character [ (n) ]                       |
-| UNSUPPORTED                    | character varying [ (n) ]               |
-| UNSUPPORTED                    | cidr                                    |
-| UNSUPPORTED                    | circle                                  |
-| string with format="date"      | date                                    |
-| UNSUPPORTED                    | double precision                        |
-| UNSUPPORTED                    | inet                                    |
-| UNSUPPORTED                    | integer                                 |
-| UNSUPPORTED                    | interval [ fields ] [ (p) ]             |
-| UNSUPPORTED                    | json                                    |
-| array; object                  | jsonb                                   |
-| UNSUPPORTED                    | line                                    |
-| UNSUPPORTED                    | lseg                                    |
-| UNSUPPORTED                    | macaddr                                 |
-| UNSUPPORTED                    | macaddr8                                |
-| UNSUPPORTED                    | money                                   |
-| number                         | numeric [ (p, s) ]                      |
-| UNSUPPORTED                    | path                                    |
-| UNSUPPORTED                    | pg_lsn                                  |
-| UNSUPPORTED                    | pg_snapshot                             |
-| UNSUPPORTED                    | point                                   |
-| UNSUPPORTED                    | polygon                                 |
-| UNSUPPORTED                    | real                                    |
-| UNSUPPORTED                    | smallint                                |
-| UNSUPPORTED                    | smallserial                             |
-| UNSUPPORTED                    | serial                                  |
-| string without format; untyped | text                                    |
-| string with format="time"      | time [ (p) ] [ without time zone ]      |
-| UNSUPPORTED                    | time [ (p) ] with time zone             |
-| string with format="date-time" | timestamp [ (p) ] [ without time zone ] |
-| UNSUPPORTED                    | timestamp [ (p) ] with time zone        |
-| UNSUPPORTED                    | tsquery                                 |
-| UNSUPPORTED                    | tsvector                                |
-| UNSUPPORTED                    | txid_snapshot                           |
-| string with format="uuid"      | uuid                                    |
-| UNSUPPORTED                    | xml                                     |
+| UNSUPPORTED                                                                        | character [ (n) ]                       |
+| UNSUPPORTED                                                                        | character varying [ (n) ]               |
+| UNSUPPORTED                                                                        | cidr                                    |
+| UNSUPPORTED                                                                        | circle                                  |
+| string with format="date"                                                          | date                                    |
+| UNSUPPORTED                                                                        | double precision                        |
+| UNSUPPORTED                                                                        | inet                                    |
+| UNSUPPORTED                                                                        | interval [ fields ] [ (p) ]             |
+| UNSUPPORTED                                                                        | json                                    |
+| array; object                                                                      | jsonb                                   |
+| UNSUPPORTED                                                                        | line                                    |
+| UNSUPPORTED                                                                        | lseg                                    |
+| UNSUPPORTED                                                                        | macaddr                                 |
+| UNSUPPORTED                                                                        | macaddr8                                |
+| UNSUPPORTED                                                                        | money                                   |
+| number                                                                             | numeric [ (p, s) ]                      |
+| UNSUPPORTED                                                                        | path                                    |
+| UNSUPPORTED                                                                        | pg_lsn                                  |
+| UNSUPPORTED                                                                        | pg_snapshot                             |
+| UNSUPPORTED                                                                        | point                                   |
+| UNSUPPORTED                                                                        | polygon                                 |
+| UNSUPPORTED                                                                        | real                                    |
+| UNSUPPORTED                                                                        | smallserial                             |
+| UNSUPPORTED                                                                        | serial                                  |
+| string without format; untyped                                                     | text                                    |
+| string with format="time"                                                          | time [ (p) ] [ without time zone ]      |
+| UNSUPPORTED                                                                        | time [ (p) ] with time zone             |
+| string with format="date-time"                                                     | timestamp [ (p) ] [ without time zone ] |
+| UNSUPPORTED                                                                        | timestamp [ (p) ] with time zone        |
+| UNSUPPORTED                                                                        | tsquery                                 |
+| UNSUPPORTED                                                                        | tsvector                                |
+| UNSUPPORTED                                                                        | txid_snapshot                           |
+| string with format="uuid"                                                          | uuid                                    |
+| UNSUPPORTED                                                                        | xml                                     |
 
 Note that while object types are mapped directly to jsonb, array types are mapped to a jsonb array.
 
@@ -298,8 +298,27 @@ If a column has multiple jsonschema types, the following order is using to order
 - DECIMAL
 - BIGINT
 - INTEGER
+- SMALLINT
 - BOOLEAN
 - NOTYPE
+
+### Using the Singer catalog to narrow down the Postgres data types
+
+You can use [Singer catalog's schema](https://github.com/singer-io/getting-started/blob/master/docs/DISCOVERY_MODE.md#schemas) to override the data types coming from the tap. The easiest way to do this is to use Meltano and its [`schema` setting](https://docs.meltano.com/concepts/plugins/#schema-extra) for the tap:
+
+```yaml
+# meltano.yml
+plugins:
+  extractors:
+  - name: tap-my-tap
+    schema:
+      some_stream_id:
+        my_column:
+          type: integer
+          # This will be mapped to 'smallint'
+          minimum: 0
+          maximum: 1000
+```
 
 ## Content Encoding Support
 
