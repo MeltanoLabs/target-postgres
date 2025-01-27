@@ -49,9 +49,14 @@ if t.TYPE_CHECKING:
 class JSONSchemaToPostgres(JSONSchemaToSQL):
     """Convert JSON Schema types to Postgres types."""
 
-    def __init__(self, *, content_encoding: bool = True) -> None:
+    def __init__(
+        self,
+        *args: t.Any,
+        content_encoding: bool = True,
+        **kwargs: t.Any,
+    ) -> None:
         """Initialize the JSONSchemaToPostgres instance."""
-        super().__init__()
+        super().__init__(*args, **kwargs)
         self.content_encoding = content_encoding
 
     def handle_raw_string(self, schema):
@@ -70,6 +75,10 @@ class PostgresConnector(SQLConnector):
     allow_column_alter: bool = False  # Whether altering column types is supported.
     allow_merge_upsert: bool = True  # Whether MERGE UPSERT is supported.
     allow_temp_tables: bool = True  # Whether temp tables are supported.
+
+    #: Maximum length of a VARCHAR column.
+    #: https://www.postgresql.org/docs/current/datatype-character.html
+    max_varchar_length: int | None = 10_485_760
 
     def __init__(self, config: dict) -> None:
         """Initialize a connector to a Postgres database.
@@ -286,7 +295,10 @@ class PostgresConnector(SQLConnector):
     @cached_property
     def jsonschema_to_sql(self) -> JSONSchemaToSQL:
         """Return a JSONSchemaToSQL instance with custom type handling."""
-        to_sql = JSONSchemaToPostgres(content_encoding=self.interpret_content_encoding)
+        to_sql = JSONSchemaToPostgres(
+            content_encoding=self.interpret_content_encoding,
+            max_varchar_length=self.max_varchar_length,
+        )
         to_sql.fallback_type = TEXT
         to_sql.register_type_handler("integer", self._handle_integer_type)
         to_sql.register_type_handler("object", JSONB)
