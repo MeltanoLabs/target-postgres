@@ -100,7 +100,7 @@ select = [
   "ICN",  # flake8-import-conventions
   "RET",  # flake8-return
   "SIM",  # flake8-simplify
-  "TCH",  # flake8-type-checking
+  "TC",   # flake8-type-checking
   "PL",   # Pylint
   "PERF", # Perflint
   "RUF",  # ruff
