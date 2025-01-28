@@ -93,6 +93,14 @@ class TestJSONSchemaToPostgres:
                 BIGINT,
                 id="bigint",
             ),
+            pytest.param(
+                {
+                    "type": "integer",
+                    "x-sql-datatype": "smallint",
+                },
+                SMALLINT,
+                id="x-sql-datatype-smallint",
+            ),
         ],
     )
     def test_integers(

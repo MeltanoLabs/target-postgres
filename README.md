@@ -302,6 +302,18 @@ If a column has multiple jsonschema types, the following order is using to order
 - BOOLEAN
 - NOTYPE
 
+### `x-sql-datatype` extension
+
+This target supports the [`x-sql-datatype` extension](https://sdk.meltano.com/en/latest/guides/sql-target.html#use-the-x-sql-datatype-json-schema-extension) to the JSON schema. This extension allows you to specify the Postgres data type that should be used for a given field. This can be useful when the default mapping is not what you want.
+
+<!-- insert a table with the mapping -->
+
+| `x-sql-datatype` | Postgres | Description                                                        |
+| :--------------- | :------- | :----------------------------------------------------------------- |
+| smallint         | smallint | small-range integer (-32768 to +32767)                             |
+| integer          | integer  | typical choice for integer (-2147483648 to +2147483647)            |
+| bigint           | bigint   | large-range integer (-9223372036854775808 to +9223372036854775807) |
+
 ### Using the Singer catalog to narrow down the Postgres data types
 
 You can use [Singer catalog's schema](https://github.com/singer-io/getting-started/blob/master/docs/DISCOVERY_MODE.md#schemas) to override the data types coming from the tap. The easiest way to do this is to use Meltano and its [`schema` setting](https://docs.meltano.com/concepts/plugins/#schema-extra) for the tap:
@@ -318,6 +330,20 @@ plugins:
           # This will be mapped to 'smallint'
           minimum: 0
           maximum: 1000
+```
+
+Or to use the `x-sql-datatype` extension:
+
+```yaml
+# meltano.yml
+plugins:
+  extractors:
+  - name: tap-my-tap
+    schema:
+      some_stream_id:
+        my_column:
+          type: integer
+          x-sql-datatype: smallint
 ```
 
 ## Content Encoding Support

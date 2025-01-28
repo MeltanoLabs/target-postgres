@@ -5,7 +5,7 @@ project_id: target-postgres
 plugins:
   extractors:
   - name: tap-smoke-test
-    namespace: tap_smoke_test
+    variant: meltano
     pip_url: git+https://github.com/meltano/tap-smoke-test.git
     executable: tap-smoke-test
     config:
@@ -19,6 +19,11 @@ plugins:
           __key_properties__: [id]
         page_views:
           __key_properties__: [vistor_id]
+    schema:
+      animals:
+        views:
+          type: integer
+          x-sql-datatype: smallint
   - name: tap-github
     variant: meltanolabs
     pip_url: git+https://github.com/MeltanoLabs/tap-github.git

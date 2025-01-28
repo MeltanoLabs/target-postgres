@@ -310,6 +310,9 @@ class PostgresConnector(SQLConnector):
         to_sql.register_format_handler("hostname", TEXT)
         to_sql.register_format_handler("ipv4", TEXT)
         to_sql.register_format_handler("ipv6", TEXT)
+        to_sql.register_sql_datatype_handler("smallint", SMALLINT)
+        to_sql.register_sql_datatype_handler("integer", INTEGER)
+        to_sql.register_sql_datatype_handler("bigint", BIGINT)
         return to_sql
 
     def to_sql_type(self, jsonschema_type: dict) -> sa.types.TypeEngine:
