@@ -342,6 +342,7 @@ plugins:
     schema:
       some_stream_id:
         my_column:
+          type: integer
           x-sql-datatype: smallint
 ```
 
