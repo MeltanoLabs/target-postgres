@@ -66,8 +66,8 @@ class TargetPostgres(SQLTarget):
             and self.config.get("password") is not None
             and self.config.get("dialect+driver") is not None
         ), (
-            "Need either the sqlalchemy_url to be set or host, port, user,"
-            + "password, and dialect+driver to be set"
+            "Need either the sqlalchemy_url to be set or host, port, user, "
+            "password, and dialect+driver to be set"
         )
 
         # If sqlalchemy_url is not being used and ssl_enable is on, ssl_mode must have
