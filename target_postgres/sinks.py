@@ -44,7 +44,7 @@ class PostgresSink(SQLSink):
         Returns:
             The connector object.
         """
-        return t.cast(PostgresConnector, self._connector)
+        return t.cast("PostgresConnector", self._connector)
 
     def setup(self) -> None:
         """Set up Sink.
@@ -255,7 +255,7 @@ class PostgresSink(SQLSink):
             self._do_copy(connection, copy_statement, columns, data)
         else:
             insert: str = t.cast(
-                str,
+                "str",
                 self.generate_insert_statement(
                     table.name,
                     columns,
