@@ -179,7 +179,7 @@ class PostgresConnector(SQLConnector):
         ]  # So we don't mess up the casing of the Table reference
 
         columns = self.get_table_columns(
-            schema_name=cast(str, schema_name),
+            schema_name=cast("str", schema_name),
             table_name=table_name,
             connection=connection,
         )
@@ -509,13 +509,13 @@ class PostgresConnector(SQLConnector):
                 table_name=table_name,
                 column_name=column_name,
                 sql_type=sql_type,
-                schema_name=cast(str, schema_name),
+                schema_name=cast("str", schema_name),
                 connection=connection,
             )
             return
 
         self._adapt_column_type(
-            schema_name=cast(str, schema_name),
+            schema_name=cast("str", schema_name),
             table_name=table_name,
             column_name=column_name,
             sql_type=sql_type,
@@ -612,7 +612,7 @@ class PostgresConnector(SQLConnector):
         """
         current_type: sa.types.TypeEngine
         if column_object is not None:
-            current_type = t.cast(sa.types.TypeEngine, column_object.type)
+            current_type = t.cast("sa.types.TypeEngine", column_object.type)
         else:
             current_type = self._get_column_type(
                 schema_name=schema_name,
@@ -699,7 +699,7 @@ class PostgresConnector(SQLConnector):
             config: The configuration for the connector.
         """
         if config.get("sqlalchemy_url"):
-            return cast(str, config["sqlalchemy_url"])
+            return cast("str", config["sqlalchemy_url"])
 
         sqlalchemy_url = URL.create(
             drivername=config["dialect+driver"],
@@ -710,7 +710,7 @@ class PostgresConnector(SQLConnector):
             database=config["database"],
             query=self.get_sqlalchemy_query(config),
         )
-        return cast(str, sqlalchemy_url)
+        return cast("str", sqlalchemy_url)
 
     def get_sqlalchemy_query(self, config: dict) -> dict:
         """Get query values to be used for sqlalchemy URL creation.
@@ -857,7 +857,7 @@ class PostgresConnector(SQLConnector):
             )
             raise KeyError(msg) from ex
 
-        return t.cast(sa.types.TypeEngine, column.type)
+        return t.cast("sa.types.TypeEngine", column.type)
 
     def get_table_columns(  # type: ignore[override]
         self,
