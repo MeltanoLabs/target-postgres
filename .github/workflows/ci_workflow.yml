@@ -9,6 +9,7 @@ on:
     - poetry.lock
     - target_postgres/**
     - .github/workflows/ci_workflow.yml
+    - .github/workflows/constraints.txt
   push:
     branches: [main]
     paths:
@@ -17,6 +18,7 @@ on:
     - poetry.lock
     - target_postgres/**
     - .github/workflows/ci_workflow.yml
+    - .github/workflows/constraints.txt
   workflow_dispatch:
     inputs: {}
 
