@@ -150,10 +150,13 @@ tap-carbon-intensity | target-postgres --config /path/to/target-postgres-config.
 
 ### Initialize your Development Environment
 
+Prerequisites:
+
+- Python 3.9+
+- [uv](https://docs.astral.sh/uv/)
+
 ```bash
-pipx install poetry
-poetry install
-pipx install pre-commit
+uv tool install pre-commit
 pre-commit install
 ```
 
@@ -197,13 +200,13 @@ Create tests within the `target_postgres/tests` subfolder and
   then run:
 
 ```bash
-poetry run pytest
+uv run pytest
 ```
 
-You can also test the `target-postgres` CLI interface directly using `poetry run`:
+You can also test the `target-postgres` CLI interface directly using `uv run`:
 
 ```bash
-poetry run target-postgres --help
+uv run target-postgres --help
 ```
 
 ### Testing with [Meltano](https://meltano.com/)
