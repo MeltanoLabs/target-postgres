@@ -41,15 +41,9 @@ class TargetPostgres(SQLTarget):
             parse_env_config=parse_env_config,
             validate_config=validate_config,
         )
-        # sqlalchemy_url and dialect+driver are now deprecated in favor of the
-        # individual host, port, user, password, and dialect+driver fields.
-        if self.config.get("sqlalchemy_url"):
-            self.logger.warning(
-                "The `sqlalchemy_url` configuration option is deprecated. "
-                "Please use the `host`, `port`, `user`, `password` "
-                "configuration options instead."
-            )
 
+        # dialect+driver is now deprecated to align this with tap-postgres.
+        # If required, dialect+driver configuration can be achieved through sqlalchemy_url.
         if (driver := self.config.get("dialect+driver")) and driver != PSYCOPG3:
             self.logger.warning(
                 "The `dialect+driver` configuration option is deprecated. "
@@ -115,28 +109,43 @@ class TargetPostgres(SQLTarget):
         th.Property(
             "host",
             th.StringType,
-            description="Hostname for postgres instance.",
+            description=(
+                "Hostname for postgres instance. "
+                + "Note if sqlalchemy_url is set this will be ignored."
+            ),
         ),
         th.Property(
             "port",
             th.IntegerType,
             default=5432,
-            description="The port on which postgres is awaiting connections.",
+            description=(
+                "The port on which postgres is awaiting connection. "
+                + "Note if sqlalchemy_url is set this will be ignored."
+            ),
         ),
         th.Property(
             "user",
             th.StringType,
-            description="User name used to authenticate.",
+            description=(
+                "User name used to authenticate. "
+                + "Note if sqlalchemy_url is set this will be ignored."
+            ),
         ),
         th.Property(
             "password",
             th.StringType,
-            description="Password used to authenticate.",
+            description=(
+                "Password used to authenticate. "
+                "Note if sqlalchemy_url is set this will be ignored."
+            ),
         ),
         th.Property(
             "database",
             th.StringType,
-            description="Database name.",
+            description=(
+                "Database name. "
+                + "Note if sqlalchemy_url is set this will be ignored."
+            ),
         ),
         th.Property(
             "use_copy",
@@ -153,10 +162,11 @@ class TargetPostgres(SQLTarget):
             "sqlalchemy_url",
             th.StringType,
             description=(
-                "DEPRECATED. SQLAlchemy connection string. "
+                "SQLAlchemy connection string. "
                 + "This will override using host, user, password, port, "
-                + "dialect, and all ssl settings. Note that you must escape password "
-                + "special characters properly. See "
+                + "dialect, and all ssl settings. It is strongly recommended the "
+                + "driver is compatible with psycopg3. Note that you must escape "
+                + "password special characters properly. See "
                 + "https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords"
             ),
         ),
@@ -238,6 +248,7 @@ class TargetPostgres(SQLTarget):
                 + " ssl_certificate_authority and ssl_mode for further customization."
                 + " To use a client certificate to authenticate yourself to the server,"
                 + " use ssl_client_certificate_enable instead."
+                + " Note if sqlalchemy_url is set this will be ignored."
             ),
         ),
         th.Property(
@@ -249,6 +260,7 @@ class TargetPostgres(SQLTarget):
                 + " authentication to the server. Use ssl_client_certificate and"
                 + " ssl_client_private_key for further customization. To use SSL to"
                 + " verify the server's identity, use ssl_enable instead."
+                + " Note if sqlalchemy_url is set this will be ignored."
             ),
         ),
         th.Property(
@@ -259,6 +271,7 @@ class TargetPostgres(SQLTarget):
                 "SSL Protection method, see [postgres documentation](https://www.postgresql.org/docs/current/libpq-ssl.html#LIBPQ-SSL-PROTECTION)"
                 + " for more information. Must be one of disable, allow, prefer,"
                 + " require, verify-ca, or verify-full."
+                + " Note if sqlalchemy_url is set this will be ignored."
             ),
         ),
         th.Property(
@@ -269,6 +282,7 @@ class TargetPostgres(SQLTarget):
                 "The certificate authority that should be used to verify the server's"
                 + " identity. Can be provided either as the certificate itself (in"
                 + " .env) or as a filepath to the certificate."
+                + " Note if sqlalchemy_url is set this will be ignored."
             ),
         ),
         th.Property(
@@ -279,6 +293,7 @@ class TargetPostgres(SQLTarget):
                 "The certificate that should be used to verify your identity to the"
                 + " server. Can be provided either as the certificate itself (in .env)"
                 + " or as a filepath to the certificate."
+                + " Note if sqlalchemy_url is set this will be ignored."
             ),
         ),
         th.Property(
@@ -289,6 +304,7 @@ class TargetPostgres(SQLTarget):
                 "The private key for the certificate you provided. Can be provided"
                 + " either as the certificate itself (in .env) or as a filepath to the"
                 + " certificate."
+                + " Note if sqlalchemy_url is set this will be ignored."
             ),
         ),
         th.Property(
