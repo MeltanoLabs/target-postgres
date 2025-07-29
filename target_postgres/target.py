@@ -43,7 +43,8 @@ class TargetPostgres(SQLTarget):
         )
 
         # dialect+driver is now deprecated to align this with tap-postgres.
-        # If required, dialect+driver configuration can be achieved through sqlalchemy_url.
+        # If required, dialect+driver configuration can be achieved
+        # using sqlalchemy_url.
         if (driver := self.config.get("dialect+driver")) and driver != PSYCOPG3:
             self.logger.warning(
                 "The `dialect+driver` configuration option is deprecated. "
