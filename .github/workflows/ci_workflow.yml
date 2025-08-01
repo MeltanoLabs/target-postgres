@@ -83,7 +83,7 @@ jobs:
       with:
         python-version: '${{ matrix.python-version }}'
     - name: Set up uv
-      uses: astral-sh/setup-uv@bd01e18f51369d5a26f1651c3cb451d3417e3bba # v6.3.1
+      uses: astral-sh/setup-uv@e92bafb6253dcd438e0484186d7669ea7a8ca1cc # v6.4.3
       with:
         version: ">=0.7"
     - name: Install tools
@@ -126,7 +126,7 @@ jobs:
       with:
         python-version: 3.x
     - name: Set up uv
-      uses: astral-sh/setup-uv@bd01e18f51369d5a26f1651c3cb451d3417e3bba # v6.3.1
+      uses: astral-sh/setup-uv@e92bafb6253dcd438e0484186d7669ea7a8ca1cc # v6.4.3
       with:
         version: ">=0.7"
     - name: Install Meltano
