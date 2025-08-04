@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.9"
 resolution-markers = [
     "python_full_version >= '3.10'",
@@ -561,6 +561,7 @@ wheels = [
 name = "meltanolabs-target-postgres"
 source = { editable = "." }
 dependencies = [
+    { name = "paramiko" },
     { name = "psycopg", extra = ["binary"] },
     { name = "psycopg2-binary" },
     { name = "singer-sdk" },
@@ -600,6 +601,7 @@ typing = [
 [package.metadata]
 requires-dist = [
     { name = "faker", marker = "extra == 'faker'", specifier = "~=37.1" },
+    { name = "paramiko", specifier = ">=3,<4" },
     { name = "psycopg", extras = ["binary"], specifier = "==3.2.9" },
     { name = "psycopg2-binary", specifier = "==2.9.10" },
     { name = "singer-sdk", specifier = "~=0.47.0" },
