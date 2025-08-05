@@ -33,7 +33,7 @@ dependencies = [
     "psycopg2-binary==2.9.10",
     "sqlalchemy~=2.0",
     "sshtunnel==0.4.0",
-    "singer-sdk~=0.47.0",
+    "singer-sdk~=0.48.0",
 ]
 
 [project.optional-dependencies]
