@@ -3,7 +3,7 @@ name = "meltanolabs-target-postgres"
 dynamic = ["version"]
 description = "Singer target for Postgres, built with the Meltano SDK for Singer Targets."
 authors = [{ name = "Meltano Team and Contributors", email = "hello@meltano.com" }]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 readme = "README.md"
 license = "MIT"
 license-files = [
@@ -20,7 +20,6 @@ keywords = [
 classifiers = [
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -61,7 +60,7 @@ testing = [
 ]
 typing = [
     "mypy>=1.6.1",
-    "types-paramiko>=3.3.0.0",
+    "types-paramiko>=3.3.0.0,<4",
     "types-simplejson>=3.19.0.2",
     "types-sqlalchemy>=1.4.53.38",
     "types-jsonschema>=4.19.0.3",

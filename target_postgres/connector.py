@@ -928,7 +928,7 @@ class NOTYPE(TypeDecorator):
 
         Used internally by SQL Alchemy. Should not be used directly.
         """
-        if value is not None and isinstance(value, (dict, list)):
+        if value is not None and isinstance(value, dict | list):
             value = simplejson.dumps(value, use_decimal=True)
         return value
 
@@ -971,7 +971,7 @@ class HexByteString(TypeDecorator):
             except ValueError as ex:
                 raise ValueError(f"Invalid hexadecimal string: {value}") from ex
 
-        if not isinstance(value, (bytearray, memoryview, bytes)):
+        if not isinstance(value, bytearray | memoryview | bytes):
             raise TypeError(
                 "HexByteString columns support only bytes or hex string values. "
                 f"{type(value)} is not supported"
