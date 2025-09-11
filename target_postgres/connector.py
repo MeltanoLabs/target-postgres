@@ -17,8 +17,8 @@ from typing import cast
 import paramiko
 import simplejson
 import sqlalchemy as sa
-from singer_sdk import SQLConnector
-from singer_sdk.connectors.sql import JSONSchemaToSQL
+from singer_sdk.sql import SQLConnector
+from singer_sdk.sql.connector import JSONSchemaToSQL
 from sqlalchemy.dialects.postgresql import (
     ARRAY,
     BIGINT,
@@ -43,7 +43,7 @@ from sqlalchemy.types import (
 from sshtunnel import SSHTunnelForwarder
 
 if t.TYPE_CHECKING:
-    from singer_sdk.connectors.sql import FullyQualifiedName
+    from singer_sdk.sql.connector import FullyQualifiedName
 
 
 class JSONSchemaToPostgres(JSONSchemaToSQL):
@@ -95,7 +95,7 @@ class PostgresConnector(SQLConnector):
             self.ssh_tunnel = SSHTunnelForwarder(
                 ssh_address_or_host=(ssh_config["host"], ssh_config["port"]),
                 ssh_username=ssh_config["username"],
-                ssh_private_key=self.guess_key_type(ssh_config["private_key"]),
+                ssh_pkey=self.guess_key_type(ssh_config["private_key"]),
                 ssh_private_key_password=ssh_config.get("private_key_password"),
                 remote_bind_address=(url.host, url.port),
             )
