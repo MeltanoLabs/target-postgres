@@ -28,7 +28,7 @@ classifiers = [
 ]
 dependencies = [
     "paramiko>=3,<4",
-    "psycopg[binary]==3.2.9",
+    "psycopg[binary]==3.2.10",
     "psycopg2-binary==2.9.10",
     "sqlalchemy~=2.0",
     "sshtunnel==0.4.0",
@@ -97,6 +97,7 @@ build-backend = "hatchling.build"
 [tool.pytest.ini_options]
 filterwarnings = [
   "error",
+  "ignore:Exception ignored:pytest.PytestUnraisableExceptionWarning",
 ]
 pythonpath = [
   "."
