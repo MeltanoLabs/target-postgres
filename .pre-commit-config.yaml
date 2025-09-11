@@ -16,7 +16,7 @@ repos:
             copier_template/.*/pyproject.toml
         )$
   - id: end-of-file-fixer
-    exclude: (copier_template/.*|docs/.*|samples/.*\.json)
+    exclude: (copier_template/.*|docs/.*)
   - id: trailing-whitespace
 
 - repo: https://github.com/astral-sh/ruff-pre-commit

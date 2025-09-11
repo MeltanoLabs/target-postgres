@@ -16,10 +16,10 @@ from singer_sdk.testing import sync_end_to_end
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.types import TEXT, TIMESTAMP
 from tap_countries.tap import TapCountries
+from tap_fundamentals import Fundamentals
 
 from target_postgres.connector import PostgresConnector
 from target_postgres.target import TargetPostgres
-from target_postgres.tests.samples.aapl.aapl import Fundamentals
 
 from .core import (
     create_engine,
