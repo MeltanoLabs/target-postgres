@@ -5,7 +5,7 @@ from __future__ import annotations
 import typing as t
 
 from singer_sdk import typing as th
-from singer_sdk.target_base import SQLTarget
+from singer_sdk.sql import SQLTarget
 
 from target_postgres.driver import PSYCOPG3
 from target_postgres.sinks import PostgresSink

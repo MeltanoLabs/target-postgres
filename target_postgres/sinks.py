@@ -7,13 +7,13 @@ import typing as t
 import uuid
 
 import sqlalchemy as sa
-from singer_sdk.sinks import SQLSink
+from singer_sdk.sql import SQLSink
 from sqlalchemy.sql.expression import bindparam
 
 from target_postgres.connector import PostgresConnector
 
 if t.TYPE_CHECKING:
-    from singer_sdk.connectors.sql import FullyQualifiedName
+    from singer_sdk.sql.connector import FullyQualifiedName
     from sqlalchemy.sql import Executable
 
 
