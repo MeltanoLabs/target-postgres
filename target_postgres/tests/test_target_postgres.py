@@ -15,13 +15,11 @@ from singer_sdk.exceptions import InvalidRecord, MissingKeyPropertiesError
 from singer_sdk.testing import sync_end_to_end
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.types import TEXT, TIMESTAMP
+from tap_countries.tap import TapCountries
 
 from target_postgres.connector import PostgresConnector
 from target_postgres.target import TargetPostgres
 from target_postgres.tests.samples.aapl.aapl import Fundamentals
-from target_postgres.tests.samples.sample_tap_countries.countries_tap import (
-    SampleTapCountries,
-)
 
 from .core import (
     create_engine,
@@ -160,7 +158,7 @@ def test_sqlalchemy_url_config(postgres_config_no_ssl):
     config = {
         "sqlalchemy_url": f"postgresql+psycopg://{user}:{password}@{host}:{port}/{database}"
     }
-    tap = SampleTapCountries(config={}, state=None)
+    tap = TapCountries(config={}, state=None)
     target = TargetPostgres(config=config)
     sync_end_to_end(tap, target)
 
@@ -218,7 +216,7 @@ def test_port_config():
 
 # Test name would work well
 def test_countries_to_postgres(postgres_config):
-    tap = SampleTapCountries(config={}, state=None)
+    tap = TapCountries(config={}, state=None)
     target = TargetPostgres(config=postgres_config)
     sync_end_to_end(tap, target)
 
@@ -784,7 +782,7 @@ def test_postgres_ssl_no_config(postgres_config_no_ssl):
     without SSL enabled shouldn't be possible.
     """
 
-    tap = SampleTapCountries(config={}, state=None)
+    tap = TapCountries(config={}, state=None)
 
     postgres_config_modified = copy.deepcopy(postgres_config_no_ssl)
     postgres_config_modified["port"] = 5432
@@ -809,7 +807,7 @@ def test_postgres_ssl_no_pkey(postgres_config):
 def test_postgres_ssl_public_pkey(postgres_config):
     """Test that connection will fail when private key access is not restricted."""
 
-    tap = SampleTapCountries(config={}, state=None)
+    tap = TapCountries(config={}, state=None)
 
     postgres_config_modified = copy.deepcopy(postgres_config)
     postgres_config_modified["ssl_client_private_key"] = "./ssl/public_pkey.key"
@@ -839,7 +837,7 @@ def test_postgres_ssl_invalid_cn(postgres_config):
     which won't match the loopback address "127.0.0.1". Because verify-full (the
     default) requires them to match, an error is expected.
     """
-    tap = SampleTapCountries(config={}, state=None)
+    tap = TapCountries(config={}, state=None)
 
     postgres_config_modified = copy.deepcopy(postgres_config)
     postgres_config_modified["host"] = "127.0.0.1"
@@ -856,7 +854,7 @@ def test_postgres_ssl_verify_ca(postgres_config):
     When verify-ca is used, it does not matter that "localhost" and "127.0.0.1" don't
     match, so no error is expected.
     """
-    tap = SampleTapCountries(config={}, state=None)
+    tap = TapCountries(config={}, state=None)
 
     postgres_config_modified = copy.deepcopy(postgres_config)
     postgres_config_modified["host"] = "127.0.0.1"
@@ -873,7 +871,7 @@ def test_postgres_ssl_unsupported(postgres_config):
     configuration that doesn't have SSL configured. Because the default ssl mode
     (verify-full) requires SSL, an error is expected.
     """
-    tap = SampleTapCountries(config={}, state=None)
+    tap = TapCountries(config={}, state=None)
 
     postgres_config_modified = copy.deepcopy(postgres_config)
     postgres_config_modified["port"] = 5433  # Alternate service: postgres_no_ssl
@@ -889,7 +887,7 @@ def test_postgres_ssl_prefer(postgres_config):
     ssl_mode=prefer uses opportunistic encryption, but shouldn't fail if the database
     doesn't support SSL, so no error is expected.
     """
-    tap = SampleTapCountries(config={}, state=None)
+    tap = TapCountries(config={}, state=None)
 
     postgres_config_modified = copy.deepcopy(postgres_config)
     postgres_config_modified["port"] = 5433  # Alternative service: postgres_no_ssl
@@ -901,7 +899,7 @@ def test_postgres_ssl_prefer(postgres_config):
 
 def test_postgres_ssh_tunnel(postgres_config_ssh_tunnel):
     """Test that using an ssh tunnel is successful."""
-    tap = SampleTapCountries(config={}, state=None)
+    tap = TapCountries(config={}, state=None)
 
     target = TargetPostgres(config=postgres_config_ssh_tunnel)
     sync_end_to_end(tap, target)

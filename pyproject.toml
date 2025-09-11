@@ -57,6 +57,7 @@ lint = [
 ]
 testing = [
     "pytest>=7.4.2",
+    "tap-countries",
 ]
 typing = [
     "mypy>=1.6.1",
@@ -124,3 +125,6 @@ sqlalchemy = "sa"
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
+[tool.uv.sources]
+tap-countries = { git = "https://github.com/meltano/sdk.git", subdirectory = "packages/tap-countries", rev = "main" }

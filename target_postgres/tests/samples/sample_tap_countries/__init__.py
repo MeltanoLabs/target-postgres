@@ -1,1 +1,0 @@
-"""Countries API Sample."""
