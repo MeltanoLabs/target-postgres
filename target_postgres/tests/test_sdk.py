@@ -3,7 +3,7 @@
 # flake8: noqa
 import pytest
 from singer_sdk.testing import get_target_test_class
-from singer_sdk.testing.suites import TestSuite
+from singer_sdk.testing.suites import SingerTestSuite
 from singer_sdk.testing.target_tests import (
     TargetArrayData,
     TargetCamelcaseComplexSchema,
@@ -24,7 +24,7 @@ from singer_sdk.testing.target_tests import (
 from target_postgres.target import TargetPostgres
 from .core import create_engine, postgres_config
 
-target_tests = TestSuite(
+target_tests = SingerTestSuite(
     kind="target",
     tests=[
         TargetArrayData,
