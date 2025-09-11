@@ -1,22 +1,25 @@
 """A simple tap with one big record and schema."""
 
+import importlib.resources
 import json
-from pathlib import Path
 
-from singer_sdk import Stream, Tap
+from singer_sdk import SchemaDirectory, Stream, StreamSchema, Tap
 
-PROJECT_DIR = Path(__file__).parent
+from . import data
+
+DATA_DIR = importlib.resources.files(data)
+SCHEMA_DIR = SchemaDirectory(DATA_DIR)
 
 
 class AAPL(Stream):
     """An AAPL stream."""
 
     name = "aapl"
-    schema_filepath = PROJECT_DIR / "fundamentals.json"
+    schema = StreamSchema(SCHEMA_DIR, key="fundamentals")
 
     def get_records(self, _):
         """Generate a single record."""
-        with open(PROJECT_DIR / "AAPL.json") as f:
+        with DATA_DIR.joinpath("AAPL.json").open() as f:
             record = json.load(f)
 
         yield record
