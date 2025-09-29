@@ -42,13 +42,10 @@ jobs:
         - "3.11"
         - "3.10"
         postgres-version:
-        - "17"
+        - "18"
         use-copy:
         - "true"
         include:
-        - python-version: "3.13"
-          postgres-version: "13"
-          use-copy: "true"
         - python-version: "3.13"
           postgres-version: "14"
           use-copy: "true"
@@ -60,6 +57,9 @@ jobs:
           use-copy: "true"
         - python-version: "3.13"
           postgres-version: "17"
+          use-copy: "true"
+        - python-version: "3.13"
+          postgres-version: "18"
           use-copy: "false"
     steps:
     - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -82,7 +82,7 @@ jobs:
       with:
         python-version: '${{ matrix.python-version }}'
     - name: Set up uv
-      uses: astral-sh/setup-uv@557e51de59eb14aaaba2ed9621916900a91d50c6 # v6.6.1
+      uses: astral-sh/setup-uv@b75a909f75acd358c2196fb9a5f1299a9a8868a4 # v6.7.0
       with:
         version: ">=0.7"
     - name: Install tools
@@ -125,7 +125,7 @@ jobs:
       with:
         python-version: 3.x
     - name: Set up uv
-      uses: astral-sh/setup-uv@557e51de59eb14aaaba2ed9621916900a91d50c6 # v6.6.1
+      uses: astral-sh/setup-uv@b75a909f75acd358c2196fb9a5f1299a9a8868a4 # v6.7.0
       with:
         version: ">=0.7"
     - name: Install Meltano
