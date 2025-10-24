@@ -943,8 +943,8 @@ class PostgresConnector(SQLConnector):
     def guess_key_type(self, key_data: str) -> paramiko.PKey:
         """Guess the type of the private key.
 
-        We are duplicating some logic from the ssh_tunnel package here,
-        we could try to use their function instead.
+        Note: DSS keys are not supported as they were removed in paramiko 4.0
+        due to being cryptographically weak.
 
         Args:
             key_data: The private key data to guess the type of.
@@ -957,7 +957,6 @@ class PostgresConnector(SQLConnector):
         """
         for key_class in (
             paramiko.RSAKey,
-            paramiko.DSSKey,
             paramiko.ECDSAKey,
             paramiko.Ed25519Key,
         ):
@@ -968,7 +967,11 @@ class PostgresConnector(SQLConnector):
             else:
                 return key
 
-        errmsg = "Could not determine the key type."
+        errmsg = (
+            "Could not determine the key type. "
+            "Supported types: RSA, ECDSA, Ed25519. "
+            "Note: DSS keys are no longer supported."
+        )
         raise ValueError(errmsg)
 
     def clean_up(self) -> None:
