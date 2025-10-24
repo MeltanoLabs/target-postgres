@@ -37,6 +37,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version:
+        - "3.14"
         - "3.13"
         - "3.12"
         - "3.11"
@@ -46,19 +47,19 @@ jobs:
         use-copy:
         - "true"
         include:
-        - python-version: "3.13"
+        - python-version: "3.14"
           postgres-version: "14"
           use-copy: "true"
-        - python-version: "3.13"
+        - python-version: "3.14"
           postgres-version: "15"
           use-copy: "true"
-        - python-version: "3.13"
+        - python-version: "3.14"
           postgres-version: "16"
           use-copy: "true"
-        - python-version: "3.13"
+        - python-version: "3.14"
           postgres-version: "17"
           use-copy: "true"
-        - python-version: "3.13"
+        - python-version: "3.14"
           postgres-version: "18"
           use-copy: "false"
     steps:
