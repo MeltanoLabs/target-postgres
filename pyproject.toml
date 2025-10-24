@@ -93,6 +93,7 @@ build-backend = "hatchling.build"
 filterwarnings = [
   "error",
   "ignore:Exception ignored:pytest.PytestUnraisableExceptionWarning",
+  "once:'asyncio.iscoroutinefunction' is deprecated:DeprecationWarning",  # https://github.com/litl/backoff/pull/220
 ]
 pythonpath = [
   "."
