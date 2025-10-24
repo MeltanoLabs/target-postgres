@@ -31,7 +31,6 @@ dependencies = [
     "psycopg[binary]==3.2.10",
     "psycopg2-binary==2.9.10",
     "sqlalchemy~=2.0",
-    "sshtunnel==0.4.0",
     "singer-sdk[sql]~=0.52.0",
 ]
 
@@ -82,10 +81,6 @@ exclude = "tests"
 warn_redundant_casts = true
 warn_unused_configs = true
 warn_unused_ignores = true
-
-[[tool.mypy.overrides]]
-module = ["sshtunnel"]
-ignore_missing_imports = true
 
 [build-system]
 requires = [
