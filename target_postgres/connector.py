@@ -7,9 +7,11 @@ import io
 import itertools
 import math
 import signal
+import socket
 import sys
+import threading
 import typing as t
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from functools import cached_property
 from os import chmod, path
 from typing import cast
@@ -40,10 +42,167 @@ from sqlalchemy.types import (
     TIMESTAMP,
     TypeDecorator,
 )
-from sshtunnel import SSHTunnelForwarder
 
 if t.TYPE_CHECKING:
     from singer_sdk.sql.connector import FullyQualifiedName
+
+
+class SSHTunnelForwarder:
+    """SSH Tunnel forwarder using paramiko.
+
+    This class provides SSH tunnel functionality similar to sshtunnel package,
+    but implemented directly with paramiko.
+    """
+
+    def __init__(
+        self,
+        ssh_address_or_host: tuple[str, int],
+        ssh_username: str,
+        ssh_pkey: paramiko.PKey,
+        ssh_private_key_password: str | None,
+        remote_bind_address: tuple[str, int],
+    ) -> None:
+        """Initialize SSH tunnel forwarder.
+
+        Args:
+            ssh_address_or_host: Tuple of (ssh_host, ssh_port)
+            ssh_username: SSH username
+            ssh_pkey: Paramiko private key object
+            ssh_private_key_password: Private key password (optional)
+            remote_bind_address: Tuple of (remote_host, remote_port)
+        """
+        self.ssh_host, self.ssh_port = ssh_address_or_host
+        self.ssh_username = ssh_username
+        self.ssh_pkey = ssh_pkey
+        self.ssh_private_key_password = ssh_private_key_password
+        self.remote_bind_host, self.remote_bind_port = remote_bind_address
+
+        self.ssh_client: paramiko.SSHClient | None = None
+        self.local_bind_host = "127.0.0.1"
+        self.local_bind_port: int | None = None
+        self._server_socket: socket.socket | None = None
+        self._thread: threading.Thread | None = None
+        self._stop_event = threading.Event()
+
+    def start(self) -> None:
+        """Start the SSH tunnel."""
+        # Create SSH client
+        self.ssh_client = paramiko.SSHClient()
+        self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        # Connect to SSH server
+        self.ssh_client.connect(
+            hostname=self.ssh_host,
+            port=self.ssh_port,
+            username=self.ssh_username,
+            pkey=self.ssh_pkey,
+            passphrase=self.ssh_private_key_password,
+        )
+
+        # Create local socket for port forwarding
+        self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self._server_socket.bind((self.local_bind_host, 0))
+        self._server_socket.listen(5)
+
+        # Get the dynamically assigned local port
+        self.local_bind_port = self._server_socket.getsockname()[1]
+
+        # Start forwarding thread
+        self._thread = threading.Thread(target=self._forward_tunnel, daemon=True)
+        self._thread.start()
+
+    def _forward_tunnel(self) -> None:
+        """Forward connections through the SSH tunnel."""
+        if self._server_socket is None or self.ssh_client is None:
+            return
+
+        while not self._stop_event.is_set():
+            try:
+                # Set timeout so we can check stop event periodically
+                self._server_socket.settimeout(1.0)
+                try:
+                    local_socket, _ = self._server_socket.accept()
+                except TimeoutError:
+                    continue
+
+                # Create channel through SSH tunnel
+                transport = self.ssh_client.get_transport()
+                if transport is None:
+                    local_socket.close()
+                    continue
+
+                channel = transport.open_channel(
+                    "direct-tcpip",
+                    (self.remote_bind_host, self.remote_bind_port),
+                    local_socket.getpeername(),
+                )
+
+                # Start forwarding data between local socket and channel
+                threading.Thread(
+                    target=self._forward_data,
+                    args=(local_socket, channel),
+                    daemon=True,
+                ).start()
+            except OSError:
+                if not self._stop_event.is_set():
+                    break
+
+    def _forward_data(
+        self, local_socket: socket.socket, channel: paramiko.Channel
+    ) -> None:
+        """Forward data between local socket and SSH channel.
+
+        Args:
+            local_socket: Local socket
+            channel: SSH channel
+        """
+        try:
+
+            def forward_local_to_remote():
+                while True:
+                    data = local_socket.recv(4096)
+                    if len(data) == 0:
+                        break
+                    channel.send(data)
+                channel.close()
+
+            def forward_remote_to_local():
+                while True:
+                    data = channel.recv(4096)
+                    if len(data) == 0:
+                        break
+                    local_socket.send(data)
+                local_socket.close()
+
+            # Start both forwarding directions
+            t1 = threading.Thread(target=forward_local_to_remote, daemon=True)
+            t2 = threading.Thread(target=forward_remote_to_local, daemon=True)
+            t1.start()
+            t2.start()
+            t1.join()
+            t2.join()
+        except OSError:
+            pass
+        finally:
+            with suppress(OSError):
+                local_socket.close()
+            with suppress(OSError):
+                channel.close()
+
+    def stop(self) -> None:
+        """Stop the SSH tunnel."""
+        self._stop_event.set()
+
+        if self._server_socket:
+            with suppress(OSError):
+                self._server_socket.close()
+
+        if self._thread and self._thread.is_alive():
+            self._thread.join(timeout=2.0)
+
+        if self.ssh_client:
+            self.ssh_client.close()
 
 
 class JSONSchemaToPostgres(JSONSchemaToSQL):
@@ -88,10 +247,13 @@ class PostgresConnector(SQLConnector):
         """
         url: URL = make_url(self.get_sqlalchemy_url(config=config))
         ssh_config = config.get("ssh_tunnel", {})
-        self.ssh_tunnel: SSHTunnelForwarder
+        self.ssh_tunnel: SSHTunnelForwarder | None = None
 
         if ssh_config.get("enable", False):
             # Return a new URL with SSH tunnel parameters
+            if url.host is None or url.port is None:
+                msg = "Database host and port must be specified for SSH tunnel"
+                raise ValueError(msg)
             self.ssh_tunnel = SSHTunnelForwarder(
                 ssh_address_or_host=(ssh_config["host"], ssh_config["port"]),
                 ssh_username=ssh_config["username"],
@@ -781,8 +943,8 @@ class PostgresConnector(SQLConnector):
     def guess_key_type(self, key_data: str) -> paramiko.PKey:
         """Guess the type of the private key.
 
-        We are duplicating some logic from the ssh_tunnel package here,
-        we could try to use their function instead.
+        Note: DSS keys are not supported as they were removed in paramiko 4.0
+        due to being cryptographically weak.
 
         Args:
             key_data: The private key data to guess the type of.
@@ -795,7 +957,6 @@ class PostgresConnector(SQLConnector):
         """
         for key_class in (
             paramiko.RSAKey,
-            paramiko.DSSKey,
             paramiko.ECDSAKey,
             paramiko.Ed25519Key,
         ):
@@ -806,7 +967,11 @@ class PostgresConnector(SQLConnector):
             else:
                 return key
 
-        errmsg = "Could not determine the key type."
+        errmsg = (
+            "Could not determine the key type. "
+            "Supported types: RSA, ECDSA, Ed25519. "
+            "Note: DSS keys are no longer supported."
+        )
         raise ValueError(errmsg)
 
     def clean_up(self) -> None:
