@@ -1380,8 +1380,8 @@ wheels = [
 
 [[package]]
 name = "singer-sdk"
-version = "0.53.1.dev3+gf0b232cc3"
-source = { git = "https://github.com/meltano/sdk.git?rev=main#f0b232cc3d0b33ecb9b7080a203d0f81a3c099d3" }
+version = "0.53.2"
+source = { git = "https://github.com/meltano/sdk.git?rev=main#772561132a54a279dc4cb85e169c67facef8f69b" }
 dependencies = [
     { name = "backports-datetime-fromisoformat", marker = "python_full_version < '3.11'" },
     { name = "click" },
@@ -1457,7 +1457,7 @@ wheels = [
 [[package]]
 name = "tap-countries"
 version = "0.1.0"
-source = { git = "https://github.com/meltano/sdk.git?subdirectory=packages%2Ftap-countries&rev=main#f0b232cc3d0b33ecb9b7080a203d0f81a3c099d3" }
+source = { git = "https://github.com/meltano/sdk.git?subdirectory=packages%2Ftap-countries&rev=main#772561132a54a279dc4cb85e169c67facef8f69b" }
 dependencies = [
     { name = "msgspec" },
     { name = "requests-cache" },
@@ -1468,7 +1468,7 @@ dependencies = [
 [[package]]
 name = "tap-fundamentals"
 version = "0.1.0"
-source = { git = "https://github.com/meltano/sdk.git?subdirectory=packages%2Ftap-fundamentals&rev=main#f0b232cc3d0b33ecb9b7080a203d0f81a3c099d3" }
+source = { git = "https://github.com/meltano/sdk.git?subdirectory=packages%2Ftap-fundamentals&rev=main#772561132a54a279dc4cb85e169c67facef8f69b" }
 dependencies = [
     { name = "singer-sdk" },
     { name = "typing-extensions", marker = "python_full_version < '3.12'" },
