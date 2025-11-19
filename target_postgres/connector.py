@@ -5,6 +5,7 @@ from __future__ import annotations
 import atexit
 import io
 import itertools
+import logging
 import math
 import signal
 import socket
@@ -43,9 +44,25 @@ from sqlalchemy.types import (
     TypeDecorator,
 )
 
+try:
+    from pgvector.sqlalchemy import VECTOR
+
+    PGVECTOR_AVAILABLE = True
+except ImportError:
+    PGVECTOR_AVAILABLE = False
+
 if t.TYPE_CHECKING:
     from singer_sdk.sql.connector import FullyQualifiedName
     from sqlalchemy import types
+
+logger = logging.getLogger(__name__)
+
+
+def _handle_vector_type(schema: dict) -> VECTOR | ARRAY:
+    if not PGVECTOR_AVAILABLE:
+        logger.warning("pgvector is not available, falling back to ARRAY(INTEGER)")
+        return ARRAY(INTEGER())
+    return VECTOR()
 
 
 class SSHTunnelForwarder:
@@ -488,6 +505,7 @@ class PostgresConnector(SQLConnector):
         to_sql.register_sql_datatype_handler("smallint", SMALLINT)
         to_sql.register_sql_datatype_handler("integer", INTEGER)
         to_sql.register_sql_datatype_handler("bigint", BIGINT)
+        to_sql.register_sql_datatype_handler("pgvector", _handle_vector_type)
         return to_sql
 
     def to_sql_type(self, jsonschema_type: dict) -> types.TypeEngine:
