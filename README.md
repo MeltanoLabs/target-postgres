@@ -312,11 +312,12 @@ This target supports the [`x-sql-datatype` extension](https://sdk.meltano.com/en
 
 <!-- insert a table with the mapping -->
 
-| `x-sql-datatype` | Postgres | Description                                                        |
-| :--------------- | :------- | :----------------------------------------------------------------- |
-| smallint         | smallint | small-range integer (-32768 to +32767)                             |
-| integer          | integer  | typical choice for integer (-2147483648 to +2147483647)            |
-| bigint           | bigint   | large-range integer (-9223372036854775808 to +9223372036854775807) |
+| `x-sql-datatype` | Postgres | Description                                                                                                                      |
+| :--------------- | :------- | :------------------------------------------------------------------------------------------------------------------------------- |
+| smallint         | smallint | small-range integer (-32768 to +32767)                                                                                           |
+| integer          | integer  | typical choice for integer (-2147483648 to +2147483647)                                                                          |
+| bigint           | bigint   | large-range integer (-9223372036854775808 to +9223372036854775807)                                                               |
+| pgvector         | vector   | vector similarity search (requires [pgvector](https://github.com/pgvector/pgvector) extension and the `pgvector` Python package) |
 
 ### Using the Singer catalog to narrow down the Postgres data types
 
@@ -349,6 +350,36 @@ plugins:
           type: integer
           x-sql-datatype: smallint
 ```
+
+For vector embeddings:
+
+```yaml
+# meltano.yml
+plugins:
+  extractors:
+  - name: tap-my-tap
+    schema:
+      some_stream_id:
+        embedding:
+          type: array
+          items:
+            type: number
+          x-sql-datatype: pgvector
+```
+
+**Important:** To use `pgvector` data types:
+1. The [pgvector extension](https://github.com/pgvector/pgvector) **MUST** be installed and enabled in your PostgreSQL database:
+   ```sql
+   CREATE EXTENSION IF NOT EXISTS vector;
+   ```
+2. The `pgvector` Python package **MUST** be installed in your environment:
+   ```bash
+   pip install pgvector
+   # or with the target
+   pip install meltanolabs-target-postgres pgvector
+   ```
+
+If the `pgvector` Python package is not installed, the target will fall back to using `ARRAY(INTEGER)` with a warning.
 
 ## Content Encoding Support
 
