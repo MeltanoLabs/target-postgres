@@ -56,7 +56,7 @@ lint = [
     "ruff>=0.1.14",
 ]
 testing = [
-    "pytest>=7.4.2",
+    "pytest>=9",
     "tap-countries",
     "tap-fundamentals",
 ]
@@ -90,11 +90,11 @@ requires = [
 ]
 build-backend = "hatchling.build"
 
-[tool.pytest.ini_options]
+[tool.pytest]
+minversion = "9.0"
 filterwarnings = [
   "error",
   "ignore:Exception ignored:pytest.PytestUnraisableExceptionWarning",
-  "once:'asyncio.iscoroutinefunction' is deprecated:DeprecationWarning",  # https://github.com/litl/backoff/pull/220
 ]
 pythonpath = [
   "."

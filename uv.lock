@@ -643,7 +643,7 @@ provides-extras = ["faker"]
 [package.metadata.requires-dev]
 dev = [
     { name = "mypy", specifier = ">=1.6.1" },
-    { name = "pytest", specifier = ">=7.4.2" },
+    { name = "pytest", specifier = ">=9" },
     { name = "remote-pdb", specifier = ">=2.1.0" },
     { name = "tap-countries", git = "https://github.com/meltano/sdk.git?subdirectory=packages%2Ftap-countries&rev=main" },
     { name = "tap-fundamentals", git = "https://github.com/meltano/sdk.git?subdirectory=packages%2Ftap-fundamentals&rev=main" },
@@ -654,7 +654,7 @@ dev = [
 ]
 lint = [{ name = "ruff", specifier = ">=0.1.14" }]
 testing = [
-    { name = "pytest", specifier = ">=7.4.2" },
+    { name = "pytest", specifier = ">=9" },
     { name = "tap-countries", git = "https://github.com/meltano/sdk.git?subdirectory=packages%2Ftap-countries&rev=main" },
     { name = "tap-fundamentals", git = "https://github.com/meltano/sdk.git?subdirectory=packages%2Ftap-fundamentals&rev=main" },
 ]
