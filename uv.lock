@@ -648,7 +648,7 @@ dev = [
     { name = "tap-countries", git = "https://github.com/meltano/sdk.git?subdirectory=packages%2Ftap-countries&rev=main" },
     { name = "tap-fundamentals", git = "https://github.com/meltano/sdk.git?subdirectory=packages%2Ftap-fundamentals&rev=main" },
     { name = "types-jsonschema", specifier = ">=4.19.0.3" },
-    { name = "types-paramiko", specifier = ">=3.3.0.0,<4" },
+    { name = "types-paramiko", specifier = ">=4" },
     { name = "types-simplejson", specifier = ">=3.19.0.2" },
     { name = "types-sqlalchemy", specifier = ">=1.4.53.38" },
 ]
@@ -661,7 +661,7 @@ testing = [
 typing = [
     { name = "mypy", specifier = ">=1.6.1" },
     { name = "types-jsonschema", specifier = ">=4.19.0.3" },
-    { name = "types-paramiko", specifier = ">=3.3.0.0,<4" },
+    { name = "types-paramiko", specifier = ">=4" },
     { name = "types-simplejson", specifier = ">=3.19.0.2" },
     { name = "types-sqlalchemy", specifier = ">=1.4.53.38" },
 ]
@@ -1557,14 +1557,14 @@ wheels = [
 
 [[package]]
 name = "types-paramiko"
-version = "3.5.0.20250801"
+version = "4.0.0.20250822"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cryptography" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d5/c4/4df427c835e9c795662241410732ab936c6f58be798ec25ce7015771c448/types_paramiko-3.5.0.20250801.tar.gz", hash = "sha256:e79ff84eaf44f2a5ad811743edef5d9c0cd6632a264a526f00405b87db1ec99b", size = 28838, upload-time = "2025-08-01T03:48:52.777Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b7/b8/c6ff3b10c2f7b9897650af746f0dc6c5cddf054db857bc79d621f53c7d22/types_paramiko-4.0.0.20250822.tar.gz", hash = "sha256:1b56b0cbd3eec3d2fd123c9eb2704e612b777e15a17705a804279ea6525e0c53", size = 28730, upload-time = "2025-08-22T03:03:43.262Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bd/5b/0f0bb1e45f7547d081ae9d490a88c6f6031d0f2c97459236e0a2a8b27207/types_paramiko-3.5.0.20250801-py3-none-any.whl", hash = "sha256:3e02a0fcf2b7e7b213e0cd569f7223ff9af417052a4d149d84172ebaa6fd742e", size = 39705, upload-time = "2025-08-01T03:48:51.855Z" },
+    { url = "https://files.pythonhosted.org/packages/79/a1/b3774ed924a66ee2c041224d89c36f0c21f4f6cf75036d6ee7698bf8a4b9/types_paramiko-4.0.0.20250822-py3-none-any.whl", hash = "sha256:55bdb14db75ca89039725ec64ae3fa26b8d57b6991cfb476212fa8f83a59753c", size = 38833, upload-time = "2025-08-22T03:03:42.072Z" },
 ]
 
 [[package]]

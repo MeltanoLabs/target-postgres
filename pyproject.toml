@@ -62,7 +62,7 @@ testing = [
 ]
 typing = [
     "mypy>=1.6.1",
-    "types-paramiko>=3.3.0.0,<4",
+    "types-paramiko>=4",
     "types-simplejson>=3.19.0.2",
     "types-sqlalchemy>=1.4.53.38",
     "types-jsonschema>=4.19.0.3",
