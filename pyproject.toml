@@ -29,7 +29,7 @@ classifiers = [
 ]
 dependencies = [
     "paramiko>=4",
-    "psycopg[binary]==3.2.10",
+    "psycopg[binary]==3.3.1",
     "psycopg2-binary==2.9.10",
     "sqlalchemy~=2.0",
     "singer-sdk[sql]~=0.53.0",
