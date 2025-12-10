@@ -57,8 +57,8 @@ lint = [
 ]
 testing = [
     "pytest>=9",
-    "tap-countries",
-    "tap-fundamentals",
+    "meltano-tap-countries",
+    "meltano-tap-fundamentals",
 ]
 typing = [
     "mypy>=1.6.1",
@@ -130,5 +130,5 @@ sqlalchemy = "sa"
 convention = "google"
 
 [tool.uv.sources]
-tap-countries = { git = "https://github.com/meltano/sdk.git", subdirectory = "packages/tap-countries", rev = "main" }
-tap-fundamentals = { git = "https://github.com/meltano/sdk.git", subdirectory = "packages/tap-fundamentals", rev = "main" }
+meltano-tap-countries = { git = "https://github.com/meltano/sdk.git", subdirectory = "packages/meltano-tap-countries", rev = "main" }
+meltano-tap-fundamentals = { git = "https://github.com/meltano/sdk.git", subdirectory = "packages/meltano-tap-fundamentals", rev = "main" }
