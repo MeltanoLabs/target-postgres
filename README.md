@@ -145,7 +145,7 @@ tap-carbon-intensity | target-postgres --config /path/to/target-postgres-config.
 
 ### Using Docker Compose
 
-`docker-compose.yml` provides the commands to create two empty sample databases using [Docker](https://docs.docker.com/engine/install/). These can be a starting point to create your own database running in Docker, or can be used to run the tap's [built-in tests](#create-and-run-tests).
+`compose.yml` provides the commands to create two empty sample databases using [Docker](https://docs.docker.com/engine/install/). These can be a starting point to create your own database running in Docker, or can be used to run the tap's [built-in tests](#create-and-run-tests).
 
 ## Developer Resources
 
@@ -194,7 +194,7 @@ Now that all of the SSL files have been set up, you're ready to set up tests wit
 
 Start the test databases using Docker Compose:
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 Create tests within the `target_postgres/tests` subfolder and

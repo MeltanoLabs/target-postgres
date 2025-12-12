@@ -2,9 +2,8 @@ name: Test target-postgres
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
     paths:
-    - docker-compose.yml
+    - compose.yml
     - pyproject.toml
     - uv.lock
     - target_postgres/**
@@ -13,7 +12,7 @@ on:
   push:
     branches: [main]
     paths:
-    - docker-compose.yml
+    - compose.yml
     - pyproject.toml
     - uv.lock
     - target_postgres/**
@@ -76,7 +75,7 @@ jobs:
       env:
         POSTGRES_VERSION: ${{ matrix.postgres-version }}
       run: |
-        docker compose -f docker-compose.yml up -d
+        docker compose up -d
     - run: docker ps
     - name: Set up Python '${{ matrix.python-version }}'
       uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0

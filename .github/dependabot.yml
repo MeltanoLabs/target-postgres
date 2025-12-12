@@ -9,8 +9,6 @@ updates:
     directory: "/"
     schedule:
       interval: monthly
-      timezone: "America/New_York"
-      time: "07:23"
     versioning-strategy: increase-if-necessary
     groups:
       development-dependencies:
@@ -19,23 +17,25 @@ updates:
         dependency-type: production
         update-types:
           - "patch"
+    cooldown:
+      default-days: 7
   - package-ecosystem: "pip"
     directory: "/.github/workflows"
     schedule:
       interval: monthly
-      timezone: "America/New_York"
-      time: "07:23"
     groups:
       ci:
         patterns:
           - "*"
+    cooldown:
+      default-days: 7
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: monthly
-      timezone: "America/New_York"
-      time: "07:23"
     groups:
       actions:
         patterns:
           - "*"
+    cooldown:
+      default-days: 7
