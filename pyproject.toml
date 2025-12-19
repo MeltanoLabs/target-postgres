@@ -129,6 +129,10 @@ sqlalchemy = "sa"
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
+[tool.uv]
+exclude-newer = "7 days"
+required-version = ">=0.9.17"
+
 [tool.uv.sources]
 meltano-tap-countries = { git = "https://github.com/meltano/sdk.git", subdirectory = "packages/meltano-tap-countries", rev = "main" }
 meltano-tap-fundamentals = { git = "https://github.com/meltano/sdk.git", subdirectory = "packages/meltano-tap-fundamentals", rev = "main" }
