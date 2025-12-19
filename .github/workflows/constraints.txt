@@ -1,3 +1,3 @@
-meltano==4.0.6
+meltano==4.0.7
 tox==4.32.0
 tox-uv==1.29.0
