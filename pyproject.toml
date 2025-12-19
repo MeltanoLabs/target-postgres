@@ -56,11 +56,13 @@ lint = [
     "ruff>=0.1.14",
 ]
 testing = [
+    "pgvector>=0.4.1",
     "pytest>=9",
     "meltano-tap-countries",
     "meltano-tap-fundamentals",
 ]
 typing = [
+    { include-group = "testing" },
     "mypy>=1.6.1",
     "types-paramiko>=4",
     "types-simplejson>=3.19.0.2",
@@ -83,6 +85,12 @@ exclude = "tests"
 warn_redundant_casts = true
 warn_unused_configs = true
 warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+follow_untyped_imports = true
+module = [
+  "pgvector.*",
+]
 
 [build-system]
 requires = [
@@ -119,12 +127,6 @@ select = [
   "PERF", # Perflint
   "RUF",  # ruff
 ]
-
-[tool.ruff.lint.flake8-import-conventions]
-banned-from = ["sqlalchemy"]
-
-[tool.ruff.lint.flake8-import-conventions.extend-aliases]
-sqlalchemy = "sa"
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
