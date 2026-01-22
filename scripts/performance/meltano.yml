@@ -4,52 +4,19 @@ default_environment: dev
 project_id: target-postgres
 plugins:
   extractors:
-  - name: tap-smoke-test
-    variant: meltano
-    pip_url: git+https://github.com/meltano/tap-smoke-test.git
-    executable: tap-smoke-test
-    config:
-      streams:
-      - stream_name: animals
-        input_filename: 
-          https://gitlab.com/meltano/tap-smoke-test/-/raw/main/demo-data/animals-data.jsonl
-      - stream_name: page_views
-        input_filename: 
-          https://gitlab.com/meltano/tap-smoke-test/-/raw/main/demo-data/pageviews-data.jsonl
-      stream_maps:
-        animals:
-          __key_properties__: [id]
-        page_views:
-          __key_properties__: [vistor_id]
-    schema:
-      animals:
-        views:
-          type: integer
-          x-sql-datatype: smallint
-  - name: tap-github
-    variant: meltanolabs
-    pip_url: git+https://github.com/MeltanoLabs/tap-github.git
-    config:
-      repositories:
-      - sbalnojan/meltano-lightdash
-      start_date: '2022-01-01'
-    select:
-    - commits.url
-    - commits.sha
-    - commits.commit_timestamp
   - name: tap-csv
     variant: meltanolabs
     pip_url: git+https://github.com/MeltanoLabs/tap-csv.git
     config:
       files:
       - entity: data_target_postgres
-        path: $MELTANO_PROJECT_ROOT/performance/data.csv
+        path: $MELTANO_PROJECT_ROOT/data.csv
         keys: [column_1]
       add_metadata_columns: false
   loaders:
   - name: target-postgres
     namespace: target_postgres
-    pip_url: -e .
+    pip_url: -e ../../.
     settings:
     - name: sqlalchemy_url
       kind: string
@@ -78,11 +45,13 @@ plugins:
       kind: integer
     - name: user
     - name: database
-    - name: use_copy
-      kind: boolean
     - name: target_schema
     - name: add_record_metadata
       kind: boolean
+    - name: validate_records
+      kind: boolean
+    - name: batch_size_rows
+      kind: integer
     config:
       host: localhost
       port: 5432
@@ -90,7 +59,6 @@ plugins:
       password: postgres
       database: postgres
       target_schema: test
-      validate_records: false
       add_record_metadata: true
   - name: target-postgres-copy-branch
     inherit_from: target-postgres
