@@ -36,7 +36,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-faker = ["faker>=37.1,<39.0"]
+faker = ["faker>=37.1,<41.0"]
 
 [project.urls]
 Homepage = "https://meltano.com"
