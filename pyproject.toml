@@ -59,6 +59,7 @@ testing = [
     "pytest>=9",
     "meltano-tap-countries",
     "meltano-tap-fundamentals",
+    "sqlalchemy>=2.0.0.dev0",
 ]
 typing = [
     "mypy>=1.6.1",
@@ -130,7 +131,8 @@ sqlalchemy = "sa"
 convention = "google"
 
 [tool.uv]
-exclude-newer = "7 days"
+prerelease = "if-necessary-or-explicit"
+exclude-newer = "P7D"
 required-version = ">=0.9.17"
 
 [tool.uv.sources]
