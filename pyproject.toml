@@ -132,7 +132,6 @@ convention = "google"
 
 [tool.uv]
 prerelease = "if-necessary-or-explicit"
-exclude-newer = "P7D"
 required-version = ">=0.9.17"
 
 [tool.uv.sources]
