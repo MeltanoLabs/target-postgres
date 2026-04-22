@@ -531,7 +531,7 @@ class PostgresConnector(SQLConnector):
             if picked_type is not None:
                 sql_type_array.append(picked_type)
 
-        return PostgresConnector.pick_best_sql_type(sql_type_array=sql_type_array)
+        return self.pick_best_sql_type(sql_type_array=sql_type_array)
 
     def pick_individual_type(self, jsonschema_type: dict):
         """Select the correct sql type assuming jsonschema_type has only a single type.
