@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 import sqlalchemy
+import sqlalchemy.exc
 from singer_sdk.exceptions import InvalidRecord, MissingKeyPropertiesError
 from singer_sdk.testing import sync_end_to_end
 from sqlalchemy.dialects.postgresql import ARRAY

@@ -121,12 +121,6 @@ select = [
   "RUF",  # ruff
 ]
 
-[tool.ruff.lint.flake8-import-conventions]
-banned-from = ["sqlalchemy"]
-
-[tool.ruff.lint.flake8-import-conventions.extend-aliases]
-sqlalchemy = "sa"
-
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
