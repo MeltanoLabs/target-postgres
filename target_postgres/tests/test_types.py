@@ -121,6 +121,11 @@ class TestJSONSchemaToPostgres:
                 SMALLINT,
                 id="x-sql-datatype-smallint",
             ),
+            pytest.param(
+                {"type": ["integer", "null"], "minimum": 0, "maximum": 2**15 - 1},
+                SMALLINT,
+                id="nullable-smallint-preserves-constraints",
+            ),
         ],
     )
     def test_integers(
@@ -132,3 +137,84 @@ class TestJSONSchemaToPostgres:
         """Test conversion of JSON schema types to Postgres types."""
         result = to_postgres.to_sql_type(jsonschema)
         assert type(result) is expected
+
+    @pytest.mark.parametrize(
+        ("jsonschema", "expected"),
+        [
+            pytest.param({"x-sql-datatype": "smallint"}, SMALLINT, id="smallint"),
+            pytest.param({"x-sql-datatype": "integer"}, types.INTEGER, id="integer"),
+            pytest.param({"x-sql-datatype": "bigint"}, BIGINT, id="bigint"),
+        ],
+    )
+    def test_x_sql_datatype_without_type(
+        self,
+        to_postgres: JSONSchemaToPostgres,
+        jsonschema: dict,
+        expected: type[types.TypeEngine],
+    ):
+        """Test x-sql-datatype resolves correctly even when no type field is present."""
+        result = to_postgres.to_sql_type(jsonschema)
+        assert type(result) is expected
+
+    @pytest.mark.parametrize(
+        ("jsonschema", "expected"),
+        [
+            pytest.param(
+                {"type": ["string", "integer"]}, types.TEXT, id="str+int=text"
+            ),
+            pytest.param(
+                {"type": ["boolean", "string"]}, types.TEXT, id="bool+str=text"
+            ),
+        ],
+    )
+    def test_union_types(
+        self,
+        to_postgres: JSONSchemaToPostgres,
+        jsonschema: dict,
+        expected: type[types.TypeEngine],
+    ):
+        """Test union types (multiple non-null) resolve via pick_best_sql_type."""
+        result = to_postgres.to_sql_type(jsonschema)
+        assert type(result) is expected
+
+    @pytest.mark.parametrize(
+        ("jsonschema", "expected"),
+        [
+            pytest.param(
+                {
+                    "anyOf": [
+                        {"type": "string", "format": "date-time"},
+                        {"type": "null"},
+                    ]
+                },
+                types.TIMESTAMP,
+                id="nullable-datetime",
+            ),
+            pytest.param(
+                {"anyOf": [{"type": "string"}, {"type": "null"}]},
+                types.TEXT,
+                id="nullable-string",
+            ),
+        ],
+    )
+    def test_any_of(
+        self,
+        to_postgres: JSONSchemaToPostgres,
+        jsonschema: dict,
+        expected: type[types.TypeEngine],
+    ):
+        """Test anyOf nullable types resolve correctly."""
+        result = to_postgres.to_sql_type(jsonschema)
+        assert type(result) is expected
+
+    def test_fallback_to_notype(self, to_postgres: JSONSchemaToPostgres):
+        """Test that a schema with no type or anyOf falls back to NOTYPE."""
+        result = to_postgres.to_sql_type({})
+        assert type(result) is NOTYPE
+
+    def test_nullable_string_preserves_format(self, to_postgres: JSONSchemaToPostgres):
+        """Test that nullable string unions preserve the format context."""
+        result = to_postgres.to_sql_type(
+            {"type": ["string", "null"], "format": "date-time"}
+        )
+        assert type(result) is types.TIMESTAMP
