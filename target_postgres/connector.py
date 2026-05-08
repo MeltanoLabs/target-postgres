@@ -226,6 +226,54 @@ class JSONSchemaToPostgres(JSONSchemaToSQL):
 
         return TEXT()
 
+    @staticmethod
+    def pick_best_sql_type(sql_type_array: list) -> types.TypeEngine:
+        """Select the best SQL type from an array of SQL type instances.
+
+        Args:
+            sql_type_array: The array of instances of SQL type classes.
+
+        Returns:
+            An instance of the best SQL type class based on defined precedence order.
+        """
+        precedence_order = [
+            HexByteString,
+            ARRAY,
+            JSONB,
+            UUID,
+            TEXT,
+            TIMESTAMP,
+            DATETIME,
+            DATE,
+            TIME,
+            DECIMAL,
+            BIGINT,
+            INTEGER,
+            SMALLINT,
+            BOOLEAN,
+            NOTYPE,
+        ]
+        for sql_type, obj in itertools.product(precedence_order, sql_type_array):
+            if isinstance(obj, sql_type):
+                return obj
+        return TEXT()
+
+    def handle_multiple_types(self, types: t.Sequence[str]) -> types.TypeEngine:
+        """Select the best SQL type for a union of JSON Schema types.
+
+        Args:
+            types: The list of non-null JSON Schema type strings.
+
+        Returns:
+            The best SQL type based on the defined precedence order.
+        """
+        sql_types = [
+            sql_t
+            for raw in types
+            if (sql_t := self._get_type_from_schema({"type": raw})) is not None
+        ]
+        return self.pick_best_sql_type(sql_types)
+
 
 class PostgresConnector(SQLConnector):
     """Sets up SQL Alchemy, and other Postgres related stuff."""
@@ -474,7 +522,7 @@ class PostgresConnector(SQLConnector):
             content_encoding=self.interpret_content_encoding,
             max_varchar_length=self.max_varchar_length,
         )
-        to_sql.fallback_type = TEXT
+        to_sql.fallback_type = NOTYPE
         to_sql.register_type_handler("integer", self._handle_integer_type)
         to_sql.register_type_handler("object", JSONB)
         to_sql.register_type_handler("array", self._handle_array_type)
@@ -489,109 +537,6 @@ class PostgresConnector(SQLConnector):
         to_sql.register_sql_datatype_handler("integer", INTEGER)
         to_sql.register_sql_datatype_handler("bigint", BIGINT)
         return to_sql
-
-    def to_sql_type(self, jsonschema_type: dict) -> types.TypeEngine:
-        """Return a JSON Schema representation of the provided type.
-
-        By default will call `typing.to_sql_type()`.
-
-        Developers may override this method to accept additional input argument types,
-        to support non-standard types, or to provide custom typing logic.
-        If overriding this method, developers should call the default implementation
-        from the base class for all unhandled cases.
-
-        Args:
-            jsonschema_type: The JSON Schema representation of the source type.
-
-        Returns:
-            The SQLAlchemy type representation of the data type.
-        """
-        json_type_array = []
-
-        if jsonschema_type.get("type", False):
-            if isinstance(jsonschema_type["type"], str):
-                json_type_array.append(jsonschema_type)
-            elif isinstance(jsonschema_type["type"], list):
-                for entry in jsonschema_type["type"]:
-                    json_type_dict = {"type": entry}
-                    if jsonschema_type.get("format", False):
-                        json_type_dict["format"] = jsonschema_type["format"]
-                    if encoding := jsonschema_type.get("contentEncoding", False):
-                        json_type_dict["contentEncoding"] = encoding
-                    # Figure out array type, but only if there's a single type
-                    # (no array union types)
-                    if (
-                        "items" in jsonschema_type
-                        and "type" in jsonschema_type["items"]
-                        and isinstance(jsonschema_type["items"]["type"], str)
-                    ):
-                        json_type_dict["items"] = jsonschema_type["items"]["type"]
-                    json_type_array.append(json_type_dict)
-            else:
-                msg = "Invalid format for jsonschema type: not str or list."
-                raise RuntimeError(msg)
-        elif jsonschema_type.get("anyOf", False):
-            json_type_array.extend(iter(jsonschema_type["anyOf"]))
-        else:
-            msg = (
-                "Neither type nor anyOf are present. Unable to determine type. "
-                "Defaulting to string."
-            )
-            return NOTYPE()
-        sql_type_array = []
-        for json_type in json_type_array:
-            picked_type = self.pick_individual_type(jsonschema_type=json_type)
-            if picked_type is not None:
-                sql_type_array.append(picked_type)
-
-        return self.pick_best_sql_type(sql_type_array=sql_type_array)
-
-    def pick_individual_type(self, jsonschema_type: dict):
-        """Select the correct sql type assuming jsonschema_type has only a single type.
-
-        Args:
-            jsonschema_type: A jsonschema_type array containing only a single type.
-
-        Returns:
-            An instance of the appropriate SQL type class based on jsonschema_type.
-        """
-        if "null" in jsonschema_type["type"]:
-            return None
-
-        return self.jsonschema_to_sql.to_sql_type(jsonschema_type)
-
-    @staticmethod
-    def pick_best_sql_type(sql_type_array: list):
-        """Select the best SQL type from an array of instances of SQL type classes.
-
-        Args:
-            sql_type_array: The array of instances of SQL type classes.
-
-        Returns:
-            An instance of the best SQL type class based on defined precedence order.
-        """
-        precedence_order = [
-            HexByteString,
-            ARRAY,
-            JSONB,
-            UUID,
-            TEXT,
-            TIMESTAMP,
-            DATETIME,
-            DATE,
-            TIME,
-            DECIMAL,
-            BIGINT,
-            INTEGER,
-            SMALLINT,
-            BOOLEAN,
-            NOTYPE,
-        ]
-
-        for sql_type, obj in itertools.product(precedence_order, sql_type_array):
-            if isinstance(obj, sql_type):
-                return obj
-        return TEXT()
 
     def create_empty_table(  # type: ignore[override]  # noqa: PLR0913
         self,
