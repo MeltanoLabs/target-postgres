@@ -385,9 +385,8 @@ class PostgresConnector(SQLConnector):
                 connection=connection,
             )
         meta.reflect(connection, only=[table_name])
-        table = meta.tables[
-            full_table_name
-        ]  # So we don't mess up the casing of the Table reference
+        meta_key = f"{schema_name}.{table_name}" if schema_name else table_name
+        table = meta.tables[meta_key]
 
         columns = self.get_table_columns(
             schema_name=cast("str", schema_name),
@@ -408,7 +407,7 @@ class PostgresConnector(SQLConnector):
                 column_object=column_object,
             )
 
-        return meta.tables[full_table_name]
+        return meta.tables[meta_key]
 
     def copy_table_structure(
         self,
