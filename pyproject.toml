@@ -96,7 +96,8 @@ build-backend = "hatchling.build"
 minversion = "9.0"
 filterwarnings = [
   "error",
-  "ignore:Exception ignored:pytest.PytestUnraisableExceptionWarning",
+  "once:Exception ignored:pytest.PytestUnraisableExceptionWarning",
+  "once:Python .* will reach its end of life:singer_sdk.helpers._compat.SingerSDKPythonEOLWarning",
 ]
 pythonpath = [
   "."
