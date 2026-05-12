@@ -611,7 +611,7 @@ wheels = [
 [[package]]
 name = "meltano-tap-countries"
 version = "0.0.0"
-source = { git = "https://github.com/meltano/sdk.git?subdirectory=packages%2Fmeltano-tap-countries&rev=main#fbe6ed1c6eaa489b6815ad7cbb3124b0848f1d83" }
+source = { git = "https://github.com/meltano/sdk.git?subdirectory=packages%2Fmeltano-tap-countries&rev=v0.53#a520f7cc5e1715d911ad1d553e7e91e96e32698e" }
 dependencies = [
     { name = "msgspec" },
     { name = "requests-cache" },
@@ -622,7 +622,7 @@ dependencies = [
 [[package]]
 name = "meltano-tap-fundamentals"
 version = "0.0.0"
-source = { git = "https://github.com/meltano/sdk.git?subdirectory=packages%2Fmeltano-tap-fundamentals&rev=main#fbe6ed1c6eaa489b6815ad7cbb3124b0848f1d83" }
+source = { git = "https://github.com/meltano/sdk.git?subdirectory=packages%2Fmeltano-tap-fundamentals&rev=v0.53#a520f7cc5e1715d911ad1d553e7e91e96e32698e" }
 dependencies = [
     { name = "singer-sdk" },
     { name = "typing-extensions", marker = "python_full_version < '3.12'" },
@@ -687,8 +687,8 @@ provides-extras = ["faker"]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "meltano-tap-countries", git = "https://github.com/meltano/sdk.git?subdirectory=packages%2Fmeltano-tap-countries&rev=main" },
-    { name = "meltano-tap-fundamentals", git = "https://github.com/meltano/sdk.git?subdirectory=packages%2Fmeltano-tap-fundamentals&rev=main" },
+    { name = "meltano-tap-countries", git = "https://github.com/meltano/sdk.git?subdirectory=packages%2Fmeltano-tap-countries&rev=v0.53" },
+    { name = "meltano-tap-fundamentals", git = "https://github.com/meltano/sdk.git?subdirectory=packages%2Fmeltano-tap-fundamentals&rev=v0.53" },
     { name = "mypy", specifier = ">=1.6.1" },
     { name = "pytest", specifier = ">=9" },
     { name = "remote-pdb", specifier = ">=2.1.0" },
@@ -700,8 +700,8 @@ dev = [
 ]
 lint = [{ name = "ruff", specifier = ">=0.1.14" }]
 testing = [
-    { name = "meltano-tap-countries", git = "https://github.com/meltano/sdk.git?subdirectory=packages%2Fmeltano-tap-countries&rev=main" },
-    { name = "meltano-tap-fundamentals", git = "https://github.com/meltano/sdk.git?subdirectory=packages%2Fmeltano-tap-fundamentals&rev=main" },
+    { name = "meltano-tap-countries", git = "https://github.com/meltano/sdk.git?subdirectory=packages%2Fmeltano-tap-countries&rev=v0.53" },
+    { name = "meltano-tap-fundamentals", git = "https://github.com/meltano/sdk.git?subdirectory=packages%2Fmeltano-tap-fundamentals&rev=v0.53" },
     { name = "pytest", specifier = ">=9" },
     { name = "sqlalchemy", specifier = ">=2.0.0.dev0" },
 ]
@@ -847,7 +847,7 @@ wheels = [
 
 [[package]]
 name = "paramiko"
-version = "4.0.0"
+version = "5.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bcrypt" },
@@ -855,9 +855,9 @@ dependencies = [
     { name = "invoke" },
     { name = "pynacl" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1f/e7/81fdcbc7f190cdb058cffc9431587eb289833bdd633e2002455ca9bb13d4/paramiko-4.0.0.tar.gz", hash = "sha256:6a25f07b380cc9c9a88d2b920ad37167ac4667f8d9886ccebd8f90f654b5d69f", size = 1630743, upload-time = "2025-08-04T01:02:03.711Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/62/93/dcc25d52f49022ae6175d15e6bd751f1acc99b98bc61fc55e5155a7be2e7/paramiko-5.0.0.tar.gz", hash = "sha256:36763b5b95c2a0dcfdf1abc48e48156ee425b21efe2f0e787c2dd5a95c0e5e79", size = 1548586, upload-time = "2026-05-09T18:28:52.256Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a9/90/a744336f5af32c433bd09af7854599682a383b37cfd78f7de263de6ad6cb/paramiko-4.0.0-py3-none-any.whl", hash = "sha256:0e20e00ac666503bf0b4eda3b6d833465a2b7aff2e2b3d79a8bba5ef144ee3b9", size = 223932, upload-time = "2025-08-04T01:02:02.029Z" },
+    { url = "https://files.pythonhosted.org/packages/82/5b/eadf6d45de38d30ab603f49393b6cd2cbe7e233af8cf90197e32782b68a9/paramiko-5.0.0-py3-none-any.whl", hash = "sha256:b7044611c30140d9a75261653210e2002977b71a0497ff3ba0d98d7edbf62f7c", size = 208919, upload-time = "2026-05-09T18:28:50.295Z" },
 ]
 
 [[package]]
@@ -1405,11 +1405,11 @@ wheels = [
 
 [[package]]
 name = "simpleeval"
-version = "1.0.3"
+version = "1.0.7"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/ff/6f/15be211749430f52f2c8f0c69158a6fc961c03aac93fa28d44d1a6f5ebc7/simpleeval-1.0.3.tar.gz", hash = "sha256:67bbf246040ac3b57c29cf048657b9cf31d4e7b9d6659684daa08ca8f1e45829", size = 24358, upload-time = "2024-11-02T10:29:46.912Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b4/9d/e7c9309940794dd3073cba2e5101df5874d84243595ce63b1e1c8f9b9c76/simpleeval-1.0.7.tar.gz", hash = "sha256:1e10e5f9fec597814444e20c0892ed15162fa214c8a88f434b5b077cf2fef85b", size = 30250, upload-time = "2026-03-16T10:53:03.464Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a0/e9/e58082fbb8cecbb6fb4133033c40cc50c248b1a331582be3a0f39138d65b/simpleeval-1.0.3-py3-none-any.whl", hash = "sha256:e3bdbb8c82c26297c9a153902d0fd1858a6c3774bf53ff4f134788c3f2035c38", size = 15762, upload-time = "2024-11-02T10:29:45.706Z" },
+    { url = "https://files.pythonhosted.org/packages/0f/2f/f32aa85591882378bb43caa09363f3ed97df399369a5144c7f19f2275bc0/simpleeval-1.0.7-py3-none-any.whl", hash = "sha256:97ac271bfd8f2af9e7b9a36ceea67617f26fa873f9d5ae1922f64d4c1442534b", size = 18792, upload-time = "2026-03-16T10:53:02.103Z" },
 ]
 
 [[package]]
@@ -1475,8 +1475,8 @@ wheels = [
 
 [[package]]
 name = "singer-sdk"
-version = "0.53.6.dev53+gfbe6ed1c6"
-source = { git = "https://github.com/meltano/sdk.git?rev=main#fbe6ed1c6eaa489b6815ad7cbb3124b0848f1d83" }
+version = "0.53.7"
+source = { git = "https://github.com/meltano/sdk.git?rev=v0.53#a520f7cc5e1715d911ad1d553e7e91e96e32698e" }
 dependencies = [
     { name = "backports-datetime-fromisoformat", marker = "python_full_version < '3.11'" },
     { name = "click" },
@@ -1497,7 +1497,6 @@ dependencies = [
     { name = "sqlalchemy" },
     { name = "typing-extensions", marker = "python_full_version < '3.13'" },
     { name = "universal-pathlib" },
-    { name = "urllib3" },
 ]
 
 [package.optional-dependencies]
