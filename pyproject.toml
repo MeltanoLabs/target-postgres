@@ -32,7 +32,7 @@ dependencies = [
     "psycopg[binary]==3.3.3",
     "psycopg2-binary==2.9.12",
     "sqlalchemy~=2.0",
-    "singer-sdk[sql]~=0.53.0",
+    "singer-sdk[sql]~=0.54.0",
 ]
 
 [project.optional-dependencies]
@@ -96,7 +96,8 @@ build-backend = "hatchling.build"
 minversion = "9.0"
 filterwarnings = [
   "error",
-  "ignore:Exception ignored:pytest.PytestUnraisableExceptionWarning",
+  "once:Exception ignored:pytest.PytestUnraisableExceptionWarning",
+  "once:Python .* will reach its end of life:singer_sdk.helpers._compat.SingerSDKPythonEOLWarning",
 ]
 pythonpath = [
   "."
@@ -129,5 +130,5 @@ prerelease = "if-necessary-or-explicit"
 required-version = ">=0.9.17"
 
 [tool.uv.sources]
-meltano-tap-countries = { git = "https://github.com/meltano/sdk.git", subdirectory = "packages/meltano-tap-countries", rev = "v0.53" }
-meltano-tap-fundamentals = { git = "https://github.com/meltano/sdk.git", subdirectory = "packages/meltano-tap-fundamentals", rev = "v0.53" }
+meltano-tap-countries = { git = "https://github.com/meltano/sdk.git", subdirectory = "packages/meltano-tap-countries", rev = "main" }
+meltano-tap-fundamentals = { git = "https://github.com/meltano/sdk.git", subdirectory = "packages/meltano-tap-fundamentals", rev = "main" }
