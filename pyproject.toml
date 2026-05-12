@@ -129,5 +129,5 @@ prerelease = "if-necessary-or-explicit"
 required-version = ">=0.9.17"
 
 [tool.uv.sources]
-meltano-tap-countries = { git = "https://github.com/meltano/sdk.git", subdirectory = "packages/meltano-tap-countries", rev = "main" }
-meltano-tap-fundamentals = { git = "https://github.com/meltano/sdk.git", subdirectory = "packages/meltano-tap-fundamentals", rev = "main" }
+meltano-tap-countries = { git = "https://github.com/meltano/sdk.git", subdirectory = "packages/meltano-tap-countries", rev = "v0.53" }
+meltano-tap-fundamentals = { git = "https://github.com/meltano/sdk.git", subdirectory = "packages/meltano-tap-fundamentals", rev = "v0.53" }
