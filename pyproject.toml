@@ -1,110 +1,101 @@
+[build-system]
+build-backend = "hatchling.build"
+requires = [
+  "hatch-vcs==0.5",
+  "hatchling==1.29",
+]
+
 [project]
 name = "meltanolabs-target-postgres"
-dynamic = ["version"]
 description = "Singer target for Postgres, built with the Meltano SDK for Singer Targets."
-authors = [{ name = "Meltano Team and Contributors", email = "hello@meltano.com" }]
-requires-python = ">=3.10"
 readme = "README.md"
+keywords = [
+  "ELT",
+  "Meltano",
+  "Meltano SDK",
+  "Postgres",
+  "Singer",
+]
 license = "MIT"
 license-files = [
-    "LICENSE",
+  "LICENSE",
 ]
-maintainers = [{ name = "Meltano Team and Contributors", email = "hello@meltano.com" }]
-keywords = [
-    "Postgres",
-    "Singer",
-    "ELT",
-    "Meltano",
-    "Meltano SDK",
-]
+requires-python = ">=3.10"
 classifiers = [
-    "Intended Audience :: Developers",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3.14",
-    "Programming Language :: Python :: Implementation :: CPython",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: Implementation :: CPython",
 ]
+dynamic = [ "version" ]
 dependencies = [
-    "paramiko>=4",
-    "psycopg[binary]==3.3.3",
-    "psycopg2-binary==2.9.12",
-    "sqlalchemy~=2.0",
-    "singer-sdk[sql]~=0.54.0",
+  "paramiko>=4",
+  "psycopg[binary]==3.3.3",
+  "psycopg2-binary==2.9.12",
+  "singer-sdk[sql]~=0.54.0",
+  "sqlalchemy~=2.0",
 ]
-
+[[project.authors]]
+name = "Meltano Team and Contributors"
+email = "hello@meltano.com"
+[[project.maintainers]]
+name = "Meltano Team and Contributors"
+email = "hello@meltano.com"
 [project.optional-dependencies]
-faker = ["faker>=37.1,<41.0"]
-
+faker = [ "faker>=37.1,<41" ]
+[project.scripts]
+target-postgres = "target_postgres.target:TargetPostgres.cli"
 [project.urls]
 Homepage = "https://meltano.com"
 Repository = "https://github.com/MeltanoLabs/target-postgres"
 Documentation = "https://github.com/MeltanoLabs/target-postgres/blob/main/README.md"
 
-[project.scripts]
-target-postgres = "target_postgres.target:TargetPostgres.cli"
-
 [dependency-groups]
 dev = [
-    { include-group = "testing" },
-    { include-group = "typing" },
-    "remote-pdb>=2.1.0",
+  "remote-pdb>=2.1",
+  { include-group = "testing" },
+  { include-group = "typing" },
 ]
 lint = [
-    "ruff>=0.1.14",
+  "ruff>=0.1.14",
 ]
 testing = [
-    "pytest>=9",
-    "meltano-tap-countries",
-    "meltano-tap-fundamentals",
-    "sqlalchemy>=2.0.0.dev0",
+  "meltano-tap-countries",
+  "meltano-tap-fundamentals",
+  "pytest>=9",
+  "sqlalchemy>=2.0.0.dev0",
 ]
 typing = [
-    "mypy>=1.6.1",
-    "types-paramiko>=4",
-    "types-simplejson>=3.19.0.2",
-    "types-sqlalchemy>=1.4.53.38",
-    "types-jsonschema>=4.19.0.3",
+  "mypy>=1.6.1",
+  "types-jsonschema>=4.19.0.3",
+  "types-paramiko>=4",
+  "types-simplejson>=3.19.0.2",
+  "types-sqlalchemy>=1.4.53.38",
 ]
 
+[tool.hatch.build.targets.sdist]
+include = [ "target_postgres" ]
+[tool.hatch.build.targets.wheel]
+include = [ "target_postgres" ]
 [tool.hatch.version]
 fallback-version = "0.0.0"
 source = "vcs"
 
-[tool.hatch.build.targets.sdist]
-include = ["target_postgres"]
-
-[tool.hatch.build.targets.wheel]
-include = ["target_postgres"]
-
-[tool.mypy]
-exclude = "tests"
-warn_redundant_casts = true
-warn_unused_configs = true
-warn_unused_ignores = true
-
-[build-system]
-requires = [
-    "hatchling==1.29.0",
-    "hatch-vcs==0.5.0",
-]
-build-backend = "hatchling.build"
-
-[tool.pytest]
-minversion = "9.0"
-filterwarnings = [
-  "error",
-  "once:Exception ignored:pytest.PytestUnraisableExceptionWarning",
-  "once:Python .* will reach its end of life:singer_sdk.helpers._compat.SingerSDKPythonEOLWarning",
-]
-pythonpath = [
-  "."
-]
+[tool.uv]
+required-version = ">=0.9.17"
+prerelease = "if-necessary-or-explicit"
+[tool.uv.sources]
+meltano-tap-countries = { git = "https://github.com/meltano/sdk.git", subdirectory = "packages/meltano-tap-countries", rev = "main" }
+meltano-tap-fundamentals = { git = "https://github.com/meltano/sdk.git", subdirectory = "packages/meltano-tap-fundamentals", rev = "main" }
 
 [tool.ruff.lint]
 select = [
+  "B",    # flake8-bugbear
   "F",    # Pyflakes
   "W",    # pycodestyle warnings
   "E",    # pycodestyle errors
@@ -121,14 +112,27 @@ select = [
   "PERF", # Perflint
   "RUF",  # ruff
 ]
-
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
-[tool.uv]
-prerelease = "if-necessary-or-explicit"
-required-version = ">=0.9.17"
+[tool.mypy]
+enable_error_code = [ "ignore-without-code", "redundant-expr", "truthy-bool" ]
+exclude = "tests"
+strict = true
+warn_redundant_casts = true
+warn_unreachable = true
+warn_unused_configs = true
+warn_unused_ignores = true
 
-[tool.uv.sources]
-meltano-tap-countries = { git = "https://github.com/meltano/sdk.git", subdirectory = "packages/meltano-tap-countries", rev = "main" }
-meltano-tap-fundamentals = { git = "https://github.com/meltano/sdk.git", subdirectory = "packages/meltano-tap-fundamentals", rev = "main" }
+[tool.pytest]
+addopts = ["-ra"]
+log_level = "INFO"
+minversion = "9"
+filterwarnings = [
+  "error",
+  "once:Exception ignored:pytest.PytestUnraisableExceptionWarning",
+  "once:Python .* will reach its end of life:singer_sdk.helpers._compat.SingerSDKPythonEOLWarning",
+]
+pythonpath = [ "." ]
+strict = true
+testpaths = ["target_postgres/tests"]
