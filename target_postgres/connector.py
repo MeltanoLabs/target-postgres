@@ -160,7 +160,7 @@ class SSHTunnelForwarder:
         """
         try:
 
-            def forward_local_to_remote():
+            def forward_local_to_remote() -> None:
                 while True:
                     data = local_socket.recv(4096)
                     if len(data) == 0:
@@ -168,7 +168,7 @@ class SSHTunnelForwarder:
                     channel.send(data)
                 channel.close()
 
-            def forward_remote_to_local():
+            def forward_remote_to_local() -> None:
                 while True:
                     data = channel.recv(4096)
                     if len(data) == 0:
@@ -219,7 +219,7 @@ class JSONSchemaToPostgres(JSONSchemaToSQL):
         super().__init__(*args, **kwargs)
         self.content_encoding = content_encoding
 
-    def handle_raw_string(self, schema):
+    def handle_raw_string(self, schema: dict[str, t.Any]) -> types.TypeEngine:
         """Handle a raw string type."""
         if self.content_encoding and schema.get("contentEncoding") == "base16":
             return HexByteString()
@@ -227,7 +227,7 @@ class JSONSchemaToPostgres(JSONSchemaToSQL):
         return TEXT()
 
     @staticmethod
-    def pick_best_sql_type(sql_type_array: list) -> types.TypeEngine:
+    def pick_best_sql_type(sql_type_array: list[types.TypeEngine]) -> types.TypeEngine:
         """Select the best SQL type from an array of SQL type instances.
 
         Args:
@@ -288,7 +288,7 @@ class PostgresConnector(SQLConnector):
     #: https://www.postgresql.org/docs/current/datatype-character.html
     max_varchar_length: int | None = 10_485_760
 
-    def __init__(self, config: dict) -> None:
+    def __init__(self, config: dict[str, t.Any]) -> None:
         """Initialize a connector to a Postgres database.
 
         Args:
@@ -338,7 +338,7 @@ class PostgresConnector(SQLConnector):
         Returns:
             True if the feature is enabled, False otherwise.
         """
-        return self.config.get("interpret_content_encoding", False)
+        return bool(self.config.get("interpret_content_encoding", False))
 
     @cached_property
     def sanitize_null_text_characters(self) -> bool:
@@ -347,12 +347,12 @@ class PostgresConnector(SQLConnector):
         Returns:
             True if the feature is enabled, False otherwise.
         """
-        return self.config.get("sanitize_null_text_characters", False)
+        return bool(self.config.get("sanitize_null_text_characters", False))
 
     def prepare_table(  # type: ignore[override]  # noqa: PLR0913
         self,
         full_table_name: str | FullyQualifiedName,
-        schema: dict,
+        schema: dict[str, t.Any],
         primary_keys: t.Sequence[str],
         connection: sqlalchemy.engine.Connection,
         partition_keys: list[str] | None = None,
@@ -454,12 +454,17 @@ class PostgresConnector(SQLConnector):
 
     def drop_table(
         self, table: sqlalchemy.Table, connection: sqlalchemy.engine.Connection
-    ):
+    ) -> None:
         """Drop table data."""
         table.drop(bind=connection)
 
     def clone_table(
-        self, new_table_name, table, metadata, connection, temp_table
+        self,
+        new_table_name: str,
+        table: sqlalchemy.Table,
+        metadata: sqlalchemy.MetaData,
+        connection: sqlalchemy.engine.Connection,
+        temp_table: bool,
     ) -> sqlalchemy.Table:
         """Clone a table."""
         new_columns = [
@@ -477,7 +482,7 @@ class PostgresConnector(SQLConnector):
         new_table.create(bind=connection)
         return new_table
 
-    def _handle_array_type(self, jsonschema: dict) -> ARRAY | JSONB:
+    def _handle_array_type(self, jsonschema: dict[str, t.Any]) -> ARRAY | JSONB:
         """Handle array type."""
         items = jsonschema.get("items")
         # Case 1: items is a string
@@ -503,7 +508,9 @@ class PostgresConnector(SQLConnector):
         # Case 3: tuples
         return ARRAY(JSONB()) if isinstance(items, list) else JSONB()
 
-    def _handle_integer_type(self, jsonschema: dict) -> SMALLINT | INTEGER | BIGINT:
+    def _handle_integer_type(
+        self, jsonschema: dict[str, t.Any]
+    ) -> SMALLINT | INTEGER | BIGINT:
         """Handle integer type."""
         minimum = jsonschema.get("minimum", -math.inf)
         maximum = jsonschema.get("maximum", math.inf)
@@ -541,7 +548,7 @@ class PostgresConnector(SQLConnector):
         self,
         table_name: str,
         meta: sqlalchemy.MetaData,
-        schema: dict,
+        schema: dict[str, t.Any],
         connection: sqlalchemy.engine.Connection,
         primary_keys: t.Sequence[str] | None = None,
         partition_keys: list[str] | None = None,
@@ -568,7 +575,7 @@ class PostgresConnector(SQLConnector):
         columns: list[sqlalchemy.Column] = []
         primary_keys = primary_keys or []
         try:
-            properties: dict = schema["properties"]
+            properties: dict[str, t.Any] = schema["properties"]
         except KeyError:
             raise RuntimeError(
                 f"Schema for table_name: '{table_name}'"
@@ -733,7 +740,7 @@ class PostgresConnector(SQLConnector):
         """
         current_type: types.TypeEngine
         if column_object is not None:
-            current_type = t.cast("types.TypeEngine", column_object.type)
+            current_type = column_object.type
         else:
             current_type = self._get_column_type(
                 schema_name=schema_name,
@@ -813,7 +820,7 @@ class PostgresConnector(SQLConnector):
             },
         )
 
-    def get_sqlalchemy_url(self, config: dict) -> str:
+    def get_sqlalchemy_url(self, config: dict[str, t.Any]) -> str:
         """Generate a SQLAlchemy URL.
 
         Args:
@@ -833,7 +840,7 @@ class PostgresConnector(SQLConnector):
         )
         return cast("str", sqlalchemy_url)
 
-    def get_sqlalchemy_query(self, config: dict) -> dict:
+    def get_sqlalchemy_query(self, config: dict[str, t.Any]) -> dict[str, t.Any]:
         """Get query values to be used for sqlalchemy URL creation.
 
         Args:
@@ -938,7 +945,7 @@ class PostgresConnector(SQLConnector):
         if self.ssh_tunnel is not None:
             self.ssh_tunnel.stop()
 
-    def catch_signal(self, signum, frame) -> None:
+    def catch_signal(self, signum: int, _frame: t.Any) -> None:
         """Catch signals and exit cleanly.
 
         Args:
@@ -981,7 +988,7 @@ class PostgresConnector(SQLConnector):
             )
             raise KeyError(msg) from ex
 
-        return t.cast("types.TypeEngine", column.type)
+        return column.type
 
     def get_table_columns(  # type: ignore[override]
         self,
@@ -1047,7 +1054,7 @@ class NOTYPE(TypeDecorator):
     impl = TEXT
     cache_ok = True
 
-    def process_bind_param(self, value, dialect):
+    def process_bind_param(self, value: t.Any, dialect: t.Any) -> t.Any:
         """Return value as is unless it is dict or list.
 
         Used internally by SQL Alchemy. Should not be used directly.
@@ -1057,11 +1064,11 @@ class NOTYPE(TypeDecorator):
         return value
 
     @property
-    def python_type(self):
+    def python_type(self) -> type:
         """Return the Python type for this column."""
         return object
 
-    def as_generic(self, *args: t.Any, **kwargs: t.Any):
+    def as_generic(self, *args: t.Any, **kwargs: t.Any) -> TEXT:
         """Return the generic type for this column."""
         return TEXT()
 
@@ -1078,7 +1085,7 @@ class HexByteString(TypeDecorator):
 
     impl = BYTEA
 
-    def process_bind_param(self, value, dialect):
+    def process_bind_param(self, value: t.Any, dialect: t.Any) -> t.Any:
         """Convert hex string to bytes."""
         if value is None:
             return None

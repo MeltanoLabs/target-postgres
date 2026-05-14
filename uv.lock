@@ -495,7 +495,7 @@ name = "importlib-metadata"
 version = "9.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "zipp" },
+    { name = "zipp", marker = "python_full_version < '3.15'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a9/01/15bb152d77b21318514a96f43af312635eb2500c96b55398d020c93d86ea/importlib_metadata-9.0.0.tar.gz", hash = "sha256:a4f57ab599e6a2e3016d7595cfd72eb4661a5106e787a95bcc90c7105b831efc", size = 56405, upload-time = "2026-03-20T06:42:56.999Z" }
 wheels = [
@@ -706,7 +706,6 @@ dev = [
     { name = "types-jsonschema" },
     { name = "types-paramiko" },
     { name = "types-simplejson" },
-    { name = "types-sqlalchemy" },
 ]
 lint = [
     { name = "ruff" },
@@ -722,12 +721,11 @@ typing = [
     { name = "types-jsonschema" },
     { name = "types-paramiko" },
     { name = "types-simplejson" },
-    { name = "types-sqlalchemy" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "faker", marker = "extra == 'faker'", specifier = ">=37.1,<41.0" },
+    { name = "faker", marker = "extra == 'faker'", specifier = ">=37.1,<41" },
     { name = "paramiko", specifier = ">=4" },
     { name = "psycopg", extras = ["binary"], specifier = "==3.3.3" },
     { name = "psycopg2-binary", specifier = "==2.9.12" },
@@ -742,12 +740,11 @@ dev = [
     { name = "meltano-tap-fundamentals", git = "https://github.com/meltano/sdk.git?subdirectory=packages%2Fmeltano-tap-fundamentals&rev=main" },
     { name = "mypy", specifier = ">=1.6.1" },
     { name = "pytest", specifier = ">=9" },
-    { name = "remote-pdb", specifier = ">=2.1.0" },
+    { name = "remote-pdb", specifier = ">=2.1" },
     { name = "sqlalchemy", specifier = ">=2.0.0.dev0" },
     { name = "types-jsonschema", specifier = ">=4.19.0.3" },
     { name = "types-paramiko", specifier = ">=4" },
     { name = "types-simplejson", specifier = ">=3.19.0.2" },
-    { name = "types-sqlalchemy", specifier = ">=1.4.53.38" },
 ]
 lint = [{ name = "ruff", specifier = ">=0.1.14" }]
 testing = [
@@ -761,7 +758,6 @@ typing = [
     { name = "types-jsonschema", specifier = ">=4.19.0.3" },
     { name = "types-paramiko", specifier = ">=4" },
     { name = "types-simplejson", specifier = ">=3.19.0.2" },
-    { name = "types-sqlalchemy", specifier = ">=1.4.53.38" },
 ]
 
 [[package]]
@@ -1727,15 +1723,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/1d/81/567f88a4a5ad49c648c5f36d9543220d762c2661dca122db0f8095b3c1ab/types_simplejson-3.20.0.20260508.tar.gz", hash = "sha256:4e7469e2d4f4ec06da6538ed027a8d0831721f2dde13ea9043d2fcddeba5cac5", size = 10706, upload-time = "2026-05-08T04:47:05.059Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b5/42/2c384dd111ad6beb34addf29e4932d1498f2c5d748b765449e2d6e23c90a/types_simplejson-3.20.0.20260508-py3-none-any.whl", hash = "sha256:f1ed32af465bda1755feffd2e36c8156acdea8644781f8616bd43b344ac9c121", size = 10406, upload-time = "2026-05-08T04:47:03.977Z" },
-]
-
-[[package]]
-name = "types-sqlalchemy"
-version = "1.4.53.38"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/ab/ce/0b7fa93dbc49b328807dedef8006223129e5a9543c74727dd7658eca5a9d/types-SQLAlchemy-1.4.53.38.tar.gz", hash = "sha256:5bb7463537e04e1aa5a3557eb725930df99226dcfd3c9bf93008025bfe5c169e", size = 118888, upload-time = "2023-05-01T15:15:28.572Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/1a/4f/033a839a35ecbc5f71c0d74655d1237e909651aaebe7ceb825ac45cfdb4b/types_SQLAlchemy-1.4.53.38-py3-none-any.whl", hash = "sha256:7e60e74f823931cc9a9e8adb0a4c05e5533e6708b8a266807893a739faf4eaaa", size = 187916, upload-time = "2023-05-01T15:15:26.02Z" },
 ]
 
 [[package]]

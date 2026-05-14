@@ -21,7 +21,7 @@ class TargetPostgres(SQLTarget):
 
     def __init__(
         self,
-        config: dict | PurePath | str | list[PurePath | str] | None = None,
+        config: dict[str, t.Any] | PurePath | str | list[PurePath | str] | None = None,
         parse_env_config: bool = False,
         validate_config: bool = True,
     ) -> None:
