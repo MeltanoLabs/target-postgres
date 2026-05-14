@@ -48,6 +48,9 @@ name = "Meltano Team and Contributors"
 email = "hello@meltano.com"
 [project.optional-dependencies]
 faker = [ "faker>=37.1,<41" ]
+vector = [
+  "pgvector>=0.4.1",
+]
 [project.scripts]
 target-postgres = "target_postgres.target:TargetPostgres.cli"
 [project.urls]
@@ -75,6 +78,7 @@ typing = [
   "types-jsonschema>=4.19.0.3",
   "types-paramiko>=4",
   "types-simplejson>=3.19.0.2",
+  { include-group = "testing" },
 ]
 
 [tool.hatch.build.targets.sdist]
@@ -126,6 +130,11 @@ warn_redundant_casts = true
 warn_unreachable = true
 warn_unused_configs = true
 warn_unused_ignores = true
+[[tool.mypy.overrides]]
+follow_untyped_imports = true
+module = [
+  "pgvector.*",
+]
 
 [tool.pytest]
 addopts = [ "-ra" ]
