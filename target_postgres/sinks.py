@@ -17,12 +17,12 @@ if t.TYPE_CHECKING:
     from sqlalchemy.sql import Executable
 
 
-class PostgresSink(SQLSink):
+class PostgresSink(SQLSink[PostgresConnector]):
     """Postgres target sink class."""
 
     connector_class = PostgresConnector
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: t.Any, **kwargs: t.Any) -> None:
         """Initialize SQL Sink. See super class for more details."""
         super().__init__(*args, **kwargs)
         self.temp_table_name = self.generate_temp_table_name()
@@ -44,7 +44,7 @@ class PostgresSink(SQLSink):
         Returns:
             The connector object.
         """
-        return t.cast("PostgresConnector", self._connector)
+        return self._connector
 
     def setup(self) -> None:
         """Set up Sink.
@@ -52,7 +52,7 @@ class PostgresSink(SQLSink):
         This method is called on Sink creation, and creates the required Schema and
         Table entities in the target database.
         """
-        self.append_only = self.key_properties is None or self.key_properties == []
+        self.append_only = not self.key_properties
 
         if self.schema_name:
             self.connector.prepare_schema(self.schema_name)
@@ -65,7 +65,7 @@ class PostgresSink(SQLSink):
                 as_temp_table=False,
             )
 
-    def process_batch(self, context: dict) -> None:
+    def process_batch(self, context: dict[str, t.Any]) -> None:
         """Process a batch with the given batch context.
 
         Writes a batch to the SQL target. Developers may override this method
@@ -110,7 +110,7 @@ class PostgresSink(SQLSink):
             # Drop temp table
             self.connector.drop_table(table=temp_table, connection=connection)
 
-    def generate_temp_table_name(self):
+    def generate_temp_table_name(self) -> str:
         """Uuid temp table name."""
         # sqlalchemy.exc.IdentifierError: Identifier
         # 'temp_test_optional_attributes_388470e9_fbd0_47b7_a52f_d32a2ee3f5f6'
@@ -119,10 +119,25 @@ class PostgresSink(SQLSink):
         # in postgres, used a guid just in case we are using the same session
         return f"{str(uuid.uuid4()).replace('-', '_')}"
 
-    def sanitize_null_text_characters(self, data):
+    @t.overload
+    def sanitize_null_text_characters(self, data: str) -> str: ...
+
+    @t.overload
+    def sanitize_null_text_characters(
+        self,
+        data: dict[str, t.Any],
+    ) -> dict[str, t.Any]: ...
+
+    @t.overload
+    def sanitize_null_text_characters(self, data: list[t.Any]) -> list[t.Any]: ...
+
+    def sanitize_null_text_characters(
+        self,
+        data: str | dict[str, t.Any] | list[t.Any],
+    ) -> str | dict[str, t.Any] | list[t.Any]:
         """Sanitizes null characters by replacing \u0000 with \ufffd."""
 
-        def replace_null_character(d):
+        def replace_null_character(d: str) -> str:
             return d.replace("\u0000", "\ufffd")
 
         if isinstance(data, str):
@@ -176,13 +191,13 @@ class PostgresSink(SQLSink):
 
         # Use copy to run the copy statement.
         # https://www.psycopg.org/psycopg3/docs/basic/copy.html
-        with connection.connection.cursor().copy(copy_statement) as copy:  # type: ignore[attr-defined]
+        with connection.connection.cursor().copy(copy_statement) as copy:
             for row in data_to_copy:
                 processed_row = []
                 for row_column_name in row:
                     if column_bind_processors[row_column_name] is not None:
                         processed_row.append(
-                            column_bind_processors[row_column_name](
+                            column_bind_processors[row_column_name](  # type: ignore[misc]
                                 row[row_column_name]
                             )
                         )
@@ -194,7 +209,7 @@ class PostgresSink(SQLSink):
     def bulk_insert_records(  # type: ignore[override]
         self,
         table: sqlalchemy.Table,
-        schema: dict,
+        schema: dict[str, t.Any],
         records: t.Iterable[dict[str, t.Any]],
         primary_keys: t.Sequence[str],
         connection: sqlalchemy.engine.Connection,
@@ -222,11 +237,12 @@ class PostgresSink(SQLSink):
 
         # If append only is False, we only take the latest record one per primary key
         if self.append_only is False:
-            unique_records: dict[tuple, dict] = {}  # pk tuple: values
+            # pk tuple: values
+            unique_records: dict[tuple[t.Any, ...], dict[str, t.Any]] = {}
             for record in records:
                 insert_record = {
                     column.name: (
-                        self.sanitize_null_text_characters(record.get(column.name))
+                        self.sanitize_null_text_characters(record.get(column.name))  # type: ignore[arg-type]
                         if self.connector.sanitize_null_text_characters
                         else record.get(column.name)
                     )
@@ -241,7 +257,7 @@ class PostgresSink(SQLSink):
             for record in records:
                 insert_record = {
                     column.name: (
-                        self.sanitize_null_text_characters(record.get(column.name))
+                        self.sanitize_null_text_characters(record.get(column.name))  # type: ignore[arg-type]
                         if self.connector.sanitize_null_text_characters
                         else record.get(column.name)
                     )
@@ -262,7 +278,7 @@ class PostgresSink(SQLSink):
                 ),
             )
             self.logger.info("Inserting with SQL: %s", insert)
-            connection.execute(insert, data)
+            connection.execute(insert, data)  # type: ignore[call-overload]
 
         return True
 
@@ -270,7 +286,7 @@ class PostgresSink(SQLSink):
         self,
         from_table: sqlalchemy.Table,
         to_table: sqlalchemy.Table,
-        schema: dict,
+        schema: dict[str, t.Any],
         join_keys: t.Sequence[str],
         connection: sqlalchemy.engine.Connection,
     ) -> int | None:
@@ -290,14 +306,15 @@ class PostgresSink(SQLSink):
         """
         if self.append_only is True:
             # Insert
-            select_stmt = sqlalchemy.select(from_table.columns).select_from(from_table)
+            select_stmt = sqlalchemy.select(from_table.columns).select_from(from_table)  # type: ignore[call-overload]
             insert_stmt = to_table.insert().from_select(
-                names=from_table.columns, select=select_stmt
+                names=from_table.columns,  # type: ignore[arg-type]
+                select=select_stmt,
             )
             connection.execute(insert_stmt)
         else:
             join_predicates = []
-            to_table_key: sqlalchemy.Column
+            to_table_key: sqlalchemy.Column[t.Any]
             for key in join_keys:
                 from_table_key: sqlalchemy.Column = from_table.columns[key]
                 to_table_key = to_table.columns[key]
@@ -312,12 +329,13 @@ class PostgresSink(SQLSink):
             where_condition = sqlalchemy.and_(*where_predicates)
 
             select_stmt = (
-                sqlalchemy.select(from_table.columns)
+                sqlalchemy.select(from_table.columns)  # type: ignore[call-overload]
                 .select_from(from_table.outerjoin(to_table, join_condition))
                 .where(where_condition)
             )
             insert_stmt = sqlalchemy.insert(to_table).from_select(
-                names=from_table.columns, select=select_stmt
+                names=from_table.columns,  # type: ignore[arg-type]
+                select=select_stmt,
             )
 
             connection.execute(insert_stmt)
@@ -341,7 +359,7 @@ class PostgresSink(SQLSink):
 
     def column_representation(
         self,
-        schema: dict,
+        schema: dict[str, t.Any],
     ) -> list[sqlalchemy.Column]:
         """Return a sqlalchemy table representation for the current schema."""
         columns: list[sqlalchemy.Column] = [
@@ -368,7 +386,7 @@ class PostgresSink(SQLSink):
             An insert statement.
         """
         metadata = sqlalchemy.MetaData()
-        table = sqlalchemy.Table(full_table_name, metadata, *columns)
+        table = sqlalchemy.Table(full_table_name, metadata, *columns)  # type: ignore[arg-type]
         return sqlalchemy.insert(table)
 
     def conform_name(self, name: str, object_type: str | None = None) -> str:
