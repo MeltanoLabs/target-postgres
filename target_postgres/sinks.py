@@ -8,6 +8,7 @@ import uuid
 
 import sqlalchemy
 from singer_sdk.sql import SQLSink
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.sql.expression import bindparam
 
 from target_postgres.connector import PostgresConnector
@@ -36,6 +37,11 @@ class PostgresSink(SQLSink[PostgresConnector]):
     def append_only(self, value: bool) -> None:
         """Set the append_only attribute."""
         self._append_only = value
+
+    @property
+    def use_on_conflict_upsert(self) -> bool:
+        """True when load_method explicitly selects INSERT ... ON CONFLICT."""
+        return self.config.get("load_method") == "upsert-on-conflict"
 
     @property
     def connector(self) -> PostgresConnector:
@@ -312,6 +318,53 @@ class PostgresSink(SQLSink[PostgresConnector]):
                 select=select_stmt,
             )
             connection.execute(insert_stmt)
+        elif self.use_on_conflict_upsert:
+            # INSERT ... ON CONFLICT (pk) DO UPDATE SET ... — single statement.
+            # Dramatically faster than the MERGE pattern on TimescaleDB hypertables
+            # with compressed chunks, since only chunks with actual key collisions
+            # need to be decompressed (vs. every chunk hit by the staging key set).
+            # Requires a real UNIQUE or PRIMARY KEY index on `join_keys`.
+            #
+            # Postgres errors with "ON CONFLICT DO UPDATE command cannot affect
+            # row a second time" if two inserted rows share the conflict target,
+            # so dedupe staging on the conflict key first. When _sdc_extracted_at
+            # is present we keep the newest record per key; otherwise the winner
+            # is arbitrary (but deterministic per query plan).
+            pk_cols = [from_table.columns[k] for k in join_keys]
+            order_cols: list[t.Any] = list(pk_cols)
+            if "_sdc_extracted_at" in from_table.columns:
+                order_cols.append(
+                    from_table.columns["_sdc_extracted_at"].desc().nullslast()
+                )
+
+            dedup_select = (
+                sqlalchemy.select(from_table.columns)  # type: ignore[call-overload]
+                .distinct(*pk_cols)
+                .order_by(*order_cols)
+            )
+
+            insert_stmt = postgresql.insert(to_table).from_select(
+                names=from_table.columns,  # type: ignore[arg-type]
+                select=dedup_select,
+            )
+            set_columns = {
+                column_name: insert_stmt.excluded[column_name]
+                for column_name in self.schema["properties"]
+                if column_name not in join_keys
+            }
+            if set_columns:
+                connection.execute(
+                    insert_stmt.on_conflict_do_update(
+                        index_elements=list(join_keys),
+                        set_=set_columns,
+                    )
+                )
+            else:
+                connection.execute(
+                    insert_stmt.on_conflict_do_nothing(
+                        index_elements=list(join_keys),
+                    )
+                )
         else:
             join_predicates = []
             to_table_key: sqlalchemy.Column[t.Any]

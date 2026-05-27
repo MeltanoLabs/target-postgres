@@ -419,6 +419,50 @@ def test_duplicate_records(postgres_target):
     verify_data(postgres_target, "test_duplicate_records", 2, "id", row)
 
 
+def test_upsert_on_conflict_relational_data(postgres_config):
+    """Final state under load_method='upsert-on-conflict' matches MERGE upsert.
+
+    Mirrors test_relational_data but with the new dispatch path. If the
+    INSERT ... ON CONFLICT ... DO UPDATE SET ... statement is wired correctly,
+    the post-upsert row set must equal the MERGE path's row set.
+    """
+    config = {**postgres_config, "load_method": "upsert-on-conflict"}
+    target = TargetPostgres(config=config)
+
+    singer_file_to_target("user_location_data.singer", target)
+    singer_file_to_target("user_location_upsert_data.singer", target)
+
+    users = [
+        {"id": 1, "name": "Johny"},
+        {"id": 2, "name": "George"},
+        {"id": 3, "name": "Jacob"},
+        {"id": 4, "name": "Josh"},
+        {"id": 5, "name": "Jim"},
+        {"id": 8, "name": "Thomas"},
+        {"id": 12, "name": "Paul"},
+        {"id": 13, "name": "Mary"},
+    ]
+    verify_data(target, "test_users", 8, "id", users)
+
+
+def test_upsert_on_conflict_within_batch_dedup(postgres_config):
+    """`load_method='upsert-on-conflict'` dedupes staging via DISTINCT ON.
+
+    duplicate_records.singer emits 5 records with three rows sharing id=1
+    (metric 1, 10, 100) and two rows sharing id=2 (metric 2, 20). Without the
+    DISTINCT ON pre-dedupe step, Postgres would raise
+    "ON CONFLICT DO UPDATE command cannot affect row a second time" because
+    multiple inserted rows would target the same conflict key. The last record
+    per key (highest _sdc_extracted_at) must win.
+    """
+    config = {**postgres_config, "load_method": "upsert-on-conflict"}
+    target = TargetPostgres(config=config)
+
+    singer_file_to_target("duplicate_records.singer", target)
+    row = {"id": 1, "metric": 100}
+    verify_data(target, "test_duplicate_records", 2, "id", row)
+
+
 def test_array_data(postgres_target):
     file_name = "array_data.singer"
     singer_file_to_target(file_name, postgres_target)
