@@ -319,17 +319,8 @@ class PostgresSink(SQLSink[PostgresConnector]):
             )
             connection.execute(insert_stmt)
         elif self.use_on_conflict_upsert:
-            # INSERT ... ON CONFLICT (pk) DO UPDATE SET ... — single statement.
-            # Dramatically faster than the MERGE pattern on TimescaleDB hypertables
-            # with compressed chunks, since only chunks with actual key collisions
-            # need to be decompressed (vs. every chunk hit by the staging key set).
-            # Requires a real UNIQUE or PRIMARY KEY index on `join_keys`.
-            #
-            # Postgres errors with "ON CONFLICT DO UPDATE command cannot affect
-            # row a second time" if two inserted rows share the conflict target,
-            # so dedupe staging on the conflict key first. When _sdc_extracted_at
-            # is present we keep the newest record per key; otherwise the winner
-            # is arbitrary (but deterministic per query plan).
+            # Single-statement upsert. Dedupe staging on the conflict key first:
+            # ON CONFLICT errors if two inserted rows share the target key.
             pk_cols = [from_table.columns[k] for k in join_keys]
             order_cols: list[t.Any] = list(pk_cols)
             if "_sdc_extracted_at" in from_table.columns:

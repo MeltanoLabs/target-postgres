@@ -446,15 +446,7 @@ def test_upsert_on_conflict_relational_data(postgres_config):
 
 
 def test_upsert_on_conflict_within_batch_dedup(postgres_config):
-    """`load_method='upsert-on-conflict'` dedupes staging via DISTINCT ON.
-
-    duplicate_records.singer emits 5 records with three rows sharing id=1
-    (metric 1, 10, 100) and two rows sharing id=2 (metric 2, 20). Without the
-    DISTINCT ON pre-dedupe step, Postgres would raise
-    "ON CONFLICT DO UPDATE command cannot affect row a second time" because
-    multiple inserted rows would target the same conflict key. The last record
-    per key (highest _sdc_extracted_at) must win.
-    """
+    """upsert-on-conflict dedupes within-batch duplicate keys before insert."""
     config = {**postgres_config, "load_method": "upsert-on-conflict"}
     target = TargetPostgres(config=config)
 

@@ -221,7 +221,6 @@ class TargetPostgres(SQLTarget):
         th.Property(
             "load_method",
             th.StringType,
-            default="upsert",
             allowed_values=[
                 "append-only",
                 "upsert",
