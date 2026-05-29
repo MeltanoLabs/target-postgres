@@ -18,6 +18,14 @@ if t.TYPE_CHECKING:
     from sqlalchemy.sql import Executable
 
 
+# SQLAlchemy 2.1 deprecated ``select(...).distinct(*exprs)`` for rendering a
+# PostgreSQL ``DISTINCT ON`` clause in favour of the ``postgresql.distinct_on``
+# syntax extension applied via ``Select.ext()``. Neither the extension nor
+# ``Select.ext()`` exist on SQLAlchemy 2.0.x, which this project still supports
+# (``sqlalchemy~=2.0``), so detect the available API once at import time.
+_HAS_DISTINCT_ON_EXT = hasattr(postgresql, "distinct_on")
+
+
 class PostgresSink(SQLSink[PostgresConnector]):
     """Postgres target sink class."""
 
@@ -328,11 +336,15 @@ class PostgresSink(SQLSink[PostgresConnector]):
                     from_table.columns["_sdc_extracted_at"].desc().nullslast()
                 )
 
-            dedup_select = (
-                sqlalchemy.select(from_table.columns)  # type: ignore[call-overload]
-                .distinct(*pk_cols)
-                .order_by(*order_cols)
-            )
+            base_select = sqlalchemy.select(from_table.columns)  # type: ignore[call-overload]
+            if _HAS_DISTINCT_ON_EXT:
+                # SQLAlchemy 2.1+: DISTINCT ON via the syntax-extension API.
+                dedup_select = base_select.ext(
+                    postgresql.distinct_on(*pk_cols)
+                ).order_by(*order_cols)
+            else:
+                # SQLAlchemy 2.0.x: legacy expression-based DISTINCT ON.
+                dedup_select = base_select.distinct(*pk_cols).order_by(*order_cols)
 
             insert_stmt = postgresql.insert(to_table).from_select(
                 names=from_table.columns,  # type: ignore[arg-type]
