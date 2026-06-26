@@ -52,6 +52,8 @@ except ImportError:
     PGVECTOR_AVAILABLE = False
 
 if t.TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from singer_sdk.sql.connector import FullyQualifiedName
     from sqlalchemy import types
 
@@ -838,7 +840,7 @@ class PostgresConnector(SQLConnector):
             },
         )
 
-    def get_sqlalchemy_url(self, config: dict[str, t.Any]) -> str:
+    def get_sqlalchemy_url(self, config: Mapping[str, t.Any]) -> str:
         """Generate a SQLAlchemy URL.
 
         Args:
@@ -858,7 +860,7 @@ class PostgresConnector(SQLConnector):
         )
         return cast("str", sqlalchemy_url)
 
-    def get_sqlalchemy_query(self, config: dict[str, t.Any]) -> dict[str, t.Any]:
+    def get_sqlalchemy_query(self, config: Mapping[str, t.Any]) -> dict[str, t.Any]:
         """Get query values to be used for sqlalchemy URL creation.
 
         Args:
