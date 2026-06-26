@@ -8,6 +8,7 @@ import uuid
 
 import sqlalchemy
 from singer_sdk.sql import SQLSink
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.sql.expression import bindparam
 
 from target_postgres.connector import PostgresConnector
@@ -15,6 +16,14 @@ from target_postgres.connector import PostgresConnector
 if t.TYPE_CHECKING:
     from singer_sdk.sql.connector import FullyQualifiedName
     from sqlalchemy.sql import Executable
+
+
+# SQLAlchemy 2.1 deprecated ``select(...).distinct(*exprs)`` for rendering a
+# PostgreSQL ``DISTINCT ON`` clause in favour of the ``postgresql.distinct_on``
+# syntax extension applied via ``Select.ext()``. Neither the extension nor
+# ``Select.ext()`` exist on SQLAlchemy 2.0.x, which this project still supports
+# (``sqlalchemy~=2.0``), so detect the available API once at import time.
+_HAS_DISTINCT_ON_EXT = hasattr(postgresql, "distinct_on")
 
 
 class PostgresSink(SQLSink[PostgresConnector]):
@@ -36,6 +45,11 @@ class PostgresSink(SQLSink[PostgresConnector]):
     def append_only(self, value: bool) -> None:
         """Set the append_only attribute."""
         self._append_only = value
+
+    @property
+    def use_on_conflict_upsert(self) -> bool:
+        """True when load_method explicitly selects INSERT ... ON CONFLICT."""
+        return self.config.get("load_method") == "upsert-on-conflict"
 
     @property
     def connector(self) -> PostgresConnector:
@@ -312,6 +326,48 @@ class PostgresSink(SQLSink[PostgresConnector]):
                 select=select_stmt,
             )
             connection.execute(insert_stmt)
+        elif self.use_on_conflict_upsert:
+            # Single-statement upsert. Dedupe staging on the conflict key first:
+            # ON CONFLICT errors if two inserted rows share the target key.
+            pk_cols = [from_table.columns[k] for k in join_keys]
+            order_cols: list[t.Any] = list(pk_cols)
+            if "_sdc_extracted_at" in from_table.columns:
+                order_cols.append(
+                    from_table.columns["_sdc_extracted_at"].desc().nullslast()
+                )
+
+            base_select = sqlalchemy.select(from_table.columns)  # type: ignore[call-overload]
+            if _HAS_DISTINCT_ON_EXT:
+                # SQLAlchemy 2.1+: DISTINCT ON via the syntax-extension API.
+                dedup_select = base_select.ext(
+                    postgresql.distinct_on(*pk_cols)
+                ).order_by(*order_cols)
+            else:
+                # SQLAlchemy 2.0.x: legacy expression-based DISTINCT ON.
+                dedup_select = base_select.distinct(*pk_cols).order_by(*order_cols)
+
+            insert_stmt = postgresql.insert(to_table).from_select(
+                names=from_table.columns,  # type: ignore[arg-type]
+                select=dedup_select,
+            )
+            set_columns = {
+                column_name: insert_stmt.excluded[column_name]
+                for column_name in self.schema["properties"]
+                if column_name not in join_keys
+            }
+            if set_columns:
+                connection.execute(
+                    insert_stmt.on_conflict_do_update(
+                        index_elements=list(join_keys),
+                        set_=set_columns,
+                    )
+                )
+            else:
+                connection.execute(
+                    insert_stmt.on_conflict_do_nothing(
+                        index_elements=list(join_keys),
+                    )
+                )
         else:
             join_predicates = []
             to_table_key: sqlalchemy.Column[t.Any]
