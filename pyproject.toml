@@ -35,8 +35,8 @@ classifiers = [
 dynamic = [ "version" ]
 dependencies = [
   "paramiko>=4",
-  "psycopg[binary]==3.3.4",
-  "psycopg2-binary==2.9.12",
+  "psycopg[binary]==3.3.6",
+  "psycopg2-binary==2.9.13",
   "singer-sdk[sql]~=0.54.0",
   "sqlalchemy~=2.0",
 ]
