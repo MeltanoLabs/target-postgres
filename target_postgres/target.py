@@ -219,6 +219,26 @@ class TargetPostgres(SQLTarget):
             ),
         ),
         th.Property(
+            "load_method",
+            th.StringType,
+            allowed_values=[
+                "append-only",
+                "upsert",
+                "overwrite",
+                "upsert-on-conflict",
+            ],
+            description=(
+                "How records are written to the target table. `upsert` performs "
+                "MERGE-style UPDATE+INSERT via a staging table. `upsert-on-conflict` "
+                "uses a single `INSERT ... ON CONFLICT (pk) DO UPDATE SET ...` "
+                "statement, which is dramatically faster on TimescaleDB hypertables "
+                "with compressed chunks (only chunks with actual conflicts are "
+                "decompressed). `upsert-on-conflict` requires a real UNIQUE or "
+                "PRIMARY KEY index on the stream's key_properties. `append-only` "
+                "always inserts. `overwrite` truncates then inserts."
+            ),
+        ),
+        th.Property(
             "interpret_content_encoding",
             th.BooleanType,
             default=False,
