@@ -53,7 +53,7 @@ class TargetPostgres(SQLTarget):
             )
 
         # There's a few ways to do this in JSON Schema but it is schema draft dependent.
-        # https://stackoverflow.com/questions/38717933/jsonschema-attribute-conditionally-required # noqa: E501
+        # https://stackoverflow.com/questions/38717933/jsonschema-attribute-conditionally-required
         assert (self.config.get("sqlalchemy_url") is not None) or (
             self.config.get("host") is not None
             and self.config.get("port") is not None

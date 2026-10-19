@@ -368,7 +368,7 @@ class PostgresConnector(SQLConnector):
         """
         return bool(self.config.get("sanitize_null_text_characters", False))
 
-    def prepare_table(  # type: ignore[override]  # noqa: PLR0913
+    def prepare_table(  # type: ignore[override]  # noqa: PLR0913  # ruff: ignore[PLR0917]
         self,
         full_table_name: str | FullyQualifiedName,
         schema: dict[str, t.Any],
@@ -564,7 +564,7 @@ class PostgresConnector(SQLConnector):
         to_sql.register_sql_datatype_handler("pgvector", _handle_vector_type)
         return to_sql
 
-    def create_empty_table(  # type: ignore[override]  # noqa: PLR0913
+    def create_empty_table(  # type: ignore[override]  # noqa: PLR0913  # ruff: ignore[PLR0917]
         self,
         table_name: str,
         meta: sqlalchemy.MetaData,
@@ -609,7 +609,7 @@ class PostgresConnector(SQLConnector):
                     property_name,
                     self.to_sql_type(property_jsonschema),
                     primary_key=is_primary_key,
-                    autoincrement=False,  # See: https://github.com/MeltanoLabs/target-postgres/issues/193 # noqa: E501
+                    autoincrement=False,  # See: https://github.com/MeltanoLabs/target-postgres/issues/193
                 )
             )
         if as_temp_table:
@@ -736,7 +736,7 @@ class PostgresConnector(SQLConnector):
             },
         )
 
-    def _adapt_column_type(  # type: ignore[override]  # noqa: PLR0913
+    def _adapt_column_type(  # type: ignore[override]  # noqa: PLR0913  # ruff: ignore[PLR0917]
         self,
         schema_name: str,
         table_name: str,

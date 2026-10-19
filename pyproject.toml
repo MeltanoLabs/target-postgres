@@ -30,13 +30,14 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: 3.15",
   "Programming Language :: Python :: Implementation :: CPython",
 ]
 dynamic = [ "version" ]
 dependencies = [
   "paramiko>=4",
-  "psycopg[binary]==3.3.4",
-  "psycopg2-binary==2.9.12",
+  "psycopg[binary]==3.3.6",
+  "psycopg2-binary==2.9.13",
   "singer-sdk[sql]~=0.54.0",
   "sqlalchemy~=2.0",
 ]
@@ -93,8 +94,8 @@ source = "vcs"
 required-version = ">=0.9.17"
 prerelease = "if-necessary-or-explicit"
 [tool.uv.sources]
-meltano-tap-countries = { git = "https://github.com/meltano/sdk.git", subdirectory = "packages/meltano-tap-countries", rev = "main" }
-meltano-tap-fundamentals = { git = "https://github.com/meltano/sdk.git", subdirectory = "packages/meltano-tap-fundamentals", rev = "main" }
+meltano-tap-countries = { git = "https://github.com/meltano/sdk.git", subdirectory = "packages/meltano-tap-countries", rev = "v0.54" }
+meltano-tap-fundamentals = { git = "https://github.com/meltano/sdk.git", subdirectory = "packages/meltano-tap-fundamentals", rev = "v0.54" }
 
 [tool.ruff.lint]
 select = [
@@ -144,6 +145,7 @@ filterwarnings = [
   "error",
   "once:Exception ignored:pytest.PytestUnraisableExceptionWarning",
   "once:Python .* will reach its end of life:singer_sdk.helpers._compat.SingerSDKPythonEOLWarning",
+  "once:Python .* reached its end of life:singer_sdk.helpers._compat.SingerSDKPythonEOLWarning",
 ]
 pythonpath = [ "." ]
 strict = true

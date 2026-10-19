@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import datetime
+import datetime as dt
 import typing as t
 import uuid
 
@@ -443,7 +443,7 @@ class PostgresSink(SQLSink[PostgresConnector]):
         if not self.connector.table_exists(self.full_table_name):
             return
 
-        deleted_at = datetime.datetime.now(tz=datetime.timezone.utc)
+        deleted_at = dt.datetime.now(tz=dt.timezone.utc)
 
         with self.connector._connect() as connection, connection.begin():
             # Theoretically these errors should never appear because we always create
